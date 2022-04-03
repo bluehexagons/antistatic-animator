@@ -1,5 +1,40 @@
 {
-  "compilerOptions": {
-    "jsx": "react"
-  }
+    "compileOnSave": true,
+    "compilerOptions": {
+        "jsx": "react",
+        "alwaysStrict": true,
+        "declaration": false,
+        "forceConsistentCasingInFileNames": true,
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "newLine": "LF",
+        "noEmitOnError": false,
+        // "noImplicitAny": true,
+        // "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "lib": ["ESNext", "DOM"],
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "outDir": "./dist",
+        "preserveConstEnums": true,
+        "removeComments": true,
+        "sourceMap": true,
+        "strict": false,
+        "strictBindCallApply": true,
+        "strictFunctionTypes": true,
+        // "strictNullChecks": true,
+        // "strictPropertyInitialization": true,
+        "target": "ESNext",
+        "types": ["node"]
+    },
+    "files": [
+        "src/launch.ts",
+        "src/engine.ts",
+        "src/launch-animator.ts",
+        "src/animator.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "**/__tests__/*"
+    ]
 }
