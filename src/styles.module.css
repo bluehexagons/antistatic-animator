@@ -1,4 +1,4 @@
-.animator {
+#animator {
   display: flex;
   flex-direction: column;
   position: absolute;
@@ -12,24 +12,24 @@
   font: 8pt "Droid Sans Mono", monospace;
   color: #ddd;
 }
-.keyframes {
+#keyframes {
   margin-bottom: 12px;
 }
-.keyframes > div {
+#keyframes > div {
   display: inline-block;
   margin-right: 30px;
   vertical-align: top;
 }
-.keyframes canvas {
+#keyframes canvas {
   background: black
 }
-.keyframes canvas:active, .keyframes canvas:focus {
+#keyframes canvas:active, #keyframes canvas:focus {
   outline: none;
 }
-.selectors {
+#selectors {
   margin-bottom: 10px;
 }
-.selectors input, .selectors select {
+#selectors input, #selectors select {
   font-size: 12pt;
 }
 input {
@@ -43,11 +43,11 @@ div.input {
 }
 input, .input, select, button {
   color: #ddd;
-  background-color: .333;
+  background-color: #333;
   font: 8pt "Droid Sans Mono", monospace;
 }
 .input[contentEditable=false], select:disabled {
-  background-color: .555;
+  background-color: #555;
   color: #bbb;
   border-color: #ddd;
 }
@@ -66,7 +66,7 @@ div.prop-list {
   vertical-align: top;
 }
 div.prop-list.highlighted {
-  background: .262626;
+  background: #262626;
 }
 .edit-hurtbubbles .input {
   display: inline-block;
@@ -83,7 +83,7 @@ div.prop label {
   flex-grow: 1;
 }
 
-.scrollable {
+#scrollable {
   overflow: auto;
   flex-grow: 1;
 }

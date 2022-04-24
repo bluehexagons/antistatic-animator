@@ -31,7 +31,17 @@ module.exports = [
       },
       {
         test: /\.css$/i,
-        use: ['style-loader', 'css-loader'],
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              modules: {
+                localIdentName: '[local]',
+              },
+            },
+          }
+        ]
       }
     ]},
     output: {
@@ -39,7 +49,7 @@ module.exports = [
       filename: 'react.js'
     },
     resolve: {
-      extensions: ['.ts', '.tsx', '.js']
+      extensions: ['.ts', '.tsx', '.js', '.css']
     },
     plugins: [
       new HtmlWebpackPlugin({

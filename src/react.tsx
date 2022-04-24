@@ -2,17 +2,20 @@ import React, { useLayoutEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { init } from './animator'
 
-// import styles from 'styles.module.css'
+import styles from './styles.module.css'
+
 
 const App = () => {
     console.log('running')
+console.log(styles.input);
+console.log(styles.animator);
+console.log(styles)
     useLayoutEffect(() => {
         console.log('lets go')
         init();
     }, [])
     return (
-        <div id="animator">
-            hi there
+        <div id="animator" className={styles.animator}>
             <div id="main"></div>
             <div id="selectors">
                 <select id="files"></select>
