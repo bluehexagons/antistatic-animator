@@ -56,8 +56,8 @@ type Multichoices = {
   choices: string[]
 }
 
-const keyframesElement = document.getElementById('keyframes') as HTMLElement
-const bubblesElement = document.getElementById('bubbles') as HTMLElement
+let keyframesElement = null as HTMLElement
+let bubblesElement = null as HTMLElement
 const clearUI = () => {
   while (keyframesElement.firstChild) {
     keyframesElement.removeChild(keyframesElement.firstChild)
@@ -1474,11 +1474,8 @@ const populateSelect = (select: HTMLSelectElement, options: string[]) => {
   }
 }
 
-const filesElement = document.getElementById('files') as HTMLSelectElement
-const animationsElement = document.getElementById(
-  'animations'
-) as HTMLSelectElement
-
+let filesElement = null as HTMLSelectElement;
+let animationsElement = null as HTMLSelectElement;
 let initialized = false
 let character: EntityData = null
 let animFile = ''
@@ -1503,8 +1500,6 @@ const save = () => {
     encoding: 'utf8',
   })
 }
-
-document.getElementById('save_button').addEventListener('click', save)
 
 const start = () => {
   if (!initialized) {
@@ -1581,7 +1576,6 @@ const start = () => {
       console.log('animator reloading', name)
     })
   }
-  document.getElementById('animator').style.removeProperty('display')
 }
 
 export const Tools = {
@@ -1599,7 +1593,7 @@ export const Tools = {
   },
   *iterateAnimations(): Generator<Keyframe, void, void> {
     for (const a of Object.getOwnPropertyNames(parsed)) {
-      yield parsed[a]
+      yield parsed[a] as any
     }
   },
   *insertBubble(index = -1): Generator<[Keyframe, number[]], void, void> {
@@ -1628,44 +1622,57 @@ export const Tools = {
       kf.hurtbubbles.splice(j, 4)
     }
   },
-  *iterateBubbles(bubble = -1): Generator<[number, [number, number, number, string]], void, void> {
-    for (const kf of Tools.iterateKeyframes()) {
-      if (!kf.hurtbubbles || !Array.isArray(kf.hurtbubbles)) {
-        continue
-      }
-      for (let i = 0; i < kf.hurtbubbles.length; i = i + 4) {
-        if (bubble !== -1 && i !== bubble * 4) {
-          continue
-        }
-        const slice = kf.hurtbubbles.slice(i, i + 4)
-        yield [i / 4, slice]
-        // copy changes back in
-        for (let j = 0; j < 4; j++) {
-          kf.hurtbubbles[j + i] = slice[j]
-        }
-      }
-    }
-  },
-  *iterateCurrentBubbles(bubble = -1): Generator<[number, [number, number, number, string]], void, void> {
-    for (const kf of Tools.iterateCurrentKeyframes()) {
-      if (!kf.hurtbubbles || !Array.isArray(kf.hurtbubbles)) {
-        continue
-      }
-      for (let i = 0; i < kf.hurtbubbles.length; i = i + 4) {
-        if (bubble !== -1 && i !== bubble * 4) {
-          continue
-        }
-        const slice = kf.hurtbubbles.slice(i, i + 4)
-        yield [i / 4, slice]
-        // copy changes back in
-        for (let j = 0; j < 4; j++) {
-          kf.hurtbubbles[j + i] = slice[j]
-        }
-      }
-    }
-  },
+  // *iterateBubbles(bubble = -1): Generator<[number, [number, number, number, string]], void, void> {
+  //   for (const kf of Tools.iterateKeyframes()) {
+  //     if (!kf.hurtbubbles || !Array.isArray(kf.hurtbubbles)) {
+  //       continue
+  //     }
+  //     for (let i = 0; i < kf.hurtbubbles.length; i = i + 4) {
+  //       if (bubble !== -1 && i !== bubble * 4) {
+  //         continue
+  //       }
+  //       const slice = kf.hurtbubbles.slice(i, i + 4)
+  //       yield [i / 4, slice]
+  //       // copy changes back in
+  //       for (let j = 0; j < 4; j++) {
+  //         kf.hurtbubbles[j + i] = slice[j]
+  //       }
+  //     }
+  //   }
+  // },
+  // *iterateCurrentBubbles(bubble = -1): Generator<[number, [number, number, number, string]], void, void> {
+  //   for (const kf of Tools.iterateCurrentKeyframes()) {
+  //     if (!kf.hurtbubbles || !Array.isArray(kf.hurtbubbles)) {
+  //       continue
+  //     }
+  //     for (let i = 0; i < kf.hurtbubbles.length; i = i + 4) {
+  //       if (bubble !== -1 && i !== bubble * 4) {
+  //         continue
+  //       }
+  //       const slice = kf.hurtbubbles.slice(i, i + 4)
+  //       yield [i / 4, slice]
+  //       // copy changes back in
+  //       for (let j = 0; j < 4; j++) {
+  //         kf.hurtbubbles[j + i] = slice[j]
+  //       }
+  //     }
+  //   }
+  // },
   save,
 }
-global['Tools'] = Tools
 
-start()
+export const init = () => {
+  keyframesElement = document.getElementById('keyframes') as HTMLElement
+  bubblesElement = document.getElementById('bubbles') as HTMLElement
+  filesElement = document.getElementById('files') as HTMLSelectElement
+  animationsElement = document.getElementById(
+    'animations'
+  ) as HTMLSelectElement
+
+  document.getElementById('save_button').addEventListener('click', save)
+
+  start()
+}
+
+console.log('find tools at window.tools')
+global['Tools'] = Tools

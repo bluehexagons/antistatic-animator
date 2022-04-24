@@ -4,13 +4,10 @@ export type Dictionary = {[s: string]: any}
 
 export type SegmentHandler = (from: number, to: number) => void
 
-export const debugMode = !!fs.existsSync('./debug')
+export const appDir = `${process.cwd()}/../../antistatic/`
+export const debugMode = !!fs.existsSync(appDir + 'debug')
 
 console.log('`./debug` found?', debugMode)
-
-if (debugMode) {
-  console.log('debug - Enabled character file watching')
-}
 
 export const objHas = (o: {}, prop: string | number | symbol) => Object.prototype.hasOwnProperty.call(o, prop)
 
@@ -34,8 +31,6 @@ export const mapToObject = (m: Map<string, any>) => {
   return o
 }
 
-export const appDir = `${process.cwd()}/`
-
 export const readDir = (dir: string) => {
   const dirFiles = fs.readdirSync(appDir + dir)
   const fileMap = new Map<string, string>()
@@ -57,10 +52,6 @@ export class WatchedFile {
   constructor(file: string) {
     this.filename = file
     this.content = fs.readFileSync(file, 'utf8')
-
-    if (!debugMode) {
-      return
-    }
 
     try {
       fs.watch(file, (_event, filename) => {
@@ -162,4 +153,3 @@ export const objDiff = (a: Record<string, any>, b: Record<string, any>) => {
 
   return [added, removed]
 }
-

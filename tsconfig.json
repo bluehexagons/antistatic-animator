@@ -3,6 +3,7 @@
     "compilerOptions": {
         "jsx": "react",
         "alwaysStrict": true,
+        "allowSyntheticDefaultImports": true,
         "declaration": false,
         "forceConsistentCasingInFileNames": true,
         "module": "ESNext",
@@ -13,8 +14,8 @@
         // "noImplicitReturns": true,
         "noImplicitThis": true,
         "lib": ["ESNext", "DOM"],
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
         "outDir": "./dist",
         "preserveConstEnums": true,
         "removeComments": true,
@@ -25,14 +26,9 @@
         // "strictNullChecks": true,
         // "strictPropertyInitialization": true,
         "target": "ESNext",
-        "types": ["node"]
+        "types": ["node"],
+        "plugins": [{ "name": "typescript-plugin-css-modules" }]
     },
-    "files": [
-        "src/launch.ts",
-        "src/engine.ts",
-        "src/launch-animator.ts",
-        "src/animator.ts"
-    ],
     "exclude": [
         "node_modules",
         "**/__tests__/*"
