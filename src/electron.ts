@@ -8,6 +8,11 @@ function createWindow () {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      nodeIntegrationInWorker: true,
+      nodeIntegrationInSubFrames: true,
+      webSecurity: false,
+      plugins: true,
+      spellcheck: false
     }
   });
   win.loadFile('index.html');

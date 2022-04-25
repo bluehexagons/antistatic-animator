@@ -90,19 +90,19 @@ export class WatchedFile {
 }
 
 export const watchDir = (dir: string) => {
-  const dirFiles = fs.readdirSync(appDir + dir)
+  const dirFiles = fs.readdirSync(dir)
   const fileMap = new Map<string, WatchedFile>()
   if (!dirFiles) {
     console.error('Falsy dirFiles:', dirFiles)
   }
   for (let i = 0; i < dirFiles.length; i++) {
     const f = dirFiles[i]
-    fileMap.set(f, new WatchedFile(`${appDir + dir}/${f}`))
+    fileMap.set(f, new WatchedFile(`${dir}/${f}`))
   }
   return fileMap
 }
 
-export const characterDir = 'app/characters/data'
+export const characterDir = `${appDir}app/characters/data`
 export const characterData = watchDir(characterDir)
 const watchers = [] as ((name: string) => void)[]
 
