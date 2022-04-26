@@ -1,4 +1,5 @@
-const { app, BrowserWindow } = require('electron');
+import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 
 function createWindow () {
   // Create the browser window.
@@ -18,4 +19,14 @@ function createWindow () {
   win.loadFile('index.html');
 }
 
+ipcMain.handle('showOpenDialog', (_event, config) => {
+  return dialog.showOpenDialog(config)
+})
+
 app.on('ready', createWindow);
+
+app.whenReady().then(() => {
+  installExtension(REACT_DEVELOPER_TOOLS)
+    .then((name) => console.log(`Added Extension: ${name}`))
+    .catch((err) => console.log('An error occurred: ', err));
+});

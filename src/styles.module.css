@@ -1,3 +1,6 @@
+body {
+  background: #222;
+}
 #animator {
   display: flex;
   flex-direction: column;

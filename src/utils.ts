@@ -1,45 +1,26 @@
 import * as fs from 'fs'
+import * as path from 'path'
 
-export type Dictionary = {[s: string]: any}
+let appDir = process.cwd()
 
-export type SegmentHandler = (from: number, to: number) => void
-
-export const appDir = `${process.cwd()}/../../antistatic/`
-export const debugMode = !!fs.existsSync(appDir + 'debug')
-
-console.log('`./debug` found?', debugMode)
+export const checkDebugMode = () => {
+  const debugMode = !!fs.existsSync(path.resolve(appDir, 'debug'))
+  console.log('`./debug` found?', debugMode)
+  return debugMode
+}
 
 export const objHas = (o: {}, prop: string | number | symbol) => Object.prototype.hasOwnProperty.call(o, prop)
 
-export const map = <T = any>(o: {[key: string]: T}): Map<string, T> => {
-  if (!o) {
-    return new Map()
-  }
-  const keys = Object.keys(o)
-  const m = new Map()
-  for (const key of keys) {
-    m.set(key, o[key])
-  }
-  return m
-}
-
-export const mapToObject = (m: Map<string, any>) => {
-  const o: {[s: string]: any} = {}
-  for (const [k, v] of m) {
-    o[k] = v
-  }
-  return o
-}
-
 export const readDir = (dir: string) => {
-  const dirFiles = fs.readdirSync(appDir + dir)
+  const absolute = path.resolve(appDir, dir)
+  const dirFiles = fs.readdirSync(absolute)
   const fileMap = new Map<string, string>()
   if (!dirFiles) {
     console.error('Falsy dirFiles:', dirFiles)
   }
   for (let i = 0; i < dirFiles.length; i++) {
     const f = dirFiles[i]
-    fileMap.set(f, fs.readFileSync(`${appDir + dir}/${f}`, 'utf8'))
+    fileMap.set(f, fs.readFileSync(path.resolve(absolute, f), 'utf8'))
   }
   return fileMap
 }
@@ -102,8 +83,19 @@ export const watchDir = (dir: string) => {
   return fileMap
 }
 
-export const characterDir = `${appDir}app/characters/data`
-export const characterData = watchDir(characterDir)
+export let characterDir = ''
+export let characterData: Map<string, WatchedFile> = null
+
+export const updateAppDir = (newAppDir: string) => {
+  appDir = newAppDir
+  characterDir = path.resolve(appDir, 'app/characters/data')
+  try {
+  characterData = watchDir(characterDir)
+  } catch (e) {
+    console.log('Error watching character directory:', e)
+  }
+}
+
 const watchers = [] as ((name: string) => void)[]
 
 export const watchCharacters = (callback: (name: string) => void) => {

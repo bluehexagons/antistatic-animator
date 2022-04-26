@@ -1,3 +1,4 @@
+import * as path from 'path'
 import * as fs from 'fs'
 import * as JSONC from 'jsonc-parser'
 
@@ -1488,7 +1489,7 @@ const save = () => {
   const s
     = JSON.stringify(parsed, null, '  ').replace(
       /("hurtbubbles": \[\n)([^\]]*)(\n\s*\])/gm,
-      (a, ...b) => {
+      (_, ...b) => {
         const s = b[1].replace(
           /(\s+[\d.-]+),\n\s+([\d.-]+),\n\s+([\d.-]+),\n\s+([\d.-]+,?)/g,
           '$1, $2, $3, $4'
@@ -1496,7 +1497,7 @@ const save = () => {
         return b[0] + s + b[2]
       }
     ) + '\n'
-  fs.writeFileSync(`${characterDir}/${animFile}`, s, {
+    fs.writeFileSync(path.resolve(characterDir, animFile), s, {
     encoding: 'utf8',
   })
 }
@@ -1505,7 +1506,6 @@ const start = () => {
   if (!initialized) {
     initialized = true
 
-    document.body.style.background = '#111'
     editorHurtbubbles = document.createElement('div')
     editorHurtbubbles.className = 'edit-hurtbubbles'
     // editorHurtbubbles.addEventListener
