@@ -2,12 +2,13 @@
   "name": "antistatic-animator",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/electron.js",
   "type": "commonjs",
   "scripts": {
     "build": "webpack --config ./webpack.config.js",
-    "start": "electron ./dist/electron.js",
-    "watch": "npm run build"
+    "start": "electron .",
+    "watch": "npm run build",
+    "dist": "npx electron-packager ."
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
     "@types/react-dom": "^18.0.2",
     "css-loader": "^6.7.1",
     "electron-devtools-installer": "^3.2.0",
+    "electron-packager": "^15.5.1",
     "html-webpack-plugin": "^5.5.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",

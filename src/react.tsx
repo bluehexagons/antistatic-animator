@@ -1,14 +1,17 @@
 import { ipcRenderer } from 'electron';
-import React, { useCallback, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { init } from './animator'
-
-import styles from './styles.module.css'
+import { init } from './animator';
 import { characterData, updateAppDir } from './utils';
 
+import styles from './styles.module.css';
 
 const App = () => {
-    const [appDir, setAppDir] = useState(process.cwd())
+    const [appDir, setAppDir] = useState(localStorage['antistatic-dir'] || process.cwd())
+
+    useEffect(() => {
+        localStorage['antistatic-dir'] = appDir;
+    }, [appDir])
 
     const browseAppDir = useCallback(async () => {
         const dir = await ipcRenderer.invoke('showOpenDialog', {
@@ -30,17 +33,16 @@ const App = () => {
 
     return (
         <div id="animator" className={styles.animator}>
+            {/* old animator code */}
             <div id="selectors">
                 <button onClick={browseAppDir}>Installation Directory: {appDir}</button>
-                <select id="files"></select>
-                <select id="animations"></select>
+                <select id="files" />
+                <select id="animations" />
                 <button id="save_button">Save</button>
             </div>
             <div id="scrollable">
-                <div id="keyframes">
-                </div>
-                <div id="bubbles">
-                </div>
+                <div id="keyframes" />
+                <div id="bubbles" />
             </div>
         </div>
     )
