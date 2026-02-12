@@ -34,7 +34,7 @@ jobs:
         run: mkdir -p release
         shell: bash
       - uses: actions/upload-artifact@v4
-        if: ${{ hashFiles('release/**') != '' }}
+        if: hashFiles('release/**') != ''
         with:
           name: ${{ matrix.platform }}-package
           path: release/**
@@ -49,4 +49,4 @@ jobs:
           path: artifacts
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*/release/*-*
+          files: artifacts/*/release/**/*
