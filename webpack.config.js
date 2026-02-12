@@ -22,7 +22,6 @@ module.exports = [
     entry: './src/react.tsx',
     target: 'electron-renderer',
     devtool: 'source-map',
-    watch: true,
     module: { rules: [
       {
         test: /\.ts(x?)$/,
