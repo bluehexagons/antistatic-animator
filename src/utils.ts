@@ -1,5 +1,5 @@
-import * as fs from 'fs'
-import * as path from 'path'
+import fs from './runtime/fs'
+import path from './runtime/path'
 
 let appDir = process.cwd()
 
