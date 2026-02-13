@@ -5,12 +5,24 @@
   "main": "dist/electron.js",
   "type": "commonjs",
   "scripts": {
-    "build": "npm run build:main && npm run build:renderer",
-    "build:main": "esbuild ./src/electron.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/electron.js --external:electron --external:electron-devtools-installer",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "build:main": "esbuild ./src/electron.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/electron.js --external:electron --external:electron-devtools-installer",
+    "build:preload": "esbuild ./src/preload.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/preload.js --external:electron",
     "build:renderer": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
     "start": "electron .",
-    "watch": "npm run build:main && npm run build:renderer -- --watch",
-    "dist": "npx electron-packager ."
+    "watch": "npm run build:main && npm run build:preload && npm run build:renderer -- --watch",
+    "dist": "npx @electron/packager . --config=packager.config.js",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext ts,tsx",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -22,19 +34,44 @@
     "url": "https://github.com/bluehexagons/antistatic-animator/issues"
   },
   "homepage": "https://github.com/bluehexagons/antistatic-animator#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "devDependencies": {
-    "@types/react": "^18.0.6",
-    "@types/react-dom": "^18.0.2",
+    "@electron/packager": "^19.0.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/ui": "^4.0.18",
+    "electron": "^40.4.0",
+    "electron-devtools-installer": "^4.0.0",
     "esbuild": "^0.27.3",
-    "electron-devtools-installer": "^3.2.0",
-    "electron-packager": "^16.0.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "typescript": "^4.6.3",
-    "typescript-plugin-css-modules": "^3.4.0",
-    "vite": "^7.3.1"
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.6.1",
+    "husky": "^9.1.7",
+    "jsdom": "^28.0.0",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "^5.9.3",
+    "typescript-plugin-css-modules": "^5.2.0",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css}": [
+      "prettier --write"
+    ]
   }
 }
