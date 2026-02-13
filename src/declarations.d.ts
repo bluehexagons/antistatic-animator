@@ -1,2 +1,2 @@
-declare module '*.css'
-declare module 'electron'
+declare module '*.css';
+declare module 'electron';

@@ -11,7 +11,9 @@ body {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  font: 8pt "Droid Sans Mono", monospace;
+  font:
+    8pt 'Droid Sans Mono',
+    monospace;
   color: #ddd;
 }
 #keyframes {
@@ -23,32 +25,41 @@ body {
   vertical-align: top;
 }
 #keyframes canvas {
-  background: black
+  background: black;
 }
-#keyframes canvas:active, #keyframes canvas:focus {
+#keyframes canvas:active,
+#keyframes canvas:focus {
   outline: none;
 }
 #selectors {
   margin-bottom: 10px;
 }
-#selectors input, #selectors select {
+#selectors input,
+#selectors select {
   font-size: 12pt;
 }
 input {
   border: none;
 }
-select, button {
+select,
+button {
   border: 1px solid #eee;
 }
 div.input {
   color: #ddd;
 }
-input, .input, select, button {
+input,
+.input,
+select,
+button {
   color: #ddd;
   background-color: #333;
-  font: 8pt "Droid Sans Mono", monospace;
+  font:
+    8pt 'Droid Sans Mono',
+    monospace;
 }
-.input[contentEditable=false], select:disabled {
+.input[contentEditable='false'],
+select:disabled {
   background-color: #555;
   color: #bbb;
   border-color: #ddd;

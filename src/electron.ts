@@ -2,7 +2,7 @@ import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-insta
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 
-function createWindow () {
+function createWindow() {
   // Create the browser window.
   let win = new BrowserWindow({
     width: 800,
@@ -11,15 +11,15 @@ function createWindow () {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
-    }
+      sandbox: false,
+    },
   });
   win.loadFile('dist/index.html');
 }
 
 ipcMain.handle('showOpenDialog', (_event, config) => {
-  return dialog.showOpenDialog(config)
-})
+  return dialog.showOpenDialog(config);
+});
 
 app.on('ready', createWindow);
 
