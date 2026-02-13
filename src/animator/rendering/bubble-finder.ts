@@ -55,6 +55,11 @@ export const findBubbles = (
 
   const hb = animation.keyframes[keyframe].hurtbubbles;
 
+  // Return empty array if no hurtbubbles
+  if (!hb || !Array.isArray(hb)) {
+    return bubbles;
+  }
+
   for (let i = 0; i < hb.length; i = i + 4) {
     const [hbx, hby, hbr] = [hb[i + 0], hb[i + 1], hb[i + 2]];
     const dx = hbx - wx;
