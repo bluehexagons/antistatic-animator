@@ -14,7 +14,6 @@ export * from './constants';
 export { editing } from './state/EditingState';
 export { dragging } from './state/DragState';
 export { editorCamera } from './state/CameraState';
-export { clearUI } from './state/FileState';
 
 // Rendering
 export { paintBubbles } from './rendering/bubble-painter';
@@ -52,9 +51,10 @@ export { useEditorCanvas } from './hooks/useEditorCanvas';
 // Initialization
 export {
   initAnimator,
+  initAnimator as init, // Main init function called by react.tsx
   showEditor,
-  clearUI as clearAnimatorUI,
-  previewUpdate,
+  clearUI,
+  loadAnimation,
   getEditorCanvas,
   getEditorContext,
 } from './init';

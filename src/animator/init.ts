@@ -5,18 +5,37 @@
  * Sets up the UI, event handlers, and global state.
  */
 
-import type { EntityData, Animation } from './types';
+import * as JSONC from 'jsonc-parser';
+import type { EntityData, Animation, AnimationMap } from './types';
 import { editing } from './state/EditingState';
 import { editorCamera } from './state/CameraState';
 import { initCanvasEvents, updateUI, resetHoverState } from './events/canvas-events';
 import { paintBubbles } from './rendering/bubble-painter';
 import { createTools } from './api/tools';
+import {
+  makePropDisplay,
+  makeStatDisplay,
+  keyframeCopier,
+  bubblePreview,
+  previewUpdate,
+} from './ui/ui-builders';
+import { save as saveFile } from './operations/file-operations';
+import { characterData, objHas, watchCharacters } from '../utils';
+
+/** Wrapper for save operation */
+function save() {
+  if (animFile === '' || !parsed) {
+    return;
+  }
+  saveFile(animFile, parsed);
+}
 
 /** Global window augmentation */
 declare global {
   interface Window {
     editing: typeof editing;
     Tools: ReturnType<typeof createTools>;
+    parsed: AnimationMap;
   }
 }
 
@@ -28,9 +47,16 @@ let editorCtx: CanvasRenderingContext2D | null = null;
 let keyframesElement: HTMLElement | null = null;
 let bubblesElement: HTMLElement | null = null;
 let editorHurtbubbles: HTMLDivElement | null = null;
+let editorDiv: HTMLDivElement | null = null;
 
-/** Preview update callbacks */
-export const previewUpdate: (() => void)[] = [];
+/** File state */
+let filesElement: HTMLSelectElement | null = null;
+let animationsElement: HTMLSelectElement | null = null;
+let character: EntityData | null = null;
+let animFile = '';
+let parsed: AnimationMap = {};
+let loadedAnimation: Animation | null = null;
+let initialized = false;
 
 /**
  * Clear UI containers
@@ -43,6 +69,58 @@ export function clearUI() {
   }
   while (bubblesElement.firstChild) {
     bubblesElement.removeChild(bubblesElement.firstChild);
+  }
+}
+
+/**
+ * Populate a select element with options
+ */
+function populateSelect(select: HTMLSelectElement, options: string[]) {
+  while (select.options.length > 0) {
+    select.options.remove(0);
+  }
+  for (let i = 0; i < options.length; i++) {
+    const option = document.createElement('option');
+    option.text = options[i];
+    select.add(option);
+  }
+}
+
+/**
+ * Load an animation into the editor
+ */
+export function loadAnimation(character: EntityData, anim: Animation) {
+  if (!keyframesElement || !bubblesElement || !editorDiv || !editorCanvas || !editorCtx) return;
+
+  const animDiv = makePropDisplay(anim);
+  const statDiv = makeStatDisplay(anim);
+
+  clearUI();
+  previewUpdate.length = 0;
+  editing.bubble = -1;
+  keyframesElement.appendChild(animDiv);
+  keyframesElement.appendChild(statDiv);
+  keyframesElement.appendChild(editorDiv);
+
+  loadedAnimation = anim;
+  if (!objHas(anim, 'keyframes')) {
+    return;
+  }
+
+  const keyframes = anim.keyframes;
+  for (let i = 0; i < keyframes.length; i++) {
+    const props = makePropDisplay(keyframes[i], true);
+    if (objHas(keyframes[i], 'hurtbubbles')) {
+      props.insertBefore(
+        bubblePreview(character, anim, i, editorCanvas, editorCtx),
+        props.firstChild
+      );
+    }
+    props.insertBefore(
+      keyframeCopier(character, anim, i, loadAnimation, showEditor),
+      props.firstChild
+    );
+    bubblesElement.appendChild(props);
   }
 }
 
@@ -244,38 +322,119 @@ export function showEditor(
 /**
  * Initialize the animator
  */
-export function initAnimator(
-  canvasElement: HTMLCanvasElement,
-  keyframesContainer: HTMLElement,
-  bubblesContainer: HTMLElement,
-  hurtbubblesContainer: HTMLDivElement
-) {
-  editorCanvas = canvasElement;
-  editorCtx = canvasElement.getContext('2d');
-  keyframesElement = keyframesContainer;
-  bubblesElement = bubblesContainer;
-  editorHurtbubbles = hurtbubblesContainer;
+export function initAnimator() {
+  keyframesElement = document.getElementById('keyframes') as HTMLElement;
+  bubblesElement = document.getElementById('bubbles') as HTMLElement;
+  filesElement = document.getElementById('files') as HTMLSelectElement;
+  animationsElement = document.getElementById('animations') as HTMLSelectElement;
 
-  if (!editorCtx) {
-    throw new Error('Failed to get 2D context from canvas');
+  document.getElementById('save_button')?.addEventListener('click', save);
+
+  startAnimator();
+}
+
+/**
+ * Start the animator (create canvases and set up event handlers)
+ */
+function startAnimator() {
+  if (!initialized) {
+    initialized = true;
+
+    // Create editor container
+    editorDiv = document.createElement('div');
+    editorDiv.className = 'editor';
+
+    // Create hurtbubbles editor
+    editorHurtbubbles = document.createElement('div');
+    editorHurtbubbles.className = 'edit-hurtbubbles';
+    editorDiv.appendChild(editorHurtbubbles);
+
+    // Create editor canvas
+    editorCanvas = document.createElement('canvas');
+    editorCanvas.width = 300;
+    editorCanvas.height = 200;
+    editorCanvas.style.width = '300px';
+    editorCanvas.style.height = '200px';
+    editorDiv.appendChild(editorCanvas);
+    editorCtx = editorCanvas.getContext('2d');
+    editorCanvas.style.cursor = 'default';
+    editorCanvas.tabIndex = 0;
+
+    if (!editorCtx) {
+      throw new Error('Failed to get 2D context from canvas');
+    }
+
+    // Initialize canvas events
+    initCanvasEvents(editorCanvas, editorCtx);
+
+    // Prevent double-click selection
+    editorCanvas.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      return false;
+    });
+    editorCanvas.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+      return false;
+    });
+
+    // Populate file selector
+    if (!characterData) {
+      console.error('characterData is not available');
+      return;
+    }
+
+    const dirFiles = ['[File]'].concat(
+      Array.from(characterData.keys())
+        .filter((file: string) => !file.includes('_'))
+        .sort() as any // eslint-disable-line @typescript-eslint/no-explicit-any
+    );
+
+    populateSelect(filesElement!, dirFiles);
+
+    // File selection handler
+    filesElement!.addEventListener('change', () => {
+      if (filesElement!.selectedIndex === 0) {
+        return;
+      }
+      const file = filesElement!.value;
+      animFile = `${file.split('.')[0]}_anim.json`;
+      character = JSONC.parse(characterData.get(file).content) as EntityData;
+      if (characterData.has(animFile)) {
+        parsed = JSONC.parse(characterData.get(animFile).content);
+        console.log('Animation data is window.parsed');
+        window.parsed = parsed;
+        const anims = Object.getOwnPropertyNames(parsed);
+        anims.sort();
+        populateSelect(animationsElement!, anims);
+      } else {
+        populateSelect(animationsElement!, []);
+      }
+    });
+
+    // Animation selection handler
+    animationsElement!.addEventListener('change', () => {
+      if (character && parsed && animationsElement!.value) {
+        loadAnimation(character, parsed[animationsElement!.value]);
+      }
+    });
+
+    // Watch for character file changes
+    watchCharacters((name: string) => {
+      console.log('animator reloading', name);
+    });
+
+    // Expose editing state globally for console access
+    window.editing = editing;
+    console.log('character is window.editing');
+
+    // Create and expose Tools API
+    window.Tools = createTools(
+      () => parsed,
+      () => loadedAnimation,
+      () => animFile
+    );
+    console.log('Utils accessed with window.Tools');
   }
-
-  // Initialize canvas events
-  initCanvasEvents(editorCanvas, editorCtx);
-
-  // Expose editing state globally for console access
-  window.editing = editing;
-  console.log('character is window.editing');
-
-  // Create and expose Tools API
-  // Note: Tools API requires parsed animation data and file state
-  // These will be populated by the application layer
-  window.Tools = createTools(
-    () => null, // getParsed - to be updated by app
-    () => editing.animation, // getLoadedAnimation
-    () => '' // getAnimFile - to be updated by app
-  );
-  console.log('Utils accessed with window.Tools');
 }
 
 /**

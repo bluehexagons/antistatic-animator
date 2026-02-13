@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { init } from './animator';
+import { init } from './animator/index';
 import { characterData, updateAppDir } from './utils';
 
 import styles from './styles.module.css';
