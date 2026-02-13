@@ -4,6 +4,7 @@
  */
 
 import { vi } from 'vitest';
+import type { Generic } from '../animator/types';
 
 // Mock Electron APIs that don't exist in test environment
 // Note: global.window is already defined in happy-dom, no need to mock
@@ -11,7 +12,7 @@ import { vi } from 'vitest';
 // Mock canvas context for happy-dom
 if (typeof HTMLCanvasElement !== 'undefined') {
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext = function (contextType: string, ...args: any[]) {
+  HTMLCanvasElement.prototype.getContext = function (contextType: string, ...args: Generic[]) {
     if (contextType === '2d') {
       // Create a mock 2D context with all required methods
       return {
@@ -29,7 +30,7 @@ if (typeof HTMLCanvasElement !== 'undefined') {
         strokeStyle: '',
         lineWidth: 1,
         canvas: this,
-      } as any;
+      } as Generic;
     }
     return originalGetContext.call(this, contextType, ...args);
   };
@@ -61,7 +62,7 @@ mockCharacterData.set('test_character_anim.json', {
 vi.mock('../utils', () => ({
   characterData: mockCharacterData,
   characterDir: '/mock/character/dir',
-  objHas: (obj: any, key: string) => Object.prototype.hasOwnProperty.call(obj, key),
+  objHas: (obj: Generic, key: string) => Object.prototype.hasOwnProperty.call(obj, key),
   updateAppDir: vi.fn(),
   watchCharacters: vi.fn(),
 }));

@@ -1,5 +1,6 @@
 import fs from './runtime/fs';
 import path from './runtime/path';
+import type { Generic } from './animator/types';
 
 let appDir = window.nodeAPI?.process?.cwd() ?? '';
 
@@ -122,8 +123,7 @@ export const getCharacterFiles = (name: string, ...files: string[]) => {
   return f;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Legacy: accepts generic objects with unknown structure
-export const objDiff = (a: Record<string, any>, b: Record<string, any>) => {
+export const objDiff = (a: Record<string, Generic>, b: Record<string, Generic>) => {
   const added: string[] = [];
   const removed: string[] = [];
 

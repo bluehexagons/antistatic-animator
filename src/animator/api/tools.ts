@@ -4,7 +4,7 @@
  * Exposed as window.Tools for power users
  */
 
-import type { Keyframe, AnimationMap, Animation } from '../types';
+import type { Keyframe, AnimationMap, Animation, Generic } from '../types';
 import { save } from '../operations/file-operations';
 
 /**
@@ -47,8 +47,8 @@ export const createTools = (
       const parsed = getParsed();
       if (!parsed) return;
       for (const a of Object.getOwnPropertyNames(parsed)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Legacy: dynamic property access
-        yield parsed[a] as any;
+        // Legacy: dynamic property access
+        yield parsed[a] as Generic;
       }
     },
 

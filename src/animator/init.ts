@@ -6,7 +6,7 @@
  */
 
 import * as JSONC from 'jsonc-parser';
-import type { EntityData, Animation, AnimationMap } from './types';
+import type { EntityData, Animation, AnimationMap, Generic } from './types';
 import { editing } from './state/EditingState';
 import { editorCamera } from './state/CameraState';
 import { initCanvasEvents, updateUI, resetHoverState } from './events/canvas-events';
@@ -386,7 +386,7 @@ function startAnimator() {
     const dirFiles = ['[File]'].concat(
       Array.from(characterData.keys())
         .filter((file: string) => !file.includes('_'))
-        .sort() as any // eslint-disable-line @typescript-eslint/no-explicit-any
+        .sort() as Generic
     );
 
     populateSelect(filesElement!, dirFiles);

@@ -3,7 +3,7 @@
  * Functions for inserting, removing, swapping, and copying keyframes
  */
 
-import type { EntityData, Animation, Keyframe, Hitbubble } from '../types';
+import type { EntityData, Animation, Keyframe, Hitbubble, Generic } from '../types';
 import { objHas } from '../../utils';
 
 /** Type for functions that reload and show editor */
@@ -44,7 +44,7 @@ export const cloneKeyframe = (keyframe: Keyframe): Keyframe => {
   // Copy any additional properties
   for (const key in keyframe) {
     if (key !== 'duration' && key !== 'hurtbubbles' && key !== 'hitbubbles') {
-      (cloned as any)[key] = (keyframe as any)[key];
+      (cloned as Generic)[key] = (keyframe as Generic)[key];
     }
   }
 

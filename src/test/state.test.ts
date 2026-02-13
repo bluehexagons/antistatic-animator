@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import type { Generic } from '../animator/types';
 import { editing } from '../animator/state/EditingState';
 import { dragging } from '../animator/state/DragState';
 import { editorCamera } from '../animator/state/CameraState';
@@ -29,7 +30,7 @@ describe('State Management', () => {
         name: 'TestChar',
         hurtbubbles: [],
       };
-      editing.character = mockCharacter as any;
+      editing.character = mockCharacter as Generic;
       expect(editing.character).toBe(mockCharacter);
     });
 

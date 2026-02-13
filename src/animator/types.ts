@@ -2,6 +2,12 @@
  * Type definitions for the animator module
  */
 
+/**
+ * Generic type for dynamic/unknown properties
+ * Used when objects have runtime properties that cannot be statically typed
+ */
+export type Generic = any;
+
 /** Action types for drag operations */
 export const enum Actions {
   none = 0,
@@ -20,7 +26,7 @@ export type HurtbubbleData = {
 
 /** Attack hitbox definition */
 export type Hitbubble = {
-  [prop: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Legacy: dynamic properties
+  [prop: string]: Generic; // Legacy: dynamic properties
   x?: number;
   y?: number;
   radius?: number;
@@ -40,7 +46,7 @@ export type Keyframe = {
 
 /** Animation definition */
 export type Animation = {
-  [property: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Legacy: dynamic properties
+  [property: string]: Generic; // Legacy: dynamic properties
   keyframes: Keyframe[];
 };
 
@@ -53,7 +59,7 @@ export type AnimationMap = {
 export type EntityData = {
   name: string;
   hurtbubbles: HurtbubbleData[];
-  [name: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Legacy: dynamic properties
+  [name: string]: Generic; // Legacy: dynamic properties
 };
 
 /** UI multichoice dropdown configuration */

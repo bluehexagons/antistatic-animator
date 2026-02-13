@@ -6,7 +6,7 @@
  */
 
 import * as JSONC from 'jsonc-parser';
-import type { EntityData, Animation, Keyframe } from '../types';
+import type { EntityData, Animation, Keyframe, Generic } from '../types';
 import { multichoice, defaultTypes, excludeProps } from '../constants';
 import { editing } from '../state/EditingState';
 import { editorCamera } from '../state/CameraState';
@@ -19,8 +19,7 @@ export const previewUpdate: (() => void)[] = [];
 /**
  * Create property editor for an object (animation or keyframe)
  */
-export function makePropDisplay(obj: any, isKeyframe = false): HTMLDivElement {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+export function makePropDisplay(obj: Generic, isKeyframe = false): HTMLDivElement {
   const div = document.createElement('div');
   const propList = Object.getOwnPropertyNames(obj);
   const addRow = document.createElement('div');
