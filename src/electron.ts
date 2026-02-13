@@ -1,5 +1,5 @@
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 
 function createWindow () {
   // Create the browser window.

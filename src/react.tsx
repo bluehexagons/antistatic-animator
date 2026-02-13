@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client';
 import { init } from './animator';
 import { characterData, updateAppDir } from './utils';
+import { ipcRenderer } from './runtime/electron-renderer';
 
 import styles from './styles.module.css';
-const { ipcRenderer } = require('electron');
 
 const App = () => {
     const [appDir, setAppDir] = useState(localStorage['antistatic-dir'] || process.cwd())

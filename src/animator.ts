@@ -1,5 +1,5 @@
-const path = require('path')
-const fs = require('fs')
+import path from './runtime/path'
+import fs from './runtime/fs'
 import * as JSONC from 'jsonc-parser'
 
 import {

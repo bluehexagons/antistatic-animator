@@ -1,5 +1,5 @@
-const fs = require('fs')
-const path = require('path')
+import fs from './runtime/fs'
+import path from './runtime/path'
 
 let appDir = process.cwd()
 
