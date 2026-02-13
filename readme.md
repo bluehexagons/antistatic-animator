@@ -11,6 +11,6 @@ Select a character with the first dropdown, and an animation with the second.
 
 ## Releases
 
-Releases are now automated through GitHub Actions:
+Releases are automated through GitHub Actions:
 - `CI` validates builds on pull requests and pushes to `main`.
 - `Release` packages Linux, Windows, and macOS artifacts and publishes them when pushing a `v*` tag.
