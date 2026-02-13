@@ -16,7 +16,15 @@ contextBridge.exposeInMainWorld('nodeAPI', {
     readdirSync: fs.readdirSync,
     readFileSync: fs.readFileSync,
     writeFileSync: fs.writeFileSync,
-    watch: fs.watch,
+    // Wrap fs.watch to return a cleanup function instead of FSWatcher (non-serializable)
+    watch: (
+      filename: fs.PathLike,
+      options?: fs.WatchOptions | BufferEncoding,
+      listener?: fs.WatchListener<string>
+    ): (() => void) => {
+      const watcher = fs.watch(filename, options as any, listener);
+      return () => watcher.close();
+    },
   },
   path: {
     resolve: path.resolve,
