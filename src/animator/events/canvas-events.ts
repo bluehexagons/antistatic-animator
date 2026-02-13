@@ -111,14 +111,32 @@ export function downEditor(e: MouseEvent) {
 
     if (!editorCanvas) return;
 
-    const hbs = editing.animation.keyframes[editing.keyframe].hurtbubbles;
+    const keyframe = editing.animation.keyframes[editing.keyframe];
+    const hbs = keyframe && keyframe.hurtbubbles;
+    const hbIndex = lastHovered * 4;
+
+    // Guard against missing hurtbubbles data or out-of-bounds access / missing UI
+    if (
+      !hbs ||
+      !Array.isArray(hbs) ||
+      hbIndex + 1 >= hbs.length ||
+      typeof updateUI[lastHovered] !== 'function'
+    ) {
+      // Data/UI inconsistent: clear selection and refresh instead of entering move mode
+      dragging.active = -1;
+      editing.bubble = -1;
+      lastHovered = -1;
+      refreshEditor();
+      return;
+    }
+
     const x = (e.offsetX - editorCanvas.width * (0.5 + editorCamera.x * 0.5)) / editorCamera.scale;
     const y =
       -(e.offsetY - editorCanvas.height * (0.5 + editorCamera.y * 0.5)) / editorCamera.scale;
 
     dragging.action = Actions.moveHurtbubble;
-    dragging.x = hbs[lastHovered * 4] - x;
-    dragging.y = hbs[lastHovered * 4 + 1] - y;
+    dragging.x = hbs[hbIndex] - x;
+    dragging.y = hbs[hbIndex + 1] - y;
 
     refreshEditor();
     return;

@@ -357,12 +357,15 @@ export function keyframeCopier(
         duration: kf.duration,
         hurtbubbles: null,
       };
-      if (objHas(kf, 'hurtbubbles')) {
+      if (objHas(kf, 'hurtbubbles') && kf.hurtbubbles) {
         newKeyframe.hurtbubbles = Array.from(kf.hurtbubbles);
       }
       animation.keyframes.splice(keyframe, 0, newKeyframe);
       loadAnimation(character, animation);
-      showEditor(character, animation, keyframe, previewUpdate[keyframe]);
+      // Only show editor if the new keyframe has hurtbubbles
+      if (newKeyframe.hurtbubbles) {
+        showEditor(character, animation, keyframe, previewUpdate[keyframe]);
+      }
     };
 
   const handleRemoveKeyframe =
@@ -373,10 +376,20 @@ export function keyframeCopier(
 
   const handleCopyFromEditor =
     (character: EntityData, animation: Animation, keyframe: number) => () => {
-      const fromKF = editing.animation.keyframes[editing.keyframe].hurtbubbles;
-      const toKF = animation.keyframes[keyframe].hurtbubbles;
-      for (let i = 0; i < fromKF.length && i < toKF.length; i++) {
-        toKF[i] = fromKF[i];
+      const fromKF = editing.animation?.keyframes[editing.keyframe];
+      const toKF = animation.keyframes[keyframe];
+
+      // Guard against missing editing data or hurtbubbles arrays
+      if (!fromKF || !fromKF.hurtbubbles || !toKF.hurtbubbles) {
+        console.warn('Cannot copy hurtbubbles: missing data');
+        return;
+      }
+
+      const fromHB = fromKF.hurtbubbles;
+      const toHB = toKF.hurtbubbles;
+
+      for (let i = 0; i < fromHB.length && i < toHB.length; i++) {
+        toHB[i] = fromHB[i];
       }
       loadAnimation(character, animation);
       showEditor(character, animation, keyframe, previewUpdate[keyframe]);
@@ -389,12 +402,15 @@ export function keyframeCopier(
         duration: kf.duration,
         hurtbubbles: null,
       };
-      if (objHas(kf, 'hurtbubbles')) {
+      if (objHas(kf, 'hurtbubbles') && kf.hurtbubbles) {
         newKeyframe.hurtbubbles = Array.from(kf.hurtbubbles);
       }
       animation.keyframes.splice(keyframe + 1, 0, newKeyframe);
       loadAnimation(character, animation);
-      showEditor(character, animation, keyframe + 1, previewUpdate[keyframe + 1]);
+      // Only show editor if the new keyframe has hurtbubbles
+      if (newKeyframe.hurtbubbles) {
+        showEditor(character, animation, keyframe + 1, previewUpdate[keyframe + 1]);
+      }
     };
 
   const handleCopyFromStart =

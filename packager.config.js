@@ -8,7 +8,6 @@ module.exports = {
     /^\/\.git/,
     /^\/\.vscode/,
     /^\/\.github/,
-    /^\/node_modules/,
     /tsconfig\.json/,
     /vite\.config\.ts/,
     /eslint\.config\.js/,

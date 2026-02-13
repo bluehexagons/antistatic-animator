@@ -140,6 +140,12 @@ function makeKeyframeEditor(
   const hb = kf.hurtbubbles;
   updateUI.length = 0;
 
+  // Guard against missing or invalid hurtbubbles
+  if (!hb || !Array.isArray(hb)) {
+    console.warn('Keyframe has no hurtbubbles, skipping editor build');
+    return;
+  }
+
   for (let i = 0; i < hb.length; i = i + 4) {
     ((n: number, hb: number[]) => {
       const line = document.createElement('div');

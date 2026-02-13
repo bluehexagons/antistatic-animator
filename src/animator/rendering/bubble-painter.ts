@@ -47,6 +47,22 @@ export const paintBubbles = (
   const charhbs = character.hurtbubbles;
   let hitbubbles: Hitbubble[] = null;
 
+  // Guard against missing hurtbubbles - still allow rendering grid/hitbubbles
+  if (!hurtbubbles || !Array.isArray(hurtbubbles)) {
+    // Draw origin grid only
+    const ox_px = w * (0.5 + ox * 0.5);
+    const oy_px = h * (0.5 + oy * 0.5);
+
+    ctx.beginPath();
+    ctx.moveTo(0, (oy_px | 0) + 0.5);
+    ctx.lineTo(w, (oy_px | 0) + 0.5);
+    ctx.moveTo((ox_px | 0) + 0.5, 0);
+    ctx.lineTo((ox_px | 0) + 0.5, h);
+    ctx.strokeStyle = '#666';
+    ctx.stroke();
+    return;
+  }
+
   // Resolve hitbubbles (handle `true` reference to previous keyframe)
   if (objHas(kf, 'hitbubbles')) {
     let ckf = kf;
