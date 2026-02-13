@@ -3,3 +3,11 @@
 node_modules
 dist
 releases
+
+# ESLint cache
+.eslintcache
+
+# Editor directories
+.vscode/*
+!.vscode/settings.json
+.idea

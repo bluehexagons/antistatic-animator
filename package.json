@@ -6,12 +6,19 @@
   "type": "commonjs",
   "scripts": {
     "build": "npm run build:main && npm run build:preload && npm run build:renderer",
-    "build:main": "esbuild ./src/electron.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/electron.js --external:electron --external:electron-devtools-installer",
-    "build:preload": "esbuild ./src/preload.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/preload.js --external:electron",
+    "build:main": "esbuild ./src/electron.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/electron.js --external:electron --external:electron-devtools-installer",
+    "build:preload": "esbuild ./src/preload.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/preload.js --external:electron",
     "build:renderer": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
     "start": "electron .",
     "watch": "npm run build:main && npm run build:preload && npm run build:renderer -- --watch",
-    "dist": "npx @electron/packager ."
+    "dist": "npx @electron/packager . --config=packager.config.js",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext ts,tsx",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -23,13 +30,24 @@
     "url": "https://github.com/bluehexagons/antistatic-animator/issues"
   },
   "homepage": "https://github.com/bluehexagons/antistatic-animator#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "devDependencies": {
     "@electron/packager": "^19.0.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "esbuild": "^0.27.3",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "electron": "^40.4.0",
     "electron-devtools-installer": "^4.0.0",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "typescript": "^5.9.3",
@@ -38,5 +56,14 @@
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css}": [
+      "prettier --write"
+    ]
   }
 }

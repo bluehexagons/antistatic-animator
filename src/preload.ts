@@ -5,7 +5,8 @@ import * as path from 'path';
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
-  showOpenDialog: (config: Electron.OpenDialogOptions) => ipcRenderer.invoke('showOpenDialog', config),
+  showOpenDialog: (config: Electron.OpenDialogOptions) =>
+    ipcRenderer.invoke('showOpenDialog', config),
 });
 
 // Expose Node.js APIs that are needed by the renderer
@@ -14,6 +15,7 @@ contextBridge.exposeInMainWorld('nodeAPI', {
     existsSync: fs.existsSync,
     readdirSync: fs.readdirSync,
     readFileSync: fs.readFileSync,
+    writeFileSync: fs.writeFileSync,
     watch: fs.watch,
   },
   path: {
