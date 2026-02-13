@@ -88,7 +88,7 @@ describe('Type Definitions', () => {
     });
 
     it('should accept keyframe with additional properties', () => {
-      const keyframe: Keyframe = {
+      const keyframe: Keyframe & { tween: string; interpolate: boolean } = {
         duration: 10,
         hurtbubbles: [0, 10, 5, 0],
         tween: 'easeInOut',

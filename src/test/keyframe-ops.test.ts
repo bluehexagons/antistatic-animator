@@ -79,7 +79,7 @@ describe('Keyframe Operations', () => {
     });
 
     it('should clone additional properties', () => {
-      const original: Keyframe = {
+      const original: Keyframe & { tween: string; customProp: string } = {
         duration: 10,
         hurtbubbles: [0, 10, 5, 0],
         tween: 'easeInOut',
@@ -88,8 +88,8 @@ describe('Keyframe Operations', () => {
 
       const cloned = cloneKeyframe(original);
 
-      expect(cloned.tween).toBe('easeInOut');
-      expect(cloned.customProp).toBe('test');
+      expect((cloned as typeof original).tween).toBe('easeInOut');
+      expect((cloned as typeof original).customProp).toBe('test');
     });
   });
 

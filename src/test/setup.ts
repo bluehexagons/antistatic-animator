@@ -6,7 +6,7 @@
 import { vi } from 'vitest';
 
 // Mock Electron APIs that don't exist in test environment
-global.window = global.window || {};
+// Note: global.window is already defined in happy-dom, no need to mock
 
 // Mock canvas context for happy-dom
 if (typeof HTMLCanvasElement !== 'undefined') {

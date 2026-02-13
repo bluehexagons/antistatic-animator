@@ -149,7 +149,8 @@ describe('Tools API', () => {
       const kfWithoutHurtbubbles = { duration: 10 };
       mockParsed.test = { keyframes: [kfWithoutHurtbubbles] };
 
-      const insertions = Array.from(tools.insertBubble(0));
+      // Consume the generator to trigger the logic
+      Array.from(tools.insertBubble(0));
 
       // Should not modify keyframes without hurtbubbles
       expect(kfWithoutHurtbubbles).not.toHaveProperty('hurtbubbles');
