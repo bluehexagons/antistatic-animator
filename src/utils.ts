@@ -1,7 +1,7 @@
 import fs from './runtime/fs'
 import path from './runtime/path'
 
-let appDir = process.cwd()
+let appDir = window.nodeAPI?.process?.cwd() ?? ''
 
 export const checkDebugMode = () => {
   const debugMode = !!fs.existsSync(path.resolve(appDir, 'debug'))

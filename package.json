@@ -5,12 +5,13 @@
   "main": "dist/electron.js",
   "type": "commonjs",
   "scripts": {
-    "build": "npm run build:main && npm run build:renderer",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
     "build:main": "esbuild ./src/electron.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/electron.js --external:electron --external:electron-devtools-installer",
+    "build:preload": "esbuild ./src/preload.ts --bundle --platform=node --format=cjs --target=node20 --outfile=dist/preload.js --external:electron",
     "build:renderer": "vite build",
     "start": "electron .",
-    "watch": "npm run build:main && npm run build:renderer -- --watch",
-    "dist": "npx electron-packager ."
+    "watch": "npm run build:main && npm run build:preload && npm run build:renderer -- --watch",
+    "dist": "npx @electron/packager ."
   },
   "repository": {
     "type": "git",
@@ -23,15 +24,16 @@
   },
   "homepage": "https://github.com/bluehexagons/antistatic-animator#readme",
   "devDependencies": {
-    "@types/react": "^18.0.6",
-    "@types/react-dom": "^18.0.2",
+    "@electron/packager": "^19.0.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "esbuild": "^0.27.3",
-    "electron-devtools-installer": "^3.2.0",
-    "electron-packager": "^16.0.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "typescript": "^4.6.3",
-    "typescript-plugin-css-modules": "^3.4.0",
+    "electron": "^40.4.0",
+    "electron-devtools-installer": "^4.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "^5.9.3",
+    "typescript-plugin-css-modules": "^5.2.0",
     "vite": "^7.3.1"
   },
   "dependencies": {

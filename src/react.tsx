@@ -1,20 +1,19 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { init } from './animator';
 import { characterData, updateAppDir } from './utils';
-import { ipcRenderer } from './runtime/electron-renderer';
 
 import styles from './styles.module.css';
 
 const App = () => {
-    const [appDir, setAppDir] = useState(localStorage['antistatic-dir'] || process.cwd())
+    const [appDir, setAppDir] = useState(localStorage['antistatic-dir'] || window.nodeAPI?.process?.cwd() || '')
 
     useEffect(() => {
         localStorage['antistatic-dir'] = appDir;
     }, [appDir])
 
     const browseAppDir = useCallback(async () => {
-        const dir = await ipcRenderer.invoke('showOpenDialog', {
+        const dir = await window.electronAPI.showOpenDialog({
             title: 'Select Antistatic installation directory',
             defaultPath: appDir,
             properties: ['openDirectory']
@@ -22,7 +21,7 @@ const App = () => {
         if (dir.filePaths.length === 1) {
             setAppDir(dir.filePaths[0])
         }
-    }, [])
+    }, [appDir])
 
     useLayoutEffect(() => {
         updateAppDir(appDir)
