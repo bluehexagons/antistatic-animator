@@ -24,7 +24,21 @@ if (!platform || !arch) {
 
 // Read package.json for version info
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-const version = packageJson.version;
+let version = packageJson.version;
+
+// Try to get version from git tag if available (takes precedence)
+try {
+  const gitTag = execSync('git describe --tags --exact-match 2>/dev/null || true', {
+    encoding: 'utf8',
+  }).trim();
+  if (gitTag && gitTag.startsWith('v')) {
+    version = gitTag.substring(1); // Remove the 'v' prefix
+    console.log(`Using version from git tag: ${version}`);
+  }
+} catch (error) {
+  // Git tag not available, use package.json version
+}
+
 const appName = 'antistatic-animator';
 
 // Determine the packaged app directory name
@@ -83,28 +97,31 @@ try {
   }
 
   // Create archive based on platform
+  const absArchivePath = path.resolve(archivePath);
+  const absSourcePath = path.resolve(sourcePath);
+
   if (archiveExt === 'zip') {
     // Use zip for Windows and macOS
     if (process.platform === 'win32') {
       // On Windows, use PowerShell's Compress-Archive
       execSync(
-        `powershell -Command "Compress-Archive -Path '${sourcePath}' -DestinationPath '${archivePath}'"`,
+        `powershell -Command "Compress-Archive -Path '${absSourcePath}' -DestinationPath '${absArchivePath}'"`,
         { stdio: 'inherit' }
       );
     } else {
       // On Unix-like systems, use zip
-      const cwd = path.dirname(sourcePath);
-      const dirname = path.basename(sourcePath);
-      execSync(`cd "${cwd}" && zip -r -y "../archives/${archiveName}" "${dirname}"`, {
+      const cwd = path.dirname(absSourcePath);
+      const dirname = path.basename(absSourcePath);
+      execSync(`cd "${cwd}" && zip -r -y "${absArchivePath}" "${dirname}"`, {
         stdio: 'inherit',
         shell: '/bin/bash',
       });
     }
   } else if (archiveExt === 'tar.gz') {
     // Use tar.gz for Linux
-    const cwd = path.dirname(sourcePath);
-    const dirname = path.basename(sourcePath);
-    execSync(`cd "${cwd}" && tar -czf "../archives/${archiveName}" "${dirname}"`, {
+    const cwd = path.dirname(absSourcePath);
+    const dirname = path.basename(absSourcePath);
+    execSync(`cd "${cwd}" && tar -czf "${absArchivePath}" "${dirname}"`, {
       stdio: 'inherit',
       shell: '/bin/bash',
     });
