@@ -16,10 +16,22 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
+            arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
           - os: windows-latest
             platform: win32
+            arch: x64
+          - os: windows-latest
+            platform: win32
+            arch: arm64
           - os: macos-latest
             platform: darwin
+            arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -29,14 +41,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run dist -- --platform=${{ matrix.platform }} --arch=x64 --out=release
+      - run: npm run dist -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release
       - name: Ensure release directory exists
         run: mkdir -p release
         shell: bash
       - uses: actions/upload-artifact@v4
         if: hashFiles('release/**') != ''
         with:
-          name: ${{ matrix.platform }}-package
+          name: ${{ matrix.platform }}-${{ matrix.arch }}-package
           path: release/**
 
   publish:
@@ -49,4 +61,4 @@ jobs:
           path: artifacts
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*/release/**/*
+          files: artifacts/*/**
