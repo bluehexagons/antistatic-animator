@@ -6,6 +6,7 @@
  * Generic type for dynamic/unknown properties
  * Used when objects have runtime properties that cannot be statically typed
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- intentional escape hatch for legacy dynamic properties
 export type Generic = any;
 
 /** Action types for drag operations */

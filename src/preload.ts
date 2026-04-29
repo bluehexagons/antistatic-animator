@@ -19,10 +19,21 @@ contextBridge.exposeInMainWorld('nodeAPI', {
     // Wrap fs.watch to return a cleanup function instead of FSWatcher (non-serializable)
     watch: (
       filename: fs.PathLike,
-      options?: fs.WatchOptions | BufferEncoding,
+      optionsOrListener?: fs.WatchOptions | BufferEncoding | fs.WatchListener<string>,
       listener?: fs.WatchListener<string>
     ): (() => void) => {
-      const watcher = fs.watch(filename, options as any, listener);
+      let watcher: fs.FSWatcher;
+      if (typeof optionsOrListener === 'function') {
+        watcher = fs.watch(filename, optionsOrListener);
+      } else if (typeof optionsOrListener === 'string') {
+        watcher = fs.watch(filename, optionsOrListener as BufferEncoding, listener);
+      } else {
+        watcher = fs.watch(
+          filename,
+          optionsOrListener as fs.WatchOptionsWithStringEncoding,
+          listener
+        );
+      }
       return () => watcher.close();
     },
   },
