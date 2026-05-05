@@ -51,6 +51,7 @@ jobs:
           name: ${{ matrix.platform }}-${{ matrix.arch }}-archive
           path: release/archives/*
           if-no-files-found: error
+          retention-days: 7
 
   publish:
     needs: package
