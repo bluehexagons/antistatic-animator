@@ -1,5 +1,5 @@
 body {
-  background: #222;
+  background: #1a1a1a;
 }
 #animator {
   display: flex;
@@ -64,7 +64,8 @@ body {
   min-width: 200px;
 }
 input {
-  border: none;
+  border: 1px solid #444;
+  border-radius: 2px;
 }
 select,
 button {
@@ -72,6 +73,8 @@ button {
 }
 div.input {
   color: #ddd;
+  padding: 4px 6px;
+  border-radius: 2px;
 }
 input,
 .input,
@@ -94,13 +97,18 @@ select:disabled {
   border-color: #ddd;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   background-color: #3d3d3d;
   border-color: #fff;
 }
 
-button:active {
+button:active:not(:disabled) {
   background-color: #2a2a2a;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 button:focus,
@@ -114,11 +122,18 @@ select:focus,
 
 input[type='text'],
 input[type='number'] {
-  padding: 2px 4px;
+  padding: 4px 6px;
 }
 
 select {
-  padding: 2px 3px;
+  padding: 4px 6px;
+  border-radius: 2px;
+}
+
+.input[contentEditable='true'] {
+  background-color: #333;
+  border: 1px solid #444;
+  cursor: text;
 }
 div.prop {
   margin-top: 2px;
@@ -172,8 +187,14 @@ div.prop label {
 }
 
 button.prop-btn {
-  border: none;
-  padding: 1px 4px 1px 3px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  background-color: #3a3a3a;
+  border: 1px solid #444;
+  font-weight: bold;
+  color: #ddd;
+  min-width: 28px;
+  cursor: pointer;
 }
 
 /* SVG editor styling */
