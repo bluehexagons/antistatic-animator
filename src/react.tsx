@@ -11,6 +11,9 @@ import type { EntityData } from './animator/types';
 
 import styles from './styles.module.css';
 
+// Get version from package.json
+const VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
+
 const AppContent = () => {
   const { state, dispatch } = useAnimator();
   const [fileList, setFileList] = useState<string[]>(['[File]']);
@@ -122,6 +125,17 @@ const AppContent = () => {
     <div id="animator" className={styles.animator}>
       <div id="selectors">
         <button onClick={browseAppDir}>Installation Directory: {state.appDir}</button>
+        <div
+          style={{
+            fontSize: '8pt',
+            color: '#666',
+            marginLeft: 'auto',
+            paddingRight: '8px',
+            alignSelf: 'center',
+          }}
+        >
+          v{VERSION}
+        </div>
         <select value={''} onChange={handleFileChange}>
           {fileList.map((file) => (
             <option key={file} value={file === '[File]' ? '' : file}>
