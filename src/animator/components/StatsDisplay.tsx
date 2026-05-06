@@ -75,11 +75,38 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ animation }) => {
   const stats = calculateStats(animation);
 
   return (
-    <div>
-      <div>Duration: {stats.duration}</div>
-      <div>Windup: {stats.windup}</div>
-      <div>Hits: {stats.hits}</div>
-      <div>Backswing: {stats.backswing}</div>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '8px',
+        marginBottom: '15px',
+        padding: '10px',
+        backgroundColor: '#2a2a2a',
+        borderRadius: '3px',
+        border: '1px solid #333',
+      }}
+    >
+      <div style={{ fontSize: '8pt', display: 'flex', alignItems: 'center' }}>
+        <span style={{ color: '#4a9eff', marginRight: '4px', fontWeight: 'bold' }}>⏱</span>
+        <span>Duration:</span>
+        <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>{stats.duration}</span>
+      </div>
+      <div style={{ fontSize: '8pt', display: 'flex', alignItems: 'center' }}>
+        <span style={{ color: '#4a9eff', marginRight: '4px', fontWeight: 'bold' }}>▶</span>
+        <span>Windup:</span>
+        <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>{stats.windup}</span>
+      </div>
+      <div style={{ fontSize: '8pt', display: 'flex', alignItems: 'center', gridColumn: '1 / -1' }}>
+        <span style={{ color: '#4a9eff', marginRight: '4px', fontWeight: 'bold' }}>⚔</span>
+        <span>Hits:</span>
+        <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>{stats.hits || '—'}</span>
+      </div>
+      <div style={{ fontSize: '8pt', display: 'flex', alignItems: 'center' }}>
+        <span style={{ color: '#4a9eff', marginRight: '4px', fontWeight: 'bold' }}>◀</span>
+        <span>Backswing:</span>
+        <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>{stats.backswing}</span>
+      </div>
     </div>
   );
 };
