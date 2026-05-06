@@ -177,12 +177,13 @@ select {
   cursor: text;
 }
 div.prop {
-  margin-top: 2px;
-  border: 1px solid #444;
+  margin-bottom: 4px;
+  border: 1px solid #3a3a3a;
   display: flex;
   border-radius: 2px;
-  background-color: #2a2a2a;
+  background-color: #252525;
   overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 div.prop :not(:first-child) {
   margin-left: 0;
@@ -208,13 +209,17 @@ div.prop-list.highlighted {
 }
 .edit-hurtbubbles .input {
   display: inline-block;
-  padding: 0;
+  padding: 2px 4px;
   min-width: 18px;
+  background-color: #333;
+  border: 1px solid #444;
+  border-radius: 2px;
 }
 div.prop span.input {
   min-width: 40px;
-  padding: 4px 6px;
+  padding: 4px 8px;
   flex-grow: 100;
+  background-color: #2a2a2a;
 }
 div.prop label {
   padding: 4px 8px;
