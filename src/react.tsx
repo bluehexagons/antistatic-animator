@@ -182,8 +182,23 @@ const AppContent = () => {
             </div>
           </>
         ) : (
-          <div style={{ color: '#999', padding: '20px' }}>
-            Select a file and animation to start editing
+          <div
+            style={{
+              color: '#666',
+              padding: '40px 20px',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              fontSize: '12pt',
+              fontWeight: 'normal',
+            }}
+          >
+            <div style={{ maxWidth: '300px' }}>
+              <div style={{ fontSize: '24pt', marginBottom: '10px', opacity: 0.5 }}>📋</div>
+              <div>Select a file and animation to start editing</div>
+            </div>
           </div>
         )}
       </div>
