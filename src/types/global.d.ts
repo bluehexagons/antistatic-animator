@@ -1,3 +1,5 @@
+import type { EntityData, Animation, AnimationMap } from '../animator/types';
+
 export {};
 
 declare global {
@@ -39,5 +41,12 @@ declare global {
         platform: NodeJS.Platform;
       };
     };
+    editing: {
+      character: EntityData | null;
+      animation: Animation | null;
+      keyframe: number;
+      bubble: number;
+    };
+    parsed: AnimationMap;
   }
 }
