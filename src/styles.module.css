@@ -38,11 +38,30 @@ body {
   outline: none;
 }
 #selectors {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
-#selectors input,
+#selectors button,
 #selectors select {
-  font-size: 12pt;
+  font-size: 11pt;
+  padding: 6px 10px;
+  border-radius: 3px;
+}
+#selectors button {
+  flex: 0 1 auto;
+}
+#selectors select {
+  flex: 1;
+  min-width: 150px;
+}
+#selectors button:first-child {
+  min-width: 200px;
 }
 input {
   border: none;
@@ -63,6 +82,10 @@ button {
   font:
     8pt 'Droid Sans Mono',
     monospace;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .input[contentEditable='false'],
 select:disabled {
@@ -70,22 +93,58 @@ select:disabled {
   color: #bbb;
   border-color: #ddd;
 }
+
+button:hover {
+  background-color: #3d3d3d;
+  border-color: #fff;
+}
+
+button:active {
+  background-color: #2a2a2a;
+}
+
+button:focus,
+input:focus,
+select:focus,
+.input[contentEditable='true']:focus {
+  outline: none;
+  border-color: #4a9eff;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+input[type='text'],
+input[type='number'] {
+  padding: 2px 4px;
+}
+
+select {
+  padding: 2px 3px;
+}
 div.prop {
-  margin-top: 1px;
-  border: 1px solid #ddd;
+  margin-top: 2px;
+  border: 1px solid #444;
   display: flex;
+  border-radius: 2px;
+  background-color: #2a2a2a;
+  overflow: hidden;
 }
 div.prop :not(:first-child) {
-  margin-left: 4px;
+  margin-left: 0;
 }
 div.prop-list {
   display: inline-block;
-  margin-right: 4px;
-  margin-bottom: 8px;
+  margin-right: 6px;
+  margin-bottom: 10px;
   vertical-align: top;
+  padding: 8px;
+  background-color: #282828;
+  border-radius: 3px;
+  border: 1px solid #333;
 }
 div.prop-list.highlighted {
-  background: #262626;
+  background: #313131;
+  border-color: #4a9eff;
+  box-shadow: 0 0 6px rgba(74, 158, 255, 0.1);
 }
 .edit-hurtbubbles .input {
   display: inline-block;
@@ -93,18 +152,23 @@ div.prop-list.highlighted {
   min-width: 18px;
 }
 div.prop span.input {
-  min-width: 20px;
-  padding: 0 2px;
+  min-width: 40px;
+  padding: 4px 6px;
   flex-grow: 100;
 }
 div.prop label {
-  padding-left: 2px;
-  flex-grow: 1;
+  padding: 4px 6px;
+  flex-grow: 0;
+  background-color: #1f1f1f;
+  min-width: 80px;
+  text-align: left;
+  border-right: 1px solid #3a3a3a;
 }
 
 #scrollable {
   overflow: auto;
   flex-grow: 1;
+  padding: 5px;
 }
 
 button.prop-btn {
@@ -115,28 +179,39 @@ button.prop-btn {
 /* SVG editor styling */
 .editor {
   display: flex;
-  gap: 10px;
+  gap: 15px;
   margin-bottom: 20px;
+  padding: 12px;
+  background-color: #262626;
+  border-radius: 4px;
 }
 .editor svg {
-  border: 1px solid #555;
+  border: 1px solid #444;
   flex-shrink: 0;
+  border-radius: 3px;
+  background-color: #1a1a1a;
 }
 
 /* Hurtbubble editor */
 .edit-hurtbubbles {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #2a2a2a;
+  border-radius: 3px;
+  border-left: 3px solid #4a9eff;
 }
 .edit-hurtbubbles > div {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-size: 8pt;
 }
 .bubble-coord {
   width: 50px !important;
-  padding: 2px 4px !important;
+  padding: 4px 6px !important;
+  border-radius: 2px;
+  text-align: center;
 }
 
 /* Keyframe list styling */
@@ -145,32 +220,41 @@ button.prop-btn {
 }
 .animation-properties {
   margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #555;
+  padding: 12px;
+  border-bottom: 2px solid #4a9eff;
+  background-color: #272727;
+  border-radius: 3px;
 }
 .keyframe-item {
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #555;
-  border-radius: 2px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
   cursor: pointer;
+  background-color: #272727;
+  transition: all 0.15s ease;
 }
 .keyframe-item.highlighted {
-  background: #2a2a2a;
-  border-color: #888;
+  background: #323232;
+  border-color: #4a9eff;
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.15);
 }
 .keyframe-item:hover {
-  background: #262626;
+  background: #2f2f2f;
+  border-color: #555;
 }
 
 /* Keyframe copier buttons */
 .keyframe-copier {
   display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 .keyframe-copier button {
-  padding: 4px 8px;
+  padding: 5px 10px;
   flex: 1;
   font-size: 7pt;
+  border-radius: 3px;
+  background-color: #3a3a3a;
+  border: 1px solid #444;
 }
