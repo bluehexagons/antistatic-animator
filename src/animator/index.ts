@@ -44,17 +44,12 @@ export { createTools } from './api/tools';
 // Components
 export { StatsDisplay } from './components/StatsDisplay';
 export { PropertyEditor } from './components/PropertyEditor';
+export { BubbleViewer } from './components/BubbleViewer';
+export { BubblePreview } from './components/BubblePreview';
+export { HurtbubbleEditor } from './components/HurtbubbleEditor';
+export { KeyframeCopier } from './components/KeyframeCopier';
+export { KeyframeList } from './components/KeyframeList';
 
-// Hooks
-export { useEditorCanvas } from './hooks/useEditorCanvas';
-
-// Initialization
-export {
-  initAnimator,
-  initAnimator as init, // Main init function called by react.tsx
-  showEditor,
-  clearUI,
-  loadAnimation,
-  getEditorCanvas,
-  getEditorContext,
-} from './init';
+// Context
+export { AnimatorProvider, useAnimator } from './context/AnimatorContext';
+export type { AppState, AppAction, CameraState } from './context/AnimatorContext';
