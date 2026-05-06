@@ -24,6 +24,12 @@ body {
   margin-right: 30px;
   vertical-align: top;
 }
+#keyframes svg {
+  background: black;
+  border: 1px solid #555;
+  display: block;
+  margin-bottom: 8px;
+}
 #keyframes canvas {
   background: black;
 }
@@ -104,4 +110,67 @@ div.prop label {
 button.prop-btn {
   border: none;
   padding: 1px 4px 1px 3px;
+}
+
+/* SVG editor styling */
+.editor {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.editor svg {
+  border: 1px solid #555;
+  flex-shrink: 0;
+}
+
+/* Hurtbubble editor */
+.edit-hurtbubbles {
+  margin-bottom: 10px;
+}
+.edit-hurtbubbles > div {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 8pt;
+}
+.bubble-coord {
+  width: 50px !important;
+  padding: 2px 4px !important;
+}
+
+/* Keyframe list styling */
+.keyframe-list-container {
+  margin-bottom: 20px;
+}
+.animation-properties {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #555;
+}
+.keyframe-item {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.keyframe-item.highlighted {
+  background: #2a2a2a;
+  border-color: #888;
+}
+.keyframe-item:hover {
+  background: #262626;
+}
+
+/* Keyframe copier buttons */
+.keyframe-copier {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.keyframe-copier button {
+  padding: 4px 8px;
+  flex: 1;
+  font-size: 7pt;
 }

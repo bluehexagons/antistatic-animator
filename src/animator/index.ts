@@ -15,28 +15,12 @@ export { editing } from './state/EditingState';
 export { dragging } from './state/DragState';
 export { editorCamera } from './state/CameraState';
 
-// Rendering
-export { paintBubbles } from './rendering/bubble-painter';
+// Rendering (kept for backwards compatibility with keyframe-ops)
 export { findBubbles, hbmap } from './rendering/bubble-finder';
-export { pathCircle, pathCapsule } from './rendering/canvas-utils';
 
 // Operations
 export * from './operations/file-operations';
 export * from './operations/keyframe-ops';
-
-// Events
-export {
-  initCanvasEvents,
-  refreshEditor,
-  downEditor,
-  moveEditor,
-  upEditor,
-  keydownEditor,
-  keyupEditor,
-  keytick,
-  resetHoverState,
-  updateUI,
-} from './events/canvas-events';
 
 // API
 export { createTools } from './api/tools';
