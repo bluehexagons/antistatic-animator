@@ -1,5 +1,7 @@
 body {
   background: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 #animator {
   display: flex;
@@ -144,7 +146,11 @@ select:focus,
 .input[contentEditable='true']:focus {
   outline: none;
   border-color: #4a9eff;
-  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.25);
+}
+
+button:focus {
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.3);
 }
 
 input[type='text'],
@@ -211,12 +217,15 @@ div.prop span.input {
   flex-grow: 100;
 }
 div.prop label {
-  padding: 4px 6px;
+  padding: 4px 8px;
   flex-grow: 0;
-  background-color: #1f1f1f;
-  min-width: 80px;
+  background-color: #1a1a1a;
+  min-width: 85px;
   text-align: left;
-  border-right: 1px solid #3a3a3a;
+  border-right: 1px solid #333;
+  color: #a8a8a8;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 #scrollable {
@@ -259,9 +268,10 @@ button.prop-btn {
 .edit-hurtbubbles {
   margin-bottom: 15px;
   padding: 10px;
-  background-color: #2a2a2a;
+  background-color: #262626;
   border-radius: 3px;
   border-left: 3px solid #4a9eff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .edit-hurtbubbles > div {
   display: flex;
@@ -269,12 +279,14 @@ button.prop-btn {
   align-items: center;
   margin-bottom: 6px;
   font-size: 8pt;
+  padding: 2px 0;
 }
 .bubble-coord {
   width: 50px !important;
   padding: 4px 6px !important;
   border-radius: 2px;
   text-align: center;
+  background-color: #333;
 }
 
 /* Keyframe list styling */
