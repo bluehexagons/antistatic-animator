@@ -1,54 +1,34 @@
 /**
  * File operations
- * Functions for saving and loading animation files
+ * Functions for saving animation files via the active storage backend.
  */
 
-import path from '../../runtime/path';
-import fs from '../../runtime/fs';
-import { characterDir } from '../../utils';
+import { library } from '../../storage/library';
 import type { AnimationMap } from '../types';
 
 /**
- * Populate a select element with options
- * @param select The select element to populate
- * @param options Array of option strings
+ * Format animation map as JSON with single-line hurtbubble arrays.
  */
-export const populateSelect = (select: HTMLSelectElement, options: string[]) => {
-  while (select.options.length > 0) {
-    select.options.remove(0);
-  }
-  for (let i = 0; i < options.length; i++) {
-    const option = document.createElement('option');
-    option.text = options[i];
-    select.add(option);
-  }
-};
-
-/**
- * Save current animation data to file
- * Formats hurtbubbles arrays on single lines for readability
- *
- * @param animFile Animation file name
- * @param parsed Animation data to save
- */
-export const save = (animFile: string, parsed: AnimationMap) => {
-  if (animFile === '') {
-    return;
-  }
-
-  const s =
+export const formatAnimationJson = (parsed: AnimationMap): string => {
+  return (
     JSON.stringify(parsed, null, '  ').replace(
       /("hurtbubbles": \[\n)([^\]]*)(\n\s*\])/gm,
       (_, ...b) => {
-        const s = b[1].replace(
+        const inner = b[1].replace(
           /(\s+[\d.-]+),\n\s+([\d.-]+),\n\s+([\d.-]+),\n\s+([\d.-]+,?)/g,
           '$1, $2, $3, $4'
         );
-        return b[0] + s + b[2];
+        return b[0] + inner + b[2];
       }
-    ) + '\n';
+    ) + '\n'
+  );
+};
 
-  fs.writeFileSync(path.resolve(characterDir, animFile), s, {
-    encoding: 'utf8',
-  });
+/**
+ * Save current animation data to file via the active backend.
+ */
+export const save = async (animFile: string, parsed: AnimationMap): Promise<void> => {
+  if (!animFile) return;
+  const text = formatAnimationJson(parsed);
+  await library.save(animFile, text);
 };
