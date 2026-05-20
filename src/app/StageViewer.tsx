@@ -19,11 +19,15 @@ import { objHas } from '../utils';
 import { hbmap } from '../animator/rendering/bubble-finder';
 import type { CameraState } from '../animator/context/AnimatorContext';
 import { HitbubbleColors, HurtbubbleStateById } from '../animator/schema';
+import { interpolatedPose } from '../animator/operations/interpolate';
 
 export interface StageViewerProps {
   character: EntityData;
   animation: Animation;
   keyframe: number;
+  /** Sub-keyframe progress in frames; used to lerp the displayed pose
+   *  when the keyframe has `interpolate: true`. */
+  tick: number;
   camera: CameraState;
   selectedBubble: number;
   onSelectBubble: (i: number) => void;
@@ -137,6 +141,7 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   character,
   animation,
   keyframe,
+  tick,
   camera,
   selectedBubble,
   onSelectBubble,
@@ -187,7 +192,13 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   );
 
   const kf = animation.keyframes[keyframe];
+  /** Authoritative pose for editing operations (drag, pick). */
   const hurtbubbles = kf?.hurtbubbles && Array.isArray(kf.hurtbubbles) ? kf.hurtbubbles : null;
+  /** Displayed pose, possibly interpolated toward the next keyframe. */
+  const displayPose = useMemo(
+    () => interpolatedPose(animation, keyframe, tick),
+    [animation, keyframe, tick]
+  );
 
   const hitbubbles = useMemo<Hitbubble[] | null>(() => {
     if (!kf || !objHas(kf, 'hitbubbles')) return null;
@@ -378,21 +389,20 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   // --- Hurtbubble rendering, state-coloured --------------------
   const bones = character.hurtbubbles;
   const renderHurtbubbles = () => {
-    if (!hurtbubbles) return null;
+    const pose = displayPose ?? hurtbubbles;
+    if (!pose) return null;
     // Sort bones by z so back ones draw first.
     const order = bones.map((b, i) => ({ b, i })).sort((a, b) => (a.b.z ?? 0) - (b.b.z ?? 0));
     return order.map(({ b: bone, i: idx }) => {
       const i1 = bone.i1 * 4;
       const i2 = bone.i2 * 4;
-      if (i1 >= hurtbubbles.length || i2 >= hurtbubbles.length) return null;
-      const x1 = toSvgX(hurtbubbles[i1]);
-      const y1 = toSvgY(hurtbubbles[i1 + 1]);
-      const x2 = toSvgX(hurtbubbles[i2]);
-      const y2 = toSvgY(hurtbubbles[i2 + 1]);
-      const r = hurtbubbles[i1 + 2] * camera.scale;
-      const state = HurtbubbleStateById.get(
-        hurtbubbles[i1 + 3] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 11
-      );
+      if (i1 >= pose.length || i2 >= pose.length) return null;
+      const x1 = toSvgX(pose[i1]);
+      const y1 = toSvgY(pose[i1 + 1]);
+      const x2 = toSvgX(pose[i2]);
+      const y2 = toSvgY(pose[i2 + 1]);
+      const r = pose[i1 + 2] * camera.scale;
+      const state = HurtbubbleStateById.get(pose[i1 + 3] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 11);
       const z = zTint(bone.z);
       // If this bone has a non-normal state, override the fill with the state color.
       const useState = state && state.id !== 1 && state.id !== 0;
@@ -413,8 +423,9 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   // --- Hitbubble rendering -------------------------------------
   const renderHitbubbles = () => {
     if (!showHitboxes || !hitbubbles) return null;
+    const pose = displayPose ?? hurtbubbles;
     return hitbubbles.map((hb, i) => {
-      const resolved = resolveHitbubble(hb, character, hurtbubbles);
+      const resolved = resolveHitbubble(hb, character, pose);
       const cx = toSvgX(resolved.x);
       const cy = toSvgY(resolved.y);
       const r = (hb.radius ?? 0) * camera.scale;

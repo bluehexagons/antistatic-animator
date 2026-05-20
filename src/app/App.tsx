@@ -19,7 +19,7 @@ import { detectCapabilities } from '../storage/types';
 import { Toolbar } from './Toolbar';
 import { Sidebar } from './Sidebar';
 import { Inspector } from './Inspector';
-import { Timeline } from './Timeline';
+import { Timeline, type LoopMode } from './Timeline';
 import { StageViewer } from './StageViewer';
 import { SourcePicker } from './SourcePicker';
 import { DropZone } from './DropZone';
@@ -41,6 +41,11 @@ const Shell: React.FC = () => {
   // Active selection (derived from animator context)
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedHitbubble, setSelectedHitbubble] = useState(-1);
+
+  // Playback state
+  const [playing, setPlaying] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [loopMode, setLoopMode] = useState<LoopMode>('loop');
 
   // Bootstrap: try to restore the previous Electron directory.
   useEffect(() => {
@@ -140,6 +145,12 @@ const Shell: React.FC = () => {
     },
     [dispatch]
   );
+
+  // Reset playback tick when the animation changes.
+  useEffect(() => {
+    setTick(0);
+    setPlaying(false);
+  }, [state.animation]);
 
   const updateCamera = useCallback(
     (cam: Partial<typeof state.camera>) => dispatch({ type: 'SET_CAMERA', payload: cam }),
@@ -289,6 +300,7 @@ const Shell: React.FC = () => {
             character={state.character!}
             animation={state.animation!}
             keyframe={state.keyframe}
+            tick={tick}
             camera={state.camera}
             selectedBubble={state.selectedBubble}
             onSelectBubble={onSelectBubble}
@@ -341,6 +353,12 @@ const Shell: React.FC = () => {
           keyframe={state.keyframe}
           onKeyframeSelect={onKeyframeSelect}
           onAnimationChange={onAnimationChange}
+          playing={playing}
+          onPlayingChange={setPlaying}
+          tick={tick}
+          onTickChange={setTick}
+          loopMode={loopMode}
+          onLoopModeChange={setLoopMode}
         />
       ) : (
         <div

@@ -952,6 +952,20 @@ body {
   padding: 4px 8px;
   color: var(--fg);
 }
+
+.loopSelect {
+  background: var(--bg-2);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px 6px;
+  font: var(--font-mono);
+  outline: none;
+  cursor: pointer;
+}
+.loopSelect:focus {
+  border-color: var(--accent);
+}
 .frameCounter .label {
   color: var(--fg-mute);
 }
@@ -965,6 +979,8 @@ body {
   padding: 8px 12px 12px;
   gap: 4px;
   position: relative;
+  cursor: text;
+  touch-action: none;
 }
 
 .kfThumb {

@@ -1,6 +1,9 @@
 /**
  * Timeline — keyframe strip at the bottom of the screen with playback.
- * Each thumbnail shows the keyframe pose and its frame duration.
+ *
+ * Owns the playback rAF loop and emits (keyframe, tick) outward via
+ * callbacks so the stage viewer can interpolate the pose. Click/drag
+ * inside the strip scrubs the playhead.
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -9,12 +12,20 @@ import { objHas } from '../utils';
 import { cloneKeyframe } from '../animator/operations/keyframe-ops';
 import { ThumbnailPreview } from './ThumbnailPreview';
 
+export type LoopMode = 'once' | 'loop' | 'ping-pong';
+
 export interface TimelineProps {
   character: EntityData;
   animation: Animation;
   keyframe: number;
   onKeyframeSelect: (i: number) => void;
   onAnimationChange: () => void;
+  playing: boolean;
+  onPlayingChange: (p: boolean) => void;
+  tick: number;
+  onTickChange: (t: number) => void;
+  loopMode: LoopMode;
+  onLoopModeChange: (m: LoopMode) => void;
 }
 
 export const Timeline: React.FC<TimelineProps> = ({
@@ -23,56 +34,94 @@ export const Timeline: React.FC<TimelineProps> = ({
   keyframe,
   onKeyframeSelect,
   onAnimationChange,
+  playing,
+  onPlayingChange,
+  tick,
+  onTickChange,
+  loopMode,
+  onLoopModeChange,
 }) => {
-  const [playing, setPlaying] = useState(false);
-  const [tick, setTick] = useState(0); // sub-keyframe progress in frames
-
   const total = useMemo(
     () => animation.keyframes.reduce((s, k) => s + (k.duration ?? 0), 0),
     [animation]
   );
 
-  // Animation loop
+  // Animation loop. Direction = +1 normally, flipped for ping-pong reverse leg.
+  // We read tick / keyframe through refs so the rAF loop doesn't tear down
+  // and restart on every frame.
+  const dirRef = useRef(1);
+  const tickRef = useRef(tick);
+  const keyframeRef = useRef(keyframe);
+  useEffect(() => {
+    tickRef.current = tick;
+  }, [tick]);
+  useEffect(() => {
+    keyframeRef.current = keyframe;
+  }, [keyframe]);
+
   useEffect(() => {
     if (!playing) return;
     let raf = 0;
     let last = performance.now();
     const fps = 60;
-    const step = (now: number) => {
-      const dt = (now - last) / (1000 / fps);
+    const tickStep = (now: number) => {
+      const dt = ((now - last) / (1000 / fps)) * dirRef.current;
       last = now;
-      setTick((t) => {
-        let nt = t + dt;
-        // Advance keyframes
-        let kf = keyframe;
-        let safe = 0;
-        while (
-          animation.keyframes[kf] &&
-          nt >= (animation.keyframes[kf].duration ?? 1) &&
-          safe++ < 256
-        ) {
-          nt -= animation.keyframes[kf].duration ?? 1;
+      let nt = tickRef.current + dt;
+      let kf = keyframeRef.current;
+      let safe = 0;
+      while (animation.keyframes[kf] && safe++ < 256) {
+        const dur = animation.keyframes[kf].duration ?? 1;
+        if (dirRef.current > 0) {
+          if (nt < dur) break;
+          nt -= dur;
           kf = kf + 1;
           if (kf >= animation.keyframes.length) {
-            kf = 0;
+            if (loopMode === 'loop') kf = 0;
+            else if (loopMode === 'ping-pong') {
+              dirRef.current = -1;
+              kf = animation.keyframes.length - 1;
+              nt = (animation.keyframes[kf].duration ?? 1) - 0.0001;
+            } else {
+              onPlayingChange(false);
+              kf = animation.keyframes.length - 1;
+              nt = 0;
+              break;
+            }
+          }
+        } else {
+          if (nt >= 0) break;
+          kf = kf - 1;
+          if (kf < 0) {
+            if (loopMode === 'ping-pong') {
+              dirRef.current = 1;
+              kf = 0;
+              nt = 0;
+            } else if (loopMode === 'loop') {
+              kf = animation.keyframes.length - 1;
+              nt = (animation.keyframes[kf].duration ?? 1) - 0.0001;
+            } else {
+              onPlayingChange(false);
+              kf = 0;
+              nt = 0;
+              break;
+            }
+          } else {
+            nt += animation.keyframes[kf].duration ?? 1;
           }
         }
-        if (kf !== keyframe) {
-          onKeyframeSelect(kf);
-          return 0;
-        }
-        return nt;
-      });
-      raf = requestAnimationFrame(step);
+      }
+      tickRef.current = nt;
+      if (kf !== keyframeRef.current) {
+        keyframeRef.current = kf;
+        onKeyframeSelect(kf);
+      }
+      onTickChange(nt);
+      raf = requestAnimationFrame(tickStep);
     };
-    raf = requestAnimationFrame(step);
+    raf = requestAnimationFrame(tickStep);
     return () => cancelAnimationFrame(raf);
-  }, [playing, keyframe, animation.keyframes, onKeyframeSelect]);
-
-  // Pause when keyframe changes externally (e.g. user click)
-  useEffect(() => {
-    setTick(0);
-  }, [keyframe]);
+  }, [playing, animation.keyframes, loopMode, onPlayingChange, onKeyframeSelect, onTickChange]);
 
   const cumulativeFrame = useMemo(() => {
     let f = 0;
@@ -84,6 +133,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     const i = keyframe + delta;
     if (i < 0 || i >= animation.keyframes.length) return;
     onKeyframeSelect(i);
+    onTickChange(0);
   };
 
   const cloneAt = (i: number, side: 'left' | 'right') => {
@@ -108,8 +158,53 @@ export const Timeline: React.FC<TimelineProps> = ({
     onKeyframeSelect(Math.max(0, i - 1));
   };
 
-  // Playhead position within timeline strip
+  // Scrub support: pointerdown on the strip background (not on a thumb) sets
+  // keyframe+tick to the point under the cursor.
   const stripRef = useRef<HTMLDivElement>(null);
+  const scrubRef = useRef(false);
+
+  const scrubTo = (clientX: number) => {
+    if (!stripRef.current) return;
+    const thumbs = stripRef.current.querySelectorAll<HTMLElement>('[data-kf]');
+    if (!thumbs.length) return;
+    const stripRect = stripRef.current.getBoundingClientRect();
+    const localX = clientX - stripRect.left;
+    for (let i = 0; i < thumbs.length; i++) {
+      const el = thumbs[i];
+      const r = el.getBoundingClientRect();
+      const left = r.left - stripRect.left;
+      const right = r.right - stripRect.left;
+      if (localX >= left && localX <= right) {
+        const fraction = (localX - left) / Math.max(1, right - left);
+        const kfIdx = parseInt(el.dataset.kf || '0', 10);
+        const dur = animation.keyframes[kfIdx].duration ?? 1;
+        onKeyframeSelect(kfIdx);
+        onTickChange(fraction * dur);
+        return;
+      }
+    }
+  };
+
+  const onStripPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    // Only scrub on background; bail if clicking inside a thumb (it handles its own click).
+    const t = e.target as HTMLElement;
+    if (t.closest('[data-kf]') || t.closest('.kfActions')) return;
+    scrubRef.current = true;
+    stripRef.current?.setPointerCapture(e.pointerId);
+    scrubTo(e.clientX);
+  };
+  const onStripPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!scrubRef.current) return;
+    scrubTo(e.clientX);
+  };
+  const onStripPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!scrubRef.current) return;
+    scrubRef.current = false;
+    stripRef.current?.releasePointerCapture(e.pointerId);
+  };
+
+  // Playhead position
   const [playhead, setPlayhead] = useState<number | null>(null);
   useEffect(() => {
     if (!stripRef.current) return;
@@ -130,7 +225,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             ⏮
           </button>
           <button
-            onClick={() => setPlaying((p) => !p)}
+            onClick={() => onPlayingChange(!playing)}
             className={playing ? 'playing' : ''}
             title={playing ? 'Pause' : 'Play'}
           >
@@ -144,6 +239,16 @@ export const Timeline: React.FC<TimelineProps> = ({
             ⏭
           </button>
         </div>
+        <select
+          className="loopSelect"
+          value={loopMode}
+          onChange={(e) => onLoopModeChange(e.target.value as LoopMode)}
+          title="Loop mode"
+        >
+          <option value="loop">↻ loop</option>
+          <option value="once">→ once</option>
+          <option value="ping-pong">⇄ ping-pong</option>
+        </select>
         <div className="frameCounter">
           <span className="label">frame</span>
           <strong>{cumulativeFrame}</strong>
@@ -169,28 +274,40 @@ export const Timeline: React.FC<TimelineProps> = ({
           + Add keyframe
         </button>
       </div>
-      <div className="timelineStrip" ref={stripRef}>
+      <div
+        className="timelineStrip"
+        ref={stripRef}
+        onPointerDown={onStripPointerDown}
+        onPointerMove={onStripPointerMove}
+        onPointerUp={onStripPointerUp}
+        onPointerCancel={onStripPointerUp}
+      >
         {animation.keyframes.map((kf, i) => {
           const active = i === keyframe;
           const width = Math.max(70, Math.min(140, 64 + (kf.duration ?? 1) * 4));
           const hasHits = objHas(kf, 'hitbubbles');
+          const tween = (kf as { tween?: string }).tween;
           return (
             <div
               key={i}
               data-kf={i}
               className={`kfThumb ${active ? 'active' : ''}`}
-              onClick={() => onKeyframeSelect(i)}
+              onClick={() => {
+                onKeyframeSelect(i);
+                onTickChange(0);
+              }}
               style={{ width }}
             >
               <div className="kfBadges">
                 {hasHits && <span className="kfBadge hit">HIT</span>}
-                {objHas(kf, 'tween') &&
-                  (kf as { tween?: string }).tween &&
-                  (kf as { tween?: string }).tween !== 'linear' && (
-                    <span className="kfBadge">
-                      {String((kf as { tween?: string }).tween).slice(0, 6)}
-                    </span>
-                  )}
+                {tween && tween !== 'linear' && (
+                  <span className="kfBadge">{String(tween).slice(0, 6)}</span>
+                )}
+                {(kf as { interpolate?: boolean }).interpolate && (
+                  <span className="kfBadge" title="Interpolated">
+                    ~
+                  </span>
+                )}
               </div>
               <div className="kfPreview">
                 <ThumbnailPreview character={character} animation={animation} keyframeIndex={i} />

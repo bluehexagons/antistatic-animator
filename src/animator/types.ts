@@ -43,6 +43,12 @@ export type Keyframe = {
   duration: number;
   hitbubbles?: Hitbubble[] | true; // true = reference to previous keyframe
   hurtbubbles?: Hurtbubble[];
+  /** Tween the pose from this keyframe toward the next using `tween`. */
+  interpolate?: boolean;
+  /** Named easing function from the Ease table. */
+  tween?: string;
+  // Legacy: dynamic per-keyframe author properties (handler hooks, flags, …)
+  [property: string]: Generic;
 };
 
 /** Animation definition */
