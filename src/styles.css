@@ -637,6 +637,87 @@ body {
   padding-right: 4px;
 }
 
+/* State-aware bubble row variant: adds bone-name col + uses select for state */
+.bubbleHeaderState,
+.bubbleRowState {
+  grid-template-columns: 22px minmax(40px, 1fr) repeat(3, minmax(0, 1fr)) minmax(80px, 1.4fr) auto;
+}
+.bubbleRow .boneName {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+.bubbleRow select {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  outline: none;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.bubbleRow select:focus {
+  border-color: var(--accent);
+}
+
+/* --- Lint list --------------------------------------------------- */
+
+.lintList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.lintItem {
+  display: grid;
+  grid-template-columns: 18px auto 1fr;
+  align-items: start;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border-left: 3px solid transparent;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.lintItem.lint-error {
+  border-left-color: var(--hit);
+  background: rgba(240, 100, 100, 0.08);
+}
+.lintItem.lint-warn {
+  border-left-color: var(--warn);
+  background: rgba(255, 180, 84, 0.08);
+}
+.lintItem.lint-info {
+  border-left-color: var(--accent);
+}
+.lintSev {
+  font-size: 11px;
+  line-height: 1.2;
+}
+.lintKf {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-mute);
+  background: var(--bg-3);
+  border-radius: 2px;
+  padding: 0 4px;
+  align-self: center;
+  white-space: nowrap;
+}
+.lintMsg {
+  color: var(--fg-dim);
+}
+
 /* --- Hitbubble editor ------------------------------------------- */
 
 .hbList {

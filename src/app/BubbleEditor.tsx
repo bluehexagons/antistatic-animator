@@ -5,9 +5,11 @@
  */
 
 import React, { useCallback, useEffect } from 'react';
-import type { Animation } from '../animator/types';
+import type { Animation, EntityData } from '../animator/types';
+import { HurtbubbleStates } from '../animator/schema';
 
 export interface BubbleEditorProps {
+  character: EntityData;
   animation: Animation;
   keyframe: number;
   selectedBubble: number;
@@ -18,6 +20,7 @@ export interface BubbleEditorProps {
 const FIELDS = 4; // x, y, r, state
 
 export const BubbleEditor: React.FC<BubbleEditorProps> = ({
+  character,
   animation,
   keyframe,
   selectedBubble,
@@ -26,6 +29,7 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
 }) => {
   const kf = animation.keyframes[keyframe];
   const hb = kf?.hurtbubbles;
+  const bones = character.hurtbubbles;
 
   // Keyboard nudge handler scoped to this editor (works whenever any input here is focused
   // or when no other editable target has focus).
@@ -87,10 +91,20 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
     onChange();
   };
 
+  const boneNameFor = (bubbleIdx: number): string | null => {
+    // Find a bone whose i1 or i2 matches this bubble index.
+    for (const bone of bones) {
+      if (bone.i1 === bubbleIdx) return bone.name;
+      if (bone.i2 === bubbleIdx) return `${bone.name}2`;
+    }
+    return null;
+  };
+
   return (
     <div>
-      <div className="bubbleHeader">
+      <div className="bubbleHeader bubbleHeaderState">
         <span className="idx">#</span>
+        <span>bone</span>
         <span>x</span>
         <span>y</span>
         <span>r</span>
@@ -101,14 +115,21 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
         {Array.from({ length: count }).map((_, i) => {
           const base = i * FIELDS;
           const active = selectedBubble === i;
+          const stateId = hb[base + 3];
+          const state = HurtbubbleStates.find((s) => s.id === stateId);
+          const name = boneNameFor(i);
           return (
             <div
               key={i}
-              className={`bubbleRow ${active ? 'active' : ''}`}
+              className={`bubbleRow bubbleRowState ${active ? 'active' : ''}`}
               onMouseDown={() => onSelectBubble(i)}
+              style={state ? { borderLeft: `3px solid ${state.color}` } : undefined}
             >
               <span className="idx">{i}</span>
-              {[0, 1, 2, 3].map((f) => (
+              <span className="boneName" title={name ?? ''}>
+                {name ?? '—'}
+              </span>
+              {[0, 1, 2].map((f) => (
                 <input
                   key={f}
                   type="number"
@@ -118,6 +139,21 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
                   onFocus={() => onSelectBubble(i)}
                 />
               ))}
+              <select
+                value={Number.isFinite(stateId) ? stateId : 1}
+                onChange={(e) => {
+                  hb[base + 3] = parseInt(e.target.value, 10);
+                  onChange();
+                }}
+                onFocus={() => onSelectBubble(i)}
+                title={state?.desc ?? 'Hurtbubble state'}
+              >
+                {HurtbubbleStates.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.id}: {s.name}
+                  </option>
+                ))}
+              </select>
               <span />
             </div>
           );

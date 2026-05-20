@@ -3,15 +3,28 @@
  */
 
 import { Ease } from '../easing';
+import { AnimationTypeNames, HandlerEvents, KnownHandlerNames, TweenNames } from './schema';
 import type { Multichoices } from './types';
 
-/** Multichoice dropdown configurations */
+/** Multichoice dropdown configurations.
+ *  Tween + animation type are tight enough to require a dropdown; everything
+ *  else (handler-name suggestions, etc.) goes through `valueSuggestions`. */
 export const multichoice: { [s: string]: Multichoices } = {
   tween: {
     default: 'linear',
-    choices: Object.getOwnPropertyNames(Ease),
+    choices: [...new Set([...TweenNames, ...Object.getOwnPropertyNames(Ease)])].sort(),
+  },
+  type: {
+    default: 'movement',
+    choices: [...AnimationTypeNames],
   },
 };
+
+/** Free-text fields that get a `<datalist>` of known good values.
+ *  Suggestions, not enforcement — the engine accepts any string. */
+export const valueSuggestions: { [s: string]: string[] } = Object.fromEntries(
+  HandlerEvents.map((e) => [e, KnownHandlerNames[e]])
+);
 
 /** Default types for animation properties */
 export const defaultTypes: { [s: string]: string } = {
@@ -20,7 +33,7 @@ export const defaultTypes: { [s: string]: string } = {
   interpolate: 'bool',
   audio: 'string',
   cancellable: 'string',
-  type: 'number',
+  type: 'string',
   noCancel: 'string',
   iasa: 'number',
   early: 'number',

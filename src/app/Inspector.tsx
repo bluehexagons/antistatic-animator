@@ -4,11 +4,12 @@
  * Sections: Animation properties · Stats · Keyframe properties · Hitbubbles · Hurtbubbles.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Animation, EntityData } from '../animator/types';
 import { PropertiesEditor } from './PropertiesEditor';
 import { BubbleEditor } from './BubbleEditor';
 import { HitbubbleEditor } from './HitbubbleEditor';
+import { lintAnimation } from '../animator/lint';
 import { objHas } from '../utils';
 
 export interface InspectorProps {
@@ -111,9 +112,33 @@ export const Inspector: React.FC<InspectorProps> = ({
     : kf?.hitbubbles === true
       ? '↩'
       : 0;
+  const issues = useMemo(() => lintAnimation(character, animation), [character, animation]);
+  const errorCount = issues.filter((i) => i.severity === 'error').length;
+  const warnCount = issues.filter((i) => i.severity === 'warn').length;
+  const issueCount = errorCount + warnCount;
+  const issueLabel = issueCount > 0 ? `${errorCount}🛑 ${warnCount}⚠` : 'clean';
 
   return (
     <aside className="inspector">
+      <Section title="Issues" count={issueLabel} defaultOpen={errorCount > 0}>
+        {issues.length === 0 ? (
+          <div style={{ color: 'var(--fg-mute)', fontSize: 11 }}>
+            No issues found. Lint runs locally; engine validation is still authoritative.
+          </div>
+        ) : (
+          <div className="lintList">
+            {issues.map((iss, idx) => (
+              <div key={idx} className={`lintItem lint-${iss.severity}`} title={iss.message}>
+                <span className="lintSev">
+                  {iss.severity === 'error' ? '🛑' : iss.severity === 'warn' ? '⚠' : 'ℹ'}
+                </span>
+                {iss.keyframe >= 0 && <span className="lintKf">kf {iss.keyframe}</span>}
+                <span className="lintMsg">{iss.message}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
       <Section title="Animation" count={`${animation.keyframes.length} kf`}>
         <PropertiesEditor obj={animation} onChange={onAnimationChange} />
       </Section>
@@ -145,6 +170,7 @@ export const Inspector: React.FC<InspectorProps> = ({
         }
       >
         <BubbleEditor
+          character={character}
           animation={animation}
           keyframe={keyframe}
           selectedBubble={selectedBubble}

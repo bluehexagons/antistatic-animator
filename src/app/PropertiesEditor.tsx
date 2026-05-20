@@ -9,7 +9,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import * as JSONC from 'jsonc-parser';
 import { objHas } from '../utils';
-import { multichoice, defaultTypes, excludeProps } from '../animator/constants';
+import { multichoice, defaultTypes, excludeProps, valueSuggestions } from '../animator/constants';
 
 type Value = string | number | boolean | unknown[] | null;
 type Obj = Record<string, Value>;
@@ -120,14 +120,27 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
             }}
           />
         );
-      default:
+      default: {
+        const suggestList = valueSuggestions[k];
+        const listId = suggestList ? `prop-suggest-${k}` : undefined;
         return (
-          <input
-            type="text"
-            defaultValue={typeof v === 'string' ? v : String(v ?? '')}
-            onBlur={(e) => setKey(k, e.target.value)}
-          />
+          <>
+            <input
+              type="text"
+              list={listId}
+              defaultValue={typeof v === 'string' ? v : String(v ?? '')}
+              onBlur={(e) => setKey(k, e.target.value)}
+            />
+            {suggestList && (
+              <datalist id={listId}>
+                {suggestList.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            )}
+          </>
         );
+      }
     }
   };
 
