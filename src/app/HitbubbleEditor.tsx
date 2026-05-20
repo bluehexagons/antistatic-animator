@@ -1,0 +1,342 @@
+/**
+ * HitbubbleEditor — inspector control for the current keyframe's
+ * `hitbubbles` field. Supports add/remove, all the engine-known
+ * authoring fields, and the `hitbubbles: true` continuation flag.
+ *
+ * Schema reference: `bubbles.ts:226` (Hitbubble class fields) and the
+ * subset actually used by shipped character JSONC.
+ */
+
+import React, { useState } from 'react';
+import type { Animation, EntityData, Hitbubble, Keyframe } from '../animator/types';
+import {
+  HitbubbleColors,
+  HitbubbleFlags,
+  HitbubbleTypes,
+  packFlags,
+  unpackFlags,
+} from '../animator/schema';
+
+export interface HitbubbleEditorProps {
+  character: EntityData;
+  animation: Animation;
+  keyframe: number;
+  selectedHitbubble: number;
+  onSelect: (i: number) => void;
+  onChange: () => void;
+}
+
+/** Bone names a hitbubble can follow. Includes named indices on the
+ *  character ("headbubble" → bone[3]) and the bone names themselves. */
+const followCandidates = (character: EntityData): string[] => {
+  const out = new Set<string>();
+  for (const b of character.hurtbubbles) {
+    if (b?.name) {
+      out.add(b.name);
+      out.add(`${b.name}2`);
+    }
+  }
+  // Named-bubble aliases on the character.
+  for (const k of Object.getOwnPropertyNames(character)) {
+    if (k.endsWith('bubble') && typeof character[k] === 'number') {
+      out.add(k);
+    }
+  }
+  return [...out].sort();
+};
+
+const NewHitbubbleDefaults = (): Hitbubble => ({
+  type: 'ground',
+  x: 0,
+  y: 0,
+  radius: 10,
+  damage: 5,
+  knockback: 5,
+  growth: 5,
+  angle: 45,
+});
+
+interface HitbubbleRowProps {
+  index: number;
+  hb: Hitbubble;
+  active: boolean;
+  followOptions: string[];
+  onSelect: () => void;
+  onChange: () => void;
+  onRemove: () => void;
+}
+
+const FIELD_DEFS: {
+  key: string;
+  label: string;
+  kind: 'num' | 'str' | 'bool';
+  step?: string;
+  min?: number;
+}[] = [
+  { key: 'x', label: 'x', kind: 'num', step: 'any' },
+  { key: 'y', label: 'y', kind: 'num', step: 'any' },
+  { key: 'radius', label: 'r', kind: 'num', step: 'any', min: 0 },
+  { key: 'damage', label: 'dmg', kind: 'num', step: 'any' },
+  { key: 'knockback', label: 'kb', kind: 'num', step: 'any' },
+  { key: 'growth', label: 'kbg', kind: 'num', step: 'any' },
+  { key: 'angle', label: 'ang', kind: 'num', step: 'any' },
+  { key: 'x2', label: 'x2', kind: 'num', step: 'any' },
+  { key: 'y2', label: 'y2', kind: 'num', step: 'any' },
+  { key: 'start', label: 'start', kind: 'num', step: '1', min: 0 },
+  { key: 'end', label: 'end', kind: 'num', step: '1', min: 0 },
+];
+
+const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
+  index,
+  hb,
+  active,
+  followOptions,
+  onSelect,
+  onChange,
+  onRemove,
+}) => {
+  const set = <K extends string>(k: K, v: unknown) => {
+    if (v === undefined || v === '' || (typeof v === 'number' && Number.isNaN(v))) {
+      delete (hb as Record<string, unknown>)[k];
+    } else {
+      (hb as Record<string, unknown>)[k] = v;
+    }
+    onChange();
+  };
+
+  const flags = unpackFlags(typeof hb.flags === 'number' ? hb.flags : 0);
+  const setFlag = (name: string, on: boolean) => {
+    const next = new Set(flags);
+    if (on) next.add(name);
+    else next.delete(name);
+    const bits = packFlags([...next]);
+    if (bits === 0) delete (hb as Record<string, unknown>).flags;
+    else (hb as Record<string, unknown>).flags = bits;
+    onChange();
+  };
+
+  const typeColor = HitbubbleColors[hb.type as string] ?? HitbubbleColors.none;
+
+  return (
+    <div
+      className={`hbCard ${active ? 'active' : ''}`}
+      onMouseDown={onSelect}
+      style={{ borderLeft: `3px solid ${typeColor}` }}
+    >
+      <div className="hbCardHead">
+        <span className="hbCardIdx">#{index}</span>
+        <select
+          value={(hb.type as string) ?? 'ground'}
+          onChange={(e) => set('type', e.target.value)}
+          title="Hitbubble type"
+        >
+          {HitbubbleTypes.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <input
+          list={`hb-follow-${index}`}
+          placeholder="follow…"
+          value={(hb.follow as string) ?? ''}
+          onChange={(e) => set('follow', e.target.value)}
+          title="Bone or named bubble to anchor to"
+        />
+        <datalist id={`hb-follow-${index}`}>
+          {followOptions.map((o) => (
+            <option key={o} value={o} />
+          ))}
+        </datalist>
+        <button
+          className="propBtn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          title="Remove hitbubble"
+        >
+          ×
+        </button>
+      </div>
+      <div className="hbCardGrid">
+        {FIELD_DEFS.map((f) => (
+          <label key={f.key} className="hbField" title={f.label}>
+            <span>{f.label}</span>
+            <input
+              type="number"
+              step={f.step ?? 'any'}
+              value={((hb as Record<string, unknown>)[f.key] as number | undefined) ?? ''}
+              onChange={(e) =>
+                set(f.key, e.target.value === '' ? undefined : parseFloat(e.target.value))
+              }
+            />
+          </label>
+        ))}
+      </div>
+      <div className="hbCardRow">
+        <label className="hbToggle">
+          <input
+            type="checkbox"
+            checked={!!hb.sakurai}
+            onChange={(e) => set('sakurai', e.target.checked || undefined)}
+          />
+          <span>sakurai</span>
+        </label>
+        <label className="hbToggle">
+          <input
+            type="checkbox"
+            checked={!!hb.strong}
+            onChange={(e) => set('strong', e.target.checked || undefined)}
+          />
+          <span>strong</span>
+        </label>
+        <label className="hbField" title="Audio cue name">
+          <span>audio</span>
+          <input
+            type="text"
+            placeholder="hit / grab / …"
+            value={(hb.audio as string) ?? ''}
+            onChange={(e) => set('audio', e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="hbFlags">
+        {HitbubbleFlags.map((f) => (
+          <label key={f.name} className="hbFlag" title={f.desc}>
+            <input
+              type="checkbox"
+              checked={flags.includes(f.name)}
+              onChange={(e) => setFlag(f.name, e.target.checked)}
+            />
+            <span>{f.name}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const HitbubbleEditor: React.FC<HitbubbleEditorProps> = ({
+  character,
+  animation,
+  keyframe,
+  selectedHitbubble,
+  onSelect,
+  onChange,
+}) => {
+  const kf: Keyframe | undefined = animation.keyframes[keyframe];
+  const followOptions = useFollowOptions(character);
+  const [showRaw, setShowRaw] = useState(false);
+
+  if (!kf) return null;
+
+  // hitbubbles can be: undefined, an array, or `true` (continuation).
+  const isContinuation = kf.hitbubbles === true;
+  const list: Hitbubble[] = Array.isArray(kf.hitbubbles) ? kf.hitbubbles : [];
+
+  const setContinuation = (on: boolean) => {
+    if (on) {
+      kf.hitbubbles = true;
+    } else {
+      delete kf.hitbubbles;
+    }
+    onChange();
+  };
+
+  const startList = () => {
+    kf.hitbubbles = [NewHitbubbleDefaults()];
+    onSelect(0);
+    onChange();
+  };
+
+  const addRow = () => {
+    const arr = Array.isArray(kf.hitbubbles) ? kf.hitbubbles : [];
+    arr.push(NewHitbubbleDefaults());
+    kf.hitbubbles = arr;
+    onSelect(arr.length - 1);
+    onChange();
+  };
+
+  const removeRow = (i: number) => {
+    if (!Array.isArray(kf.hitbubbles)) return;
+    kf.hitbubbles.splice(i, 1);
+    if (kf.hitbubbles.length === 0) delete kf.hitbubbles;
+    onSelect(-1);
+    onChange();
+  };
+
+  return (
+    <div className="hbList">
+      <div className="hbToolbar">
+        <label className="hbToggle" title="Reuse previous keyframe's hitbubbles">
+          <input
+            type="checkbox"
+            checked={isContinuation}
+            disabled={list.length > 0}
+            onChange={(e) => setContinuation(e.target.checked)}
+          />
+          <span>continue (←)</span>
+        </label>
+        <button className="btn ghost" onClick={() => setShowRaw((v) => !v)} title="Toggle raw JSON">
+          {showRaw ? 'hide raw' : 'raw'}
+        </button>
+        <div style={{ flex: 1 }} />
+        {list.length === 0 && !isContinuation && (
+          <button className="btn" onClick={startList} title="Add first hitbubble">
+            + add hitbox
+          </button>
+        )}
+        {list.length > 0 && (
+          <button className="btn" onClick={addRow} title="Add another hitbubble">
+            +
+          </button>
+        )}
+      </div>
+      {isContinuation && (
+        <div className="listEmpty" style={{ padding: '4px 0' }}>
+          Inheriting hitbubbles from the previous keyframe.
+        </div>
+      )}
+      {!isContinuation && list.length === 0 && (
+        <div className="listEmpty" style={{ padding: '4px 0' }}>
+          No hitbubbles. Click <strong>+ add hitbox</strong> to start one.
+        </div>
+      )}
+      {list.map((hb, i) => (
+        <HitbubbleRow
+          key={i}
+          index={i}
+          hb={hb}
+          active={i === selectedHitbubble}
+          followOptions={followOptions}
+          onSelect={() => onSelect(i)}
+          onChange={onChange}
+          onRemove={() => removeRow(i)}
+        />
+      ))}
+      {showRaw && (
+        <pre
+          className="hbRaw"
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            padding: 6,
+            background: 'var(--bg-2)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            color: 'var(--fg-dim)',
+            overflow: 'auto',
+            maxHeight: 200,
+          }}
+        >
+          {JSON.stringify(kf.hitbubbles, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+};
+
+function useFollowOptions(character: EntityData): string[] {
+  return React.useMemo(() => followCandidates(character), [character]);
+}

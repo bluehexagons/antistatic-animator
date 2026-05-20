@@ -1,13 +1,14 @@
 /**
  * Inspector — right-hand properties panel.
  *
- * Sections: Animation properties · Stats · Keyframe properties · Bubbles.
+ * Sections: Animation properties · Stats · Keyframe properties · Hitbubbles · Hurtbubbles.
  */
 
 import React, { useState } from 'react';
 import type { Animation, EntityData } from '../animator/types';
 import { PropertiesEditor } from './PropertiesEditor';
 import { BubbleEditor } from './BubbleEditor';
+import { HitbubbleEditor } from './HitbubbleEditor';
 import { objHas } from '../utils';
 
 export interface InspectorProps {
@@ -16,6 +17,8 @@ export interface InspectorProps {
   keyframe: number;
   selectedBubble: number;
   onSelectBubble: (i: number) => void;
+  selectedHitbubble: number;
+  onSelectHitbubble: (i: number) => void;
   onAnimationChange: () => void;
 }
 
@@ -97,10 +100,17 @@ export const Inspector: React.FC<InspectorProps> = ({
   keyframe,
   selectedBubble,
   onSelectBubble,
+  selectedHitbubble,
+  onSelectHitbubble,
   onAnimationChange,
 }) => {
   const kf = animation.keyframes[keyframe];
   const stats = calcStats(animation);
+  const hitCount = Array.isArray(kf?.hitbubbles)
+    ? kf.hitbubbles.length
+    : kf?.hitbubbles === true
+      ? '↩'
+      : 0;
 
   return (
     <aside className="inspector">
@@ -115,6 +125,16 @@ export const Inspector: React.FC<InspectorProps> = ({
       </Section>
       <Section title={`Keyframe #${keyframe}`}>
         <PropertiesEditor obj={kf} isKeyframe onChange={onAnimationChange} />
+      </Section>
+      <Section title="Hitbubbles" count={hitCount} defaultOpen={!!hitCount}>
+        <HitbubbleEditor
+          character={character}
+          animation={animation}
+          keyframe={keyframe}
+          selectedHitbubble={selectedHitbubble}
+          onSelect={onSelectHitbubble}
+          onChange={onAnimationChange}
+        />
       </Section>
       <Section
         title="Hurtbubbles"

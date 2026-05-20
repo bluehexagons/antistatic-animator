@@ -5,11 +5,12 @@
  * to an SVG that fills the stage area. Supports:
  *  - mouse-wheel zoom around the cursor
  *  - middle/right drag to pan
- *  - left-click to select a bubble
- *  - left-drag a selected bubble to move it
+ *  - left-click to select a bubble (hurtbubble or hitbubble)
+ *  - left-drag a selected hurtbubble to move it
  *  - a grid + ground reference line
- *  - a 3D forward-compat indicator: shows the `z` field on the selected bubble
- *    (currently rendered as a small label; rotation gizmo wired but disabled).
+ *  - hurtbubble tint by HurtbubbleState (armor/intangible/etc.)
+ *  - hitbubble tint by HitbubbleType + smear trails + knockback gizmo
+ *  - z-axis tinting (front warmer / back cooler) using bone.z
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,6 +18,7 @@ import type { Animation, EntityData, Hitbubble } from '../animator/types';
 import { objHas } from '../utils';
 import { hbmap } from '../animator/rendering/bubble-finder';
 import type { CameraState } from '../animator/context/AnimatorContext';
+import { HitbubbleColors, HurtbubbleStateById } from '../animator/schema';
 
 export interface StageViewerProps {
   character: EntityData;
@@ -25,6 +27,8 @@ export interface StageViewerProps {
   camera: CameraState;
   selectedBubble: number;
   onSelectBubble: (i: number) => void;
+  selectedHitbubble: number;
+  onSelectHitbubble: (i: number) => void;
   onCameraChange: (cam: Partial<CameraState>) => void;
   onBubbleChange: () => void;
   showGrid: boolean;
@@ -54,6 +58,81 @@ function getCapsulePoints(x1: number, y1: number, x2: number, y2: number, r: num
   return points.map((n) => n.toFixed(2)).join(' ');
 }
 
+/** Resolve a hitbubble's world position, including follow + smear anchors. */
+function resolveHitbubble(hb: Hitbubble, character: EntityData, hurtbubbles: number[] | null) {
+  let x = hb.x ?? 0;
+  let y = hb.y ?? 0;
+  let anchorX = 0;
+  let anchorY = 0;
+  let hasAnchor = false;
+  let smearX = (hb.smear as { x?: number } | undefined)?.x ?? 0;
+  let smearY = (hb.smear as { y?: number } | undefined)?.y ?? 0;
+  let smearAnchorX = 0;
+  let smearAnchorY = 0;
+  let hasSmear = !!hb.smear;
+  let smearAnchorPresent = false;
+
+  if (hurtbubbles && objHas(hb, 'follow')) {
+    const map = hbmap(character.hurtbubbles);
+    const idx = map.get(hb.follow as string);
+    if (idx !== undefined) {
+      const b = character.hurtbubbles[Math.abs(idx) - 1];
+      const base = 4 * (idx > 0 ? b.i1 : b.i2);
+      anchorX = hurtbubbles[base] ?? 0;
+      anchorY = hurtbubbles[base + 1] ?? 0;
+      x += anchorX;
+      y += anchorY;
+      hasAnchor = true;
+    }
+  }
+  if (hurtbubbles && hasSmear) {
+    const smear = hb.smear as { follow?: string; x?: number; y?: number };
+    if (smear.follow) {
+      const map = hbmap(character.hurtbubbles);
+      const idx = map.get(smear.follow);
+      if (idx !== undefined) {
+        const b = character.hurtbubbles[Math.abs(idx) - 1];
+        const base = 4 * (idx > 0 ? b.i1 : b.i2);
+        smearAnchorX = hurtbubbles[base] ?? 0;
+        smearAnchorY = hurtbubbles[base + 1] ?? 0;
+        smearX += smearAnchorX;
+        smearY += smearAnchorY;
+        smearAnchorPresent = true;
+      }
+    } else if (hasAnchor) {
+      // smear without explicit follow inherits the hitbubble's follow anchor
+      smearX += anchorX;
+      smearY += anchorY;
+    }
+  }
+
+  return {
+    x,
+    y,
+    anchorX,
+    anchorY,
+    hasAnchor,
+    smearX,
+    smearY,
+    smearAnchorX,
+    smearAnchorY,
+    hasSmear,
+    smearAnchorPresent,
+  };
+}
+
+/** Bone-z to tint nudge for the bones' capsule color (front warmer / back cooler). */
+function zTint(z: number | undefined): { fill: string; stroke: string } {
+  if (z === undefined || z === 0) {
+    return { fill: 'rgba(205, 210, 220, 0.32)', stroke: 'rgba(20, 23, 28, 0.85)' };
+  }
+  if (z > 0) {
+    // front: slightly warmer
+    return { fill: 'rgba(255, 215, 180, 0.34)', stroke: 'rgba(60, 30, 20, 0.85)' };
+  }
+  return { fill: 'rgba(170, 200, 230, 0.30)', stroke: 'rgba(20, 30, 50, 0.85)' };
+}
+
 export const StageViewer: React.FC<StageViewerProps> = ({
   character,
   animation,
@@ -61,6 +140,8 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   camera,
   selectedBubble,
   onSelectBubble,
+  selectedHitbubble,
+  onSelectHitbubble,
   onCameraChange,
   onBubbleChange,
   showGrid,
@@ -109,7 +190,7 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   const hurtbubbles = kf?.hurtbubbles && Array.isArray(kf.hurtbubbles) ? kf.hurtbubbles : null;
 
   const hitbubbles = useMemo<Hitbubble[] | null>(() => {
-    if (!objHas(kf, 'hitbubbles')) return null;
+    if (!kf || !objHas(kf, 'hitbubbles')) return null;
     let cur = kf;
     let i = keyframe;
     while (cur?.hitbubbles === true) {
@@ -139,6 +220,25 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     [hurtbubbles]
   );
 
+  const pickHitbubbleAt = useCallback(
+    (worldX: number, worldY: number): number => {
+      if (!showHitboxes || !hitbubbles) return -1;
+      let best = -1;
+      let bestDist = Infinity;
+      for (let i = 0; i < hitbubbles.length; i++) {
+        const resolved = resolveHitbubble(hitbubbles[i], character, hurtbubbles);
+        const r = hitbubbles[i].radius ?? 0;
+        const d2 = (worldX - resolved.x) ** 2 + (worldY - resolved.y) ** 2;
+        if (d2 <= r * r && d2 < bestDist) {
+          bestDist = d2;
+          best = i;
+        }
+      }
+      return best;
+    },
+    [hitbubbles, character, hurtbubbles, showHitboxes]
+  );
+
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
@@ -147,9 +247,13 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     const { x: wx, y: wy } = fromSvg(px, py);
 
     if (e.button === 0) {
+      const hitIdx = pickHitbubbleAt(wx, wy);
       const found = pickBubbleAt(wx, wy);
+      // Hurtbubble click takes precedence (since they're usually behind hitbubbles
+      // visually but represent the editable rig).
       if (found >= 0 && hurtbubbles) {
         onSelectBubble(found);
+        onSelectHitbubble(-1);
         svgRef.current.setPointerCapture(e.pointerId);
         dragRef.current = {
           mode: 'move-bubble',
@@ -162,8 +266,12 @@ export const StageViewer: React.FC<StageViewerProps> = ({
             y: hurtbubbles[found * 4 + 1],
           },
         };
+      } else if (hitIdx >= 0) {
+        onSelectHitbubble(hitIdx);
+        onSelectBubble(-1);
       } else {
         onSelectBubble(-1);
+        onSelectHitbubble(-1);
       }
     } else if (e.button === 1 || e.button === 2) {
       svgRef.current.setPointerCapture(e.pointerId);
@@ -218,9 +326,6 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
     const newScale = Math.max(0.25, Math.min(40, camera.scale * factor));
 
-    // Adjust camera offsets so the world point under the cursor stays put.
-    // px = wx * scale + w * (0.5 + cx * 0.5)
-    // wx = before.x ; py / wy similarly.
     const newOx = px - before.x * newScale;
     const newOy = py + before.y * newScale;
     const newCx = (newOx / w - 0.5) * 2;
@@ -233,8 +338,8 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   // --- Grid -----------------------------------------------------
   const gridLines: React.ReactNode[] = [];
   if (showGrid) {
-    const step = camera.scale; // 1 world unit
-    const major = 5; // every 5 units, bolder
+    const step = camera.scale;
+    const major = 5;
     const minStep = Math.max(8, step);
     const startX = -Math.floor(ox / minStep) - 1;
     const endX = Math.floor((w - ox) / minStep) + 1;
@@ -270,11 +375,13 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     }
   }
 
-  // --- Hurtbubble rendering ------------------------------------
+  // --- Hurtbubble rendering, state-coloured --------------------
   const bones = character.hurtbubbles;
   const renderHurtbubbles = () => {
     if (!hurtbubbles) return null;
-    return bones.map((bone, idx) => {
+    // Sort bones by z so back ones draw first.
+    const order = bones.map((b, i) => ({ b, i })).sort((a, b) => (a.b.z ?? 0) - (b.b.z ?? 0));
+    return order.map(({ b: bone, i: idx }) => {
       const i1 = bone.i1 * 4;
       const i2 = bone.i2 * 4;
       if (i1 >= hurtbubbles.length || i2 >= hurtbubbles.length) return null;
@@ -283,12 +390,20 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       const x2 = toSvgX(hurtbubbles[i2]);
       const y2 = toSvgY(hurtbubbles[i2 + 1]);
       const r = hurtbubbles[i1 + 2] * camera.scale;
+      const state = HurtbubbleStateById.get(
+        hurtbubbles[i1 + 3] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 11
+      );
+      const z = zTint(bone.z);
+      // If this bone has a non-normal state, override the fill with the state color.
+      const useState = state && state.id !== 1 && state.id !== 0;
+      const fill = useState ? state!.color + '55' : z.fill;
+      const stroke = useState ? state!.color : z.stroke;
       return (
         <polygon
           key={`bone-${idx}`}
           points={getCapsulePoints(x1, y1, x2, y2, r)}
-          fill="rgba(205, 210, 220, 0.32)"
-          stroke="rgba(20, 23, 28, 0.85)"
+          fill={fill}
+          stroke={stroke}
           strokeWidth={0.75}
         />
       );
@@ -297,54 +412,79 @@ export const StageViewer: React.FC<StageViewerProps> = ({
 
   // --- Hitbubble rendering -------------------------------------
   const renderHitbubbles = () => {
-    if (!showHitboxes || !hitbubbles || !hurtbubbles) return null;
-    const map = hbmap(character.hurtbubbles);
+    if (!showHitboxes || !hitbubbles) return null;
     return hitbubbles.map((hb, i) => {
-      let x = hb.x ?? 0;
-      let y = hb.y ?? 0;
-      let anchorX = 0;
-      let anchorY = 0;
-      if (objHas(hb, 'follow')) {
-        const idx = map.get(hb.follow as string);
-        if (idx !== undefined) {
-          const b = character.hurtbubbles[Math.abs(idx) - 1];
-          const base = 4 * (idx > 0 ? b.i1 : b.i2);
-          anchorX = hurtbubbles[base];
-          anchorY = hurtbubbles[base + 1];
-          x += anchorX;
-          y += anchorY;
-        }
-      }
-      const cx = toSvgX(x);
-      const cy = toSvgY(y);
+      const resolved = resolveHitbubble(hb, character, hurtbubbles);
+      const cx = toSvgX(resolved.x);
+      const cy = toSvgY(resolved.y);
       const r = (hb.radius ?? 0) * camera.scale;
+      const color = HitbubbleColors[hb.type as string] ?? HitbubbleColors.none;
+      const selected = i === selectedHitbubble;
+      const opacity = selected ? 0.5 : 0.32;
+
       return (
-        <g key={`hit-${i}`}>
-          {objHas(hb, 'follow') && (
+        <g key={`hit-${i}`} style={{ cursor: 'pointer' }}>
+          {/* Smear trail */}
+          {resolved.hasSmear && (
+            <g>
+              <line
+                x1={toSvgX(resolved.smearX)}
+                y1={toSvgY(resolved.smearY)}
+                x2={cx}
+                y2={cy}
+                stroke={color}
+                strokeWidth="1.2"
+                strokeDasharray="4 3"
+                opacity="0.5"
+              />
+              <circle
+                cx={toSvgX(resolved.smearX)}
+                cy={toSvgY(resolved.smearY)}
+                r={r}
+                fill={color}
+                opacity="0.10"
+                stroke={color}
+                strokeWidth="0.5"
+                strokeDasharray="2 3"
+              />
+            </g>
+          )}
+          {resolved.hasAnchor && (
             <line
               x1={cx}
               y1={cy}
-              x2={toSvgX(anchorX)}
-              y2={toSvgY(anchorY)}
-              stroke="rgba(240, 100, 100, 0.55)"
-              strokeWidth="1"
+              x2={toSvgX(resolved.anchorX)}
+              y2={toSvgY(resolved.anchorY)}
+              stroke={color}
+              strokeWidth="0.9"
               strokeDasharray="3 2"
+              opacity="0.7"
             />
           )}
           <circle
             cx={cx}
             cy={cy}
             r={r}
-            fill="rgba(240, 100, 100, 0.32)"
-            stroke="rgba(240, 100, 100, 0.85)"
-            strokeWidth="1"
+            fill={color}
+            fillOpacity={opacity}
+            stroke={color}
+            strokeWidth={selected ? 2 : 1}
           />
+          {/* Knockback gizmo */}
+          {(typeof hb.knockback === 'number' || typeof hb.angle === 'number') && (
+            <KnockbackGizmo cx={cx} cy={cy} r={r} hb={hb} color={color} selected={selected} />
+          )}
+          {selected && (
+            <text x={cx + r + 6} y={cy + 3} fill={color} fontFamily="monospace" fontSize="10">
+              #{i} {(hb.damage ?? 0).toString()}%
+            </text>
+          )}
         </g>
       );
     });
   };
 
-  // --- Selected bubble overlay ---------------------------------
+  // --- Selected hurtbubble overlay -----------------------------
   let selectedOverlay: React.ReactNode = null;
   if (selectedBubble >= 0 && hurtbubbles) {
     const base = selectedBubble * 4;
@@ -386,7 +526,6 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     }
   }
 
-  // Origin axes (always)
   const originAxes = (
     <g>
       {showGround && (
@@ -425,5 +564,78 @@ export const StageViewer: React.FC<StageViewerProps> = ({
         {selectedOverlay}
       </svg>
     </div>
+  );
+};
+
+interface KnockbackGizmoProps {
+  cx: number;
+  cy: number;
+  r: number;
+  hb: Hitbubble;
+  color: string;
+  selected: boolean;
+}
+
+/** Renders the knockback direction + magnitude as an arrow rooted at the
+ *  hitbubble centre. Sakurai-angle hitboxes get an extra ground-angle leg. */
+const KnockbackGizmo: React.FC<KnockbackGizmoProps> = ({ cx, cy, r, hb, color, selected }) => {
+  const angle = typeof hb.angle === 'number' ? hb.angle : 0;
+  const knockback = typeof hb.knockback === 'number' ? hb.knockback : 0;
+  const growth = typeof hb.growth === 'number' ? hb.growth : 0;
+  // Arrow length scales with KB; capped so it stays visible but doesn't fly off-screen.
+  const len = Math.max(r * 1.2, Math.min(180, r * 0.8 + (knockback + growth * 0.6) * 3));
+  const rad = (angle * Math.PI) / 180;
+  // Game convention: angle 0 = right, 90 = up. SVG y is flipped.
+  const ex = cx + Math.cos(rad) * len;
+  const ey = cy - Math.sin(rad) * len;
+
+  const arrowHead = (x: number, y: number, ax: number, ay: number) => {
+    const a = Math.atan2(y - ay, x - ax);
+    const sz = 6;
+    const a1 = a + Math.PI / 6;
+    const a2 = a - Math.PI / 6;
+    return `M ${x} ${y} L ${x - Math.cos(a1) * sz} ${y - Math.sin(a1) * sz} L ${
+      x - Math.cos(a2) * sz
+    } ${y - Math.sin(a2) * sz} Z`;
+  };
+
+  const opacity = selected ? 0.95 : 0.55;
+
+  return (
+    <g>
+      <line
+        x1={cx}
+        y1={cy}
+        x2={ex}
+        y2={ey}
+        stroke={color}
+        strokeWidth={selected ? 2 : 1.2}
+        opacity={opacity}
+      />
+      <path d={arrowHead(ex, ey, cx, cy)} fill={color} opacity={opacity} />
+      {hb.sakurai && (
+        <>
+          {/* Sakurai: also show grounded fallback at 45° (approximate). */}
+          {(() => {
+            const fallback = 45;
+            const frad = (fallback * Math.PI) / 180;
+            const fx = cx + Math.cos(frad) * len * 0.7;
+            const fy = cy - Math.sin(frad) * len * 0.7;
+            return (
+              <line
+                x1={cx}
+                y1={cy}
+                x2={fx}
+                y2={fy}
+                stroke={color}
+                strokeWidth="0.8"
+                strokeDasharray="2 3"
+                opacity={opacity * 0.6}
+              />
+            );
+          })()}
+        </>
+      )}
+    </g>
   );
 };

@@ -40,6 +40,7 @@ const Shell: React.FC = () => {
 
   // Active selection (derived from animator context)
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedHitbubble, setSelectedHitbubble] = useState(-1);
 
   // Bootstrap: try to restore the previous Electron directory.
   useEffect(() => {
@@ -133,7 +134,10 @@ const Shell: React.FC = () => {
   );
 
   const onKeyframeSelect = useCallback(
-    (i: number) => dispatch({ type: 'SET_KEYFRAME', payload: i }),
+    (i: number) => {
+      dispatch({ type: 'SET_KEYFRAME', payload: i });
+      setSelectedHitbubble(-1);
+    },
     [dispatch]
   );
 
@@ -288,6 +292,8 @@ const Shell: React.FC = () => {
             camera={state.camera}
             selectedBubble={state.selectedBubble}
             onSelectBubble={onSelectBubble}
+            selectedHitbubble={selectedHitbubble}
+            onSelectHitbubble={setSelectedHitbubble}
             onCameraChange={updateCamera}
             onBubbleChange={onAnimationChange}
             showGrid={showGrid}
@@ -313,6 +319,8 @@ const Shell: React.FC = () => {
           keyframe={state.keyframe}
           selectedBubble={state.selectedBubble}
           onSelectBubble={onSelectBubble}
+          selectedHitbubble={selectedHitbubble}
+          onSelectHitbubble={setSelectedHitbubble}
           onAnimationChange={onAnimationChange}
         />
       ) : (

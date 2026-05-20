@@ -637,6 +637,158 @@ body {
   padding-right: 4px;
 }
 
+/* --- Hitbubble editor ------------------------------------------- */
+
+.hbList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hbToolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 2px;
+}
+
+.hbCard {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.hbCard:hover {
+  background: var(--bg-3);
+}
+.hbCard.active {
+  background: var(--bg-3);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+.hbCardHead {
+  display: grid;
+  grid-template-columns: 22px minmax(60px, 90px) 1fr 22px;
+  gap: 4px;
+  align-items: center;
+}
+.hbCardHead select,
+.hbCardHead input {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font: var(--font-mono);
+  font-size: 11px;
+  min-width: 0;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.hbCardHead select:focus,
+.hbCardHead input:focus {
+  border-color: var(--accent);
+}
+.hbCardIdx {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-mute);
+  text-align: right;
+  padding-right: 4px;
+}
+
+.hbCardGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.hbCardRow {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 6px;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.hbField {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.hbField > span {
+  font-size: 9px;
+  color: var(--fg-mute);
+  font-family: var(--font-mono);
+  text-transform: lowercase;
+  padding-left: 2px;
+}
+.hbField > input {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font: var(--font-mono);
+  font-size: 11px;
+  min-width: 0;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.hbField > input:focus {
+  border-color: var(--accent);
+}
+
+.hbToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.hbToggle input {
+  margin: 0;
+}
+
+.hbFlags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px 6px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+.hbFlag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.hbFlag input {
+  margin: 0;
+  transform: scale(0.85);
+}
+.hbFlag:hover {
+  color: var(--fg);
+}
+
 /* --- Timeline (bottom) ------------------------------------------ */
 
 .timeline {
