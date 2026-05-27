@@ -109,4 +109,9 @@ describe('lintAnimation', () => {
     );
     expect(issues.some((i) => /duration/.test(i.message))).toBe(true);
   });
+
+  it('flags animations with no keyframes', () => {
+    const issues = lintAnimation(sampleCharacter(), { keyframes: [] });
+    expect(issues.some((i) => i.severity === 'error' && /no keyframes/.test(i.message))).toBe(true);
+  });
 });

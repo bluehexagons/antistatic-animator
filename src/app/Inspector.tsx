@@ -147,43 +147,53 @@ export const Inspector: React.FC<InspectorProps> = ({
         <Stat label="hits" value={stats.hits || '—'} />
         <Stat label="backswing" value={`${stats.backswing}f`} />
       </Section>
-      <Section title={`Keyframe #${keyframe}`}>
-        <PropertiesEditor obj={kf} isKeyframe onChange={onAnimationChange} />
-      </Section>
-      <Section title="Hitbubbles" count={hitCount} defaultOpen={!!hitCount}>
-        <HitbubbleEditor
-          character={character}
-          animation={animation}
-          keyframe={keyframe}
-          selectedHitbubble={selectedHitbubble}
-          onSelect={onSelectHitbubble}
-          onChange={onAnimationChange}
-        />
-      </Section>
-      <Section
-        title="Hurtbubbles"
-        count={
-          kf?.hurtbubbles && Array.isArray(kf.hurtbubbles)
-            ? Math.floor(kf.hurtbubbles.length / 4)
-            : 0
-        }
-      >
-        <BubbleEditor
-          character={character}
-          animation={animation}
-          keyframe={keyframe}
-          selectedBubble={selectedBubble}
-          onSelectBubble={onSelectBubble}
-          onChange={onAnimationChange}
-        />
-        <div style={{ fontSize: 10, color: 'var(--fg-mute)', marginTop: 6, lineHeight: 1.5 }}>
-          Bones: <strong style={{ color: 'var(--fg)' }}>{character.hurtbubbles.length}</strong>
-          {' · '}
-          Use <kbd>WASD</kbd>/arrows to nudge (shift = ×5, alt = 0.1).
-          {' · '}
-          Marquee-drag empty space to multi-select; <kbd>shift</kbd>-click toggles members.
-        </div>
-      </Section>
+      {kf ? (
+        <>
+          <Section title={`Keyframe #${keyframe}`}>
+            <PropertiesEditor obj={kf} isKeyframe onChange={onAnimationChange} />
+          </Section>
+          <Section title="Hitbubbles" count={hitCount} defaultOpen={!!hitCount}>
+            <HitbubbleEditor
+              character={character}
+              animation={animation}
+              keyframe={keyframe}
+              selectedHitbubble={selectedHitbubble}
+              onSelect={onSelectHitbubble}
+              onChange={onAnimationChange}
+            />
+          </Section>
+          <Section
+            title="Hurtbubbles"
+            count={
+              kf.hurtbubbles && Array.isArray(kf.hurtbubbles)
+                ? Math.floor(kf.hurtbubbles.length / 4)
+                : 0
+            }
+          >
+            <BubbleEditor
+              character={character}
+              animation={animation}
+              keyframe={keyframe}
+              selectedBubble={selectedBubble}
+              onSelectBubble={onSelectBubble}
+              onChange={onAnimationChange}
+            />
+            <div style={{ fontSize: 10, color: 'var(--fg-mute)', marginTop: 6, lineHeight: 1.5 }}>
+              Bones: <strong style={{ color: 'var(--fg)' }}>{character.hurtbubbles.length}</strong>
+              {' · '}
+              Use <kbd>WASD</kbd>/arrows to nudge (shift = ×5, alt = 0.1).
+              {' · '}
+              Marquee-drag empty space to multi-select; <kbd>shift</kbd>-click toggles members.
+            </div>
+          </Section>
+        </>
+      ) : (
+        <Section title="Keyframe" count="missing">
+          <div style={{ color: 'var(--fg-mute)', fontSize: 11 }}>
+            This animation has no keyframe at the selected index.
+          </div>
+        </Section>
+      )}
     </aside>
   );
 };

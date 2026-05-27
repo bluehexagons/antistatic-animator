@@ -55,17 +55,40 @@ const Shell: React.FC = () => {
   const [tick, setTick] = useState(0);
   const [loopMode, setLoopMode] = useState<LoopMode>('loop');
 
+  const clearOpenFile = useCallback(() => {
+    setSelectedFile(null);
+    setSelectedHitbubble(-1);
+    setSaveDirty(false);
+    setTick(0);
+    setPlaying(false);
+    dispatch({ type: 'SET_CHARACTER', payload: null });
+    dispatch({ type: 'SET_PARSED', payload: null });
+    dispatch({ type: 'SET_ANIM_FILE', payload: '' });
+    dispatch({ type: 'SET_ANIMATION', payload: { animation: null } });
+  }, [dispatch]);
+
   // Bootstrap: try to restore the previous Electron directory.
   useEffect(() => {
+    let cancelled = false;
     const caps = detectCapabilities();
     if (caps.hasElectron && !library.getBackend()) {
       const stored = getLocalStorageItem(ELECTRON_SOURCE_KEY);
       const backend = new ElectronStorage(stored || undefined);
       library.setBackend(backend);
       if (stored && backend.ready) {
-        library.refresh().catch(() => undefined);
+        library
+          .refresh()
+          .then(() => {
+            if (!cancelled) setShowPicker(false);
+          })
+          .catch(() => {
+            if (!cancelled) setShowPicker(true);
+          });
       }
     }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Derive file list (only character files, not _anim).
@@ -89,13 +112,8 @@ const Shell: React.FC = () => {
 
   const handleSelectFile = useCallback(
     (file: string) => {
+      clearOpenFile();
       setSelectedFile(file);
-      dispatch({ type: 'SET_CHARACTER', payload: null });
-      dispatch({ type: 'SET_PARSED', payload: null });
-      dispatch({ type: 'SET_ANIM_FILE', payload: '' });
-      dispatch({ type: 'SET_ANIMATION', payload: { animation: null } });
-      setSelectedHitbubble(-1);
-      setSaveDirty(false);
       const content = library.get(file);
       if (!content) return;
       try {
@@ -120,7 +138,7 @@ const Shell: React.FC = () => {
         dispatch({ type: 'SET_PARSED', payload: null });
       }
     },
-    [dispatch]
+    [clearOpenFile, dispatch]
   );
 
   const animationList = useMemo(
@@ -131,7 +149,12 @@ const Shell: React.FC = () => {
   const handleSelectAnimation = useCallback(
     (name: string) => {
       if (!state.parsed || !state.parsed[name]) return;
-      dispatch({ type: 'SET_ANIMATION', payload: { animation: state.parsed[name], name } });
+      const animation = state.parsed[name];
+      if (!Array.isArray(animation.keyframes)) {
+        console.error(`animation "${name}" has no keyframes array`);
+        return;
+      }
+      dispatch({ type: 'SET_ANIMATION', payload: { animation, name } });
       setSelectedHitbubble(-1);
     },
     [state.parsed, dispatch]
@@ -203,6 +226,7 @@ const Shell: React.FC = () => {
         : new ElectronStorage();
     const ok = await backend.pickDirectory();
     if (ok) {
+      clearOpenFile();
       library.setBackend(backend);
       await library.refresh();
       if (backend.ready) {
@@ -210,13 +234,14 @@ const Shell: React.FC = () => {
         setShowPicker(false);
       }
     }
-  }, []);
+  }, [clearOpenFile]);
 
   const handlePickFsAccess = useCallback(async () => {
     const backend = new FsAccessStorage();
     try {
       const ok = await backend.pickRoot();
       if (ok) {
+        clearOpenFile();
         library.setBackend(backend);
         await library.refresh();
         setShowPicker(false);
@@ -224,24 +249,28 @@ const Shell: React.FC = () => {
     } catch (err) {
       console.error(err);
     }
-  }, []);
+  }, [clearOpenFile]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handlePickUpload = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  const handleUploadFiles = useCallback(async (files: File[]) => {
-    if (!files.length) return;
-    let backend = library.getBackend();
-    if (!(backend instanceof UploadStorage)) {
-      backend = new UploadStorage();
-      library.setBackend(backend);
-    }
-    await (backend as UploadStorage).loadFiles(files);
-    await library.refresh();
-    setShowPicker(false);
-  }, []);
+  const handleUploadFiles = useCallback(
+    async (files: File[]) => {
+      if (!files.length) return;
+      let backend = library.getBackend();
+      if (!(backend instanceof UploadStorage)) {
+        backend = new UploadStorage();
+        library.setBackend(backend);
+      }
+      clearOpenFile();
+      await (backend as UploadStorage).loadFiles(files);
+      await library.refresh();
+      setShowPicker(!backend.ready);
+    },
+    [clearOpenFile]
+  );
 
   const resetCamera = useCallback(() => {
     updateCamera({ x: 0, y: 0.1, scale: 2 });

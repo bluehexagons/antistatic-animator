@@ -90,6 +90,13 @@ export function lintAnimation(
   }
 
   // Per-keyframe checks
+  if (animation.keyframes.length === 0) {
+    issues.push({
+      severity: 'error',
+      keyframe: -1,
+      message: 'Animation has no keyframes.',
+    });
+  }
   for (let i = 0; i < animation.keyframes.length; i++) {
     const kf: Keyframe = animation.keyframes[i];
 

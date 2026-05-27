@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { Animation, EntityData } from '../animator/types';
+import type { Animation, EntityData, Keyframe } from '../animator/types';
 import { objHas } from '../utils';
 import { cloneKeyframe } from '../animator/operations/keyframe-ops';
 import { mirrorAnimation } from '../animator/operations/mirror';
@@ -20,6 +20,8 @@ import { ensureBaseline, isKeyframeModified } from '../animator/operations/diff'
 import { ThumbnailPreview } from './ThumbnailPreview';
 
 export type LoopMode = 'once' | 'loop' | 'ping-pong';
+
+const newKeyframe = (): Keyframe => ({ duration: 1 });
 
 export interface TimelineProps {
   character: EntityData;
@@ -48,6 +50,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   loopMode,
   onLoopModeChange,
 }) => {
+  const hasKeyframes = animation.keyframes.length > 0;
   const total = useMemo(
     () => animation.keyframes.reduce((s, k) => s + (k.duration ?? 0), 0),
     [animation]
@@ -58,6 +61,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   const [clipReady, setClipReady] = useState(hasClipboardKeyframe());
 
   const copyAt = (i: number) => {
+    if (!animation.keyframes[i]) return;
     copyKeyframe(animation.keyframes[i]);
     setClipReady(true);
   };
@@ -160,7 +164,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   };
 
   const cloneAt = (i: number, side: 'left' | 'right') => {
-    const src = cloneKeyframe(animation.keyframes[i]);
+    const src = animation.keyframes[i] ? cloneKeyframe(animation.keyframes[i]) : newKeyframe();
     animation.keyframes.splice(side === 'left' ? i : i + 1, 0, src);
     onAnimationChange();
     onKeyframeSelect(side === 'left' ? i : i + 1);
@@ -250,6 +254,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           <button
             onClick={() => onPlayingChange(!playing)}
             className={playing ? 'playing' : ''}
+            disabled={!hasKeyframes}
             title={playing ? 'Pause' : 'Play'}
           >
             {playing ? '⏸' : '▶'}
@@ -279,13 +284,14 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
         <div className="frameCounter">
           <span className="label">kf</span>
-          <strong>{keyframe + 1}</strong>
+          <strong>{hasKeyframes ? keyframe + 1 : 0}</strong>
           <span className="label">/ {animation.keyframes.length}</span>
         </div>
         <div className="grow" />
         <button
           className="btn ghost"
           title="Copy the current keyframe to the clipboard (reusable across animations)"
+          disabled={!animation.keyframes[keyframe]}
           onClick={() => copyAt(keyframe)}
         >
           ⧉ Copy
@@ -313,7 +319,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           title="Append a copy of the last keyframe"
           onClick={() => {
             const last = animation.keyframes.length - 1;
-            const src = cloneKeyframe(animation.keyframes[last]);
+            const src = last >= 0 ? cloneKeyframe(animation.keyframes[last]) : newKeyframe();
             animation.keyframes.push(src);
             onAnimationChange();
             onKeyframeSelect(animation.keyframes.length - 1);
@@ -397,7 +403,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           title="Add new keyframe"
           onClick={() => {
             const last = animation.keyframes.length - 1;
-            const src = cloneKeyframe(animation.keyframes[last]);
+            const src = last >= 0 ? cloneKeyframe(animation.keyframes[last]) : newKeyframe();
             animation.keyframes.push(src);
             onAnimationChange();
             onKeyframeSelect(animation.keyframes.length - 1);

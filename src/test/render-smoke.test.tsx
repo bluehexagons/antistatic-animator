@@ -163,4 +163,39 @@ describe('render smoke', () => {
     );
     expect(html).toContain('Inheriting');
   });
+
+  it('Inspector renders an empty animation without a current keyframe', () => {
+    const html = renderToStaticMarkup(
+      <Inspector
+        character={character}
+        animation={{ keyframes: [] }}
+        keyframe={0}
+        selectedBubble={-1}
+        onSelectBubble={noop}
+        selectedHitbubble={-1}
+        onSelectHitbubble={noop}
+        onAnimationChange={noop}
+      />
+    );
+    expect(html).toContain('missing');
+  });
+
+  it('Timeline renders an empty animation without throwing', () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        character={character}
+        animation={{ keyframes: [] }}
+        keyframe={0}
+        onKeyframeSelect={noop}
+        onAnimationChange={noop}
+        playing={false}
+        onPlayingChange={noop}
+        tick={0}
+        onTickChange={noop}
+        loopMode="loop"
+        onLoopModeChange={noop}
+      />
+    );
+    expect(html).toContain('Add keyframe');
+  });
 });
