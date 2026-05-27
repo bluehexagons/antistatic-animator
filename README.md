@@ -81,4 +81,4 @@ for (const [kf, slice] of window.Tools.insertBubble(3)) {
 window.Tools.save();
 ```
 
-See `.github/agents.md` for detailed architecture and development guide.
+See `AGENTS.md` for detailed architecture and development guidance.
