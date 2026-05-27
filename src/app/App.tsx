@@ -109,7 +109,7 @@ const Shell: React.FC = () => {
       } else {
         dispatch({ type: 'SET_PARSED', payload: null });
       }
-      dispatch({ type: 'SET_ANIMATION', payload: null });
+      dispatch({ type: 'SET_ANIMATION', payload: { animation: null } });
       setSaveDirty(false);
     },
     [dispatch]
@@ -123,19 +123,27 @@ const Shell: React.FC = () => {
   const handleSelectAnimation = useCallback(
     (name: string) => {
       if (!state.parsed || !state.parsed[name]) return;
-      dispatch({ type: 'SET_ANIMATION', payload: state.parsed[name] });
-      dispatch({ type: 'SET_KEYFRAME', payload: 0 });
+      dispatch({ type: 'SET_ANIMATION', payload: { animation: state.parsed[name], name } });
+      setSelectedHitbubble(-1);
     },
     [state.parsed, dispatch]
   );
 
   const onAnimationChange = useCallback(() => {
     if (state.animation) {
-      // Trigger a re-render with a shallow clone (state.parsed retains identity refs).
-      dispatch({ type: 'SET_ANIMATION', payload: { ...state.animation } as Animation });
+      // Re-render with a shallow clone so identity-keyed memos recompute
+      // (the keyframes array reference is retained, so keyframe edits stay
+      // shared). Repoint the parsed map entry at the clone, otherwise
+      // animation-level property edits would diverge from what save()
+      // serialises. Omitting `name` preserves the current keyframe/selection.
+      const clone = { ...state.animation } as Animation;
+      if (state.parsed && state.animationName) {
+        state.parsed[state.animationName] = clone;
+      }
+      dispatch({ type: 'SET_ANIMATION', payload: { animation: clone } });
     }
     setSaveDirty(true);
-  }, [state.animation, dispatch]);
+  }, [state.animation, state.parsed, state.animationName, dispatch]);
 
   const onSelectBubble = useCallback(
     (i: number) => dispatch({ type: 'SET_SELECTED_BUBBLE', payload: i }),
@@ -150,11 +158,13 @@ const Shell: React.FC = () => {
     [dispatch]
   );
 
-  // Reset playback tick when the animation changes.
+  // Reset playback when a *different* animation is opened. Keyed on the name
+  // (not the animation object, which is re-cloned on every in-place edit) so
+  // editing doesn't stop playback or snap the playhead to 0.
   useEffect(() => {
     setTick(0);
     setPlaying(false);
-  }, [state.animation]);
+  }, [state.animationName]);
 
   const updateCamera = useCallback(
     (cam: Partial<typeof state.camera>) => dispatch({ type: 'SET_CAMERA', payload: cam }),
@@ -286,7 +296,7 @@ const Shell: React.FC = () => {
         selectedFile={selectedFile}
         onSelectFile={handleSelectFile}
         animations={animationList}
-        selectedAnimation={state.animation?.name ?? null}
+        selectedAnimation={state.animationName || null}
         onSelectAnimation={handleSelectAnimation}
         animationKeyframeCounts={animationKeyframeCounts}
       />
@@ -296,7 +306,7 @@ const Shell: React.FC = () => {
           <div className="crumbs">
             <span>{selectedFile ?? 'No character'}</span>
             <span className="sep">›</span>
-            <strong>{state.animation?.name ?? '—'}</strong>
+            <strong>{state.animationName || '—'}</strong>
           </div>
           <div className="stageStats">
             <span>

@@ -198,12 +198,14 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     return () => ro.disconnect();
   }, []);
 
-  // Drop the group selection when the edited keyframe changes — indices would
-  // otherwise point at a different pose.
+  // Drop the group selection when the edited keyframe or animation changes —
+  // indices would otherwise point at a different pose. Keyed on the keyframes
+  // array (stable across in-place edits) so an edit doesn't clear the group
+  // mid-drag / mid-nudge.
   useEffect(() => {
     setGroupSel(new Set());
     setMarquee(null);
-  }, [keyframe, animation]);
+  }, [keyframe, animation.keyframes]);
 
   const { w, h } = size;
   const ox = w * (0.5 + camera.x * 0.5);
