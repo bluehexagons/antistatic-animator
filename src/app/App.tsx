@@ -17,6 +17,7 @@ import { ElectronStorage } from '../storage/electron';
 import { FsAccessStorage } from '../storage/fs-access';
 import { UploadStorage } from '../storage/upload';
 import { detectCapabilities } from '../storage/types';
+import { getLocalStorageItem, setLocalStorageItem } from '../runtime/local-storage';
 
 import { Toolbar } from './Toolbar';
 import { Sidebar } from './Sidebar';
@@ -28,6 +29,7 @@ import { DropZone } from './DropZone';
 import { useLibrary } from './hooks';
 
 const VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
+const ELECTRON_SOURCE_KEY = 'antistatic-dir';
 
 const Shell: React.FC = () => {
   const { state, dispatch } = useAnimator();
@@ -56,10 +58,10 @@ const Shell: React.FC = () => {
   useEffect(() => {
     const caps = detectCapabilities();
     if (caps.hasElectron && !library.getBackend()) {
-      const stored = localStorage['antistatic-dir'];
+      const stored = getLocalStorageItem(ELECTRON_SOURCE_KEY);
       const backend = new ElectronStorage(stored || undefined);
       library.setBackend(backend);
-      if (stored) {
+      if (stored && backend.ready) {
         library.refresh().catch(() => undefined);
       }
     }
@@ -196,10 +198,12 @@ const Shell: React.FC = () => {
         : new ElectronStorage();
     const ok = await backend.pickDirectory();
     if (ok) {
-      localStorage['antistatic-dir'] = backend.label;
       library.setBackend(backend);
       await library.refresh();
-      setShowPicker(false);
+      if (backend.ready) {
+        setLocalStorageItem(ELECTRON_SOURCE_KEY, backend.label);
+        setShowPicker(false);
+      }
     }
   }, []);
 

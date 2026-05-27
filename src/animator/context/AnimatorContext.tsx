@@ -7,6 +7,7 @@
 
 import React, { createContext, useReducer, ReactNode } from 'react';
 import type { EntityData, Animation, AnimationMap } from '../types';
+import { getLocalStorageItem } from '../../runtime/local-storage';
 
 export interface CameraState {
   x: number;
@@ -44,9 +45,8 @@ export type AppAction =
   | { type: 'RESET' };
 
 const getInitialAppDir = (): string => {
-  if (typeof localStorage !== 'undefined' && localStorage['antistatic-dir']) {
-    return localStorage['antistatic-dir'];
-  }
+  const stored = getLocalStorageItem('antistatic-dir');
+  if (stored) return stored;
   if (typeof window !== 'undefined' && window.nodeAPI?.process?.cwd) {
     return window.nodeAPI.process.cwd();
   }

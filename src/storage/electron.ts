@@ -21,7 +21,7 @@ export class ElectronStorage implements StorageBackend {
   }
 
   get ready() {
-    return !!this.charDir;
+    return this.hasCharacterDataDir();
   }
 
   get label() {
@@ -32,6 +32,15 @@ export class ElectronStorage implements StorageBackend {
     const path = window.nodeAPI.path;
     this.rootDir = dir;
     this.charDir = path.resolve(dir, CHAR_SUBDIR);
+  }
+
+  private hasCharacterDataDir(): boolean {
+    if (!this.charDir) return false;
+    try {
+      return window.nodeAPI.fs.existsSync(this.charDir);
+    } catch {
+      return false;
+    }
   }
 
   async pickDirectory(): Promise<boolean> {
@@ -48,7 +57,7 @@ export class ElectronStorage implements StorageBackend {
   }
 
   async list(): Promise<string[]> {
-    if (!this.charDir) return [];
+    if (!this.ready) return [];
     return window.nodeAPI.fs.readdirSync(this.charDir) as string[];
   }
 
