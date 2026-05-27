@@ -198,3 +198,13 @@ export const unpackFlags = (bits: number): string[] => {
   }
   return out;
 };
+
+/** Read a hitbubble `flags` field in any of the engine-accepted authoring
+ *  forms — a bitmask number, a single flag-name string, or an array of
+ *  names — into a list of flag names. Unknown names are preserved. */
+export const flagsToNames = (value: unknown): string[] => {
+  if (typeof value === 'number') return unpackFlags(value);
+  if (typeof value === 'string') return value ? [value] : [];
+  if (Array.isArray(value)) return value.filter((f): f is string => typeof f === 'string' && !!f);
+  return [];
+};

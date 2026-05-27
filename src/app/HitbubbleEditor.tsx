@@ -9,13 +9,7 @@
 
 import React, { useState } from 'react';
 import type { Animation, EntityData, Hitbubble, Keyframe } from '../animator/types';
-import {
-  HitbubbleColors,
-  HitbubbleFlags,
-  HitbubbleTypes,
-  packFlags,
-  unpackFlags,
-} from '../animator/schema';
+import { HitbubbleColors, HitbubbleFlags, HitbubbleTypes, flagsToNames } from '../animator/schema';
 
 export interface HitbubbleEditorProps {
   character: EntityData;
@@ -104,14 +98,17 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
     onChange();
   };
 
-  const flags = unpackFlags(typeof hb.flags === 'number' ? hb.flags : 0);
+  // Read flags from any authored form (number bitmask, string, or string[]).
+  const flags = flagsToNames(hb.flags);
   const setFlag = (name: string, on: boolean) => {
     const next = new Set(flags);
     if (on) next.add(name);
     else next.delete(name);
-    const bits = packFlags([...next]);
-    if (bits === 0) delete (hb as Record<string, unknown>).flags;
-    else (hb as Record<string, unknown>).flags = bits;
+    const arr = [...next];
+    // Write back as a readable name array (the form most shipped data uses);
+    // unknown names already in `flags` are carried along.
+    if (arr.length === 0) delete (hb as Record<string, unknown>).flags;
+    else (hb as Record<string, unknown>).flags = arr;
     onChange();
   };
 
