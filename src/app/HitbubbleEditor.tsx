@@ -98,6 +98,25 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
     onChange();
   };
 
+  // Audio can be a plain cue-name string or an object { name, pitch, volume }.
+  // Edit the name in place so the object form's pitch/volume survive edits.
+  const audioObj =
+    hb.audio && typeof hb.audio === 'object'
+      ? (hb.audio as { name?: string; pitch?: number; volume?: number })
+      : null;
+  const audioName = audioObj ? (audioObj.name ?? '') : typeof hb.audio === 'string' ? hb.audio : '';
+  const setAudio = (v: string) => {
+    if (audioObj) {
+      if (!v) delete (hb as Record<string, unknown>).audio;
+      else audioObj.name = v;
+    } else if (!v) {
+      delete (hb as Record<string, unknown>).audio;
+    } else {
+      (hb as Record<string, unknown>).audio = v;
+    }
+    onChange();
+  };
+
   // Read flags from any authored form (number bitmask, string, or string[]).
   const flags = flagsToNames(hb.flags);
   const setFlag = (name: string, on: boolean) => {
@@ -188,13 +207,20 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
           />
           <span>strong</span>
         </label>
-        <label className="hbField" title="Audio cue name">
-          <span>audio</span>
+        <label
+          className="hbField"
+          title={
+            audioObj
+              ? `Audio cue name (pitch ${audioObj.pitch ?? 1}, volume ${audioObj.volume ?? 1} preserved)`
+              : 'Audio cue name'
+          }
+        >
+          <span>audio{audioObj ? ' ♪' : ''}</span>
           <input
             type="text"
             placeholder="hit / grab / …"
-            value={(hb.audio as string) ?? ''}
-            onChange={(e) => set('audio', e.target.value)}
+            value={audioName}
+            onChange={(e) => setAudio(e.target.value)}
           />
         </label>
       </div>
