@@ -130,7 +130,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={onToggleLabels}
           style={toggleStyle(showLabels)}
         >
-          🏷
+          {/* U+FE0E forces monochrome (text) rendering to match the icon set. */}
+          {'🏷︎'}
         </button>
         <button
           className="iconBtn"
@@ -138,7 +139,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={onToggleShield}
           style={toggleStyle(showShield, '#6aa9ff')}
         >
-          🛡
+          {'🛡︎'}
         </button>
         <button className="iconBtn" title="Reset camera" onClick={onResetCamera}>
           ⌂

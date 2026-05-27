@@ -371,63 +371,6 @@ body {
   line-height: 1.55;
 }
 
-.stageOverlay {
-  position: absolute;
-  pointer-events: none;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--fg-mute);
-}
-.stageOverlay.tl {
-  top: 8px;
-  left: 12px;
-}
-.stageOverlay.tr {
-  top: 8px;
-  right: 12px;
-  text-align: right;
-}
-.stageOverlay.bl {
-  bottom: 8px;
-  left: 12px;
-}
-
-.viewControls {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 4px;
-  background: rgba(20, 23, 28, 0.7);
-  backdrop-filter: blur(6px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 3px;
-  pointer-events: auto;
-}
-.viewControls button {
-  background: transparent;
-  border: 0;
-  color: var(--fg-dim);
-  width: 24px;
-  height: 24px;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: var(--font);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.viewControls button:hover {
-  background: var(--bg-3);
-  color: var(--fg);
-}
-.viewControls button.toggle.on {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 /* --- Inspector (right) ------------------------------------------ */
 
 .inspector {
@@ -1103,6 +1046,11 @@ body {
   right: 4px;
   display: none;
   gap: 2px;
+  /* Wrap into a 2-wide grid so the action cluster never spills past the
+     thumbnail edge, even on the narrowest (short-duration) keyframes. */
+  flex-wrap: wrap;
+  max-width: 40px;
+  justify-content: flex-end;
 }
 .kfThumb:hover .kfActions,
 .kfThumb.active .kfActions {

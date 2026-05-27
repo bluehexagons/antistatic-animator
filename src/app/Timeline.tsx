@@ -285,6 +285,13 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div className="grow" />
         <button
           className="btn ghost"
+          title="Copy the current keyframe to the clipboard (reusable across animations)"
+          onClick={() => copyAt(keyframe)}
+        >
+          ⧉ Copy
+        </button>
+        <button
+          className="btn ghost"
           title="Paste copied keyframe after the current one"
           disabled={!clipReady}
           onClick={() => pasteAfter(keyframe)}
@@ -376,19 +383,6 @@ export const Timeline: React.FC<TimelineProps> = ({
                   </button>
                   <button onClick={(e) => (e.stopPropagation(), cloneAt(i, 'right'))} title="Clone">
                     ⎘
-                  </button>
-                  <button
-                    onClick={(e) => (e.stopPropagation(), copyAt(i))}
-                    title="Copy keyframe to clipboard"
-                  >
-                    ⧉
-                  </button>
-                  <button
-                    onClick={(e) => (e.stopPropagation(), pasteAfter(i))}
-                    title="Paste keyframe after this one"
-                    disabled={!clipReady}
-                  >
-                    ⎙
                   </button>
                   <button onClick={(e) => (e.stopPropagation(), remove(i))} title="Delete">
                     ✕
