@@ -18,13 +18,22 @@ Everything below operates on the same JSONC files the game loads. No
 schema changes on the game side; the animator just learns to author
 more of what's already there.
 
+## Status (2026-05)
+
+Batches A–G are implemented. Remaining deliberate gaps:
+
+- **F3** (camera-rotation gizmo) — skipped; no functional 3D camera yet,
+  so it would only add inert UI.
+- **G1** (audio preview) — skipped; the storage layer reads text, not the
+  binary `.ogg` assets it would need. Revisit if storage gains binary reads.
+
 ## Batches
 
 Batched so each commit produces a usable improvement. Earlier batches
 deliberately unblock authoring tasks that currently require hand-edits
 to JSON. Later batches polish what's already authorable.
 
-### Batch A — Hitbox authoring
+### Batch A — Hitbox authoring ✅
 
 The biggest blocker. Hitboxes are visible in the viewer (red) but
 read-only. The Hitbubble schema (`bubbles.ts:226`) has 14+ authoring
@@ -44,7 +53,7 @@ fields; making attacks today means alt-tabbing to a text editor.
 - A4. **`follow` picker** — dropdown of valid bubble names from the
       character (`headbubble`, named bones, etc.) instead of free-text.
 
-### Batch B — Schema fidelity
+### Batch B — Schema fidelity ✅
 
 Color, dropdowns, and labels driven by the game's enums and registries
 so the editor speaks the game's vocabulary.
@@ -68,7 +77,7 @@ so the editor speaks the game's vocabulary.
       character's named bubbles, hurtbubble counts that don't match
       the character's bone count, tween names not in `Ease`.
 
-### Batch C — Save fidelity
+### Batch C — Save fidelity ✅
 
 Currently `save()` does `JSON.stringify` which strips JSONC comments.
 The shipped character files contain comments and structural niceties
@@ -83,7 +92,7 @@ worth preserving.
 - C3. **Dirty-tracking per animation** — show which animations in the
       sidebar have unsaved edits.
 
-### Batch D — Playback fidelity
+### Batch D — Playback fidelity ✅
 
 The timeline plays in keyframe-discrete steps. The game tweens between
 poses when `interpolate: true` is set, using the per-keyframe `tween`
@@ -98,7 +107,7 @@ see what the player will see.
 - D3. **Loop / ping-pong controls.** Common authoring need: play the
       same animation in a loop while adjusting a keyframe.
 
-### Batch E — Spatial UX
+### Batch E — Spatial UX ✅
 
 Pure quality-of-life improvements to the viewer.
 
@@ -114,7 +123,7 @@ Pure quality-of-life improvements to the viewer.
 - E5. **Shield bubble overlay** using `shieldX/Y/X2/Y2/Size` so
       shield-related animations can be authored visually.
 
-### Batch F — 3D forward-compat
+### Batch F — 3D forward-compat ✅ (F1/F2; F3 deferred)
 
 Builds the seams the user named as the future direction without
 shipping a 3D viewport yet.
@@ -129,7 +138,7 @@ shipping a 3D viewport yet.
       placeholder that later drives a real 3D camera, without breaking
       the 2D pipeline.
 
-### Batch G — Quality-of-life
+### Batch G — Quality-of-life ✅ (G2/G3; G1 deferred)
 
 - G1. **Audio preview.** When playback reaches a keyframe with
       `audio:` set, play the matching .ogg from the loaded source.
