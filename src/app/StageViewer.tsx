@@ -351,8 +351,10 @@ export const StageViewer: React.FC<StageViewerProps> = ({
         onSelectHitbubble(-1);
         svgRef.current.setPointerCapture(e.pointerId);
         if (groupSel.has(found) && groupSel.size > 1 && hurtbubbles) {
-          // Drag the whole group; keep the inspector pointed at the clicked one.
-          onSelectBubble(found);
+          // Drag the whole group. Keep selectedBubble cleared so a later
+          // keyboard nudge drives the group handler only (not also the
+          // single-bubble one).
+          onSelectBubble(-1);
           dragRef.current = {
             mode: 'group-move',
             startClientX: e.clientX,
