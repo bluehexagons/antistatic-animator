@@ -6,6 +6,7 @@
 import type { StorageBackend } from './types';
 
 const CHAR_PATH = ['app', 'characters', 'data'];
+const DATA_FILE_RE = /\.jsonc?$/i;
 
 // File System Access API typings vary by TS lib version; declare what we need.
 interface FsHandle {
@@ -88,7 +89,7 @@ export class FsAccessStorage implements StorageBackend {
     if (!this.charHandle) return [];
     const out: string[] = [];
     for await (const entry of this.charHandle.values()) {
-      if (entry.kind === 'file') out.push(entry.name);
+      if (entry.kind === 'file' && DATA_FILE_RE.test(entry.name)) out.push(entry.name);
     }
     return out;
   }

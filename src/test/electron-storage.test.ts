@@ -17,7 +17,7 @@ const installNodeAPI = (exists: boolean) => {
     value: {
       fs: {
         existsSync: vi.fn(() => exists),
-        readdirSync: vi.fn(() => ['carbon.json', 'carbon_anim.json']),
+        readdirSync: vi.fn(() => ['carbon.json', 'carbon_anim.json', 'notes.txt']),
         readFileSync: vi.fn(),
         writeFileSync: vi.fn(),
         watch: vi.fn(),
@@ -48,5 +48,12 @@ describe('ElectronStorage', () => {
 
     await expect(storage.list()).resolves.toEqual([]);
     expect(window.nodeAPI.fs.readdirSync).not.toHaveBeenCalled();
+  });
+
+  it('lists only json and jsonc files', async () => {
+    installNodeAPI(true);
+    const storage = new ElectronStorage('/game');
+
+    await expect(storage.list()).resolves.toEqual(['carbon.json', 'carbon_anim.json']);
   });
 });

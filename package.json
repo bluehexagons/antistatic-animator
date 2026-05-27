@@ -5,7 +5,7 @@
   "main": "dist/electron.js",
   "type": "commonjs",
   "scripts": {
-    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "build": "npm run build:renderer && npm run build:main && npm run build:preload",
     "build:main": "esbuild ./src/electron.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/electron.js --external:electron --external:electron-devtools-installer",
     "build:preload": "esbuild ./src/preload.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/preload.js --external:electron",
     "build:renderer": "vite build",
@@ -13,7 +13,7 @@
     "dev": "vite",
     "host": "vite --host",
     "dev:web": "vite",
-    "dev:electron": "npm run build:main && npm run build:preload && npm run build:renderer && electron .",
+    "dev:electron": "npm run build:renderer && npm run build:main && npm run build:preload && electron .",
     "preview": "vite preview",
     "preview:web": "vite preview",
     "start": "electron .",

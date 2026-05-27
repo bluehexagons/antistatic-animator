@@ -3,7 +3,7 @@ import * as path from 'path';
 
 function createWindow() {
   // Create the browser window.
-  let win = new BrowserWindow({
+  const win = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -13,16 +13,16 @@ function createWindow() {
       sandbox: false,
     },
   });
-  win.loadFile('dist/index.html');
+  win.loadFile(path.join(__dirname, 'index.html'));
 }
 
 ipcMain.handle('showOpenDialog', (_event, config) => {
   return dialog.showOpenDialog(config);
 });
 
-app.on('ready', createWindow);
-
 app.whenReady().then(async () => {
+  createWindow();
+
   // Only install devtools in development (not in packaged app)
   if (!app.isPackaged) {
     try {
@@ -33,5 +33,17 @@ app.whenReady().then(async () => {
     } catch (err) {
       console.log('Failed to install devtools extension:', err);
     }
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
   }
 });

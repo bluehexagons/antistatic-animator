@@ -6,6 +6,7 @@
 import type { StorageBackend } from './types';
 
 const CHAR_SUBDIR = 'app/characters/data';
+const DATA_FILE_RE = /\.jsonc?$/i;
 
 export class ElectronStorage implements StorageBackend {
   readonly kind = 'electron' as const;
@@ -58,7 +59,9 @@ export class ElectronStorage implements StorageBackend {
 
   async list(): Promise<string[]> {
     if (!this.ready) return [];
-    return window.nodeAPI.fs.readdirSync(this.charDir) as string[];
+    return (window.nodeAPI.fs.readdirSync(this.charDir) as string[]).filter((name) =>
+      DATA_FILE_RE.test(name)
+    );
   }
 
   async read(name: string): Promise<string> {
