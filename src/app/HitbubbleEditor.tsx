@@ -10,6 +10,44 @@
 import React, { useState } from 'react';
 import type { Animation, EntityData, Hitbubble, Keyframe } from '../animator/types';
 import { HitbubbleColors, HitbubbleFlags, HitbubbleTypes, flagsToNames } from '../animator/schema';
+import { PropertiesEditor } from './PropertiesEditor';
+
+/** Keys the card already edits with dedicated controls — hidden from the
+ *  generic "other properties" editor so they aren't shown twice. */
+const HANDLED_KEYS = [
+  'type',
+  'follow',
+  'x',
+  'y',
+  'x2',
+  'y2',
+  'radius',
+  'damage',
+  'knockback',
+  'growth',
+  'angle',
+  'start',
+  'end',
+  'sakurai',
+  'strong',
+  'audio',
+  'flags',
+  'smear',
+] as const;
+
+/** Other engine-supported hitbubble fields, offered for quick-add. */
+const EXTRA_FIELD_SUGGESTIONS = [
+  'effect',
+  'if',
+  'next',
+  'color',
+  'addVelocity',
+  'shieldDamage',
+  'setLag',
+  'lag',
+  'onHit',
+  'onBlocked',
+];
 
 export interface HitbubbleEditorProps {
   character: EntityData;
@@ -235,6 +273,17 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
             <span>{f.name}</span>
           </label>
         ))}
+      </div>
+      {/* Long-tail engine fields (effect, if, next, color, …) that don't have
+          dedicated controls — editable here so every field is reachable. */}
+      <div className="hbExtra" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="hbExtraLabel">other</div>
+        <PropertiesEditor
+          obj={hb as unknown as React.ComponentProps<typeof PropertiesEditor>['obj']}
+          hideKeys={HANDLED_KEYS}
+          suggestions={EXTRA_FIELD_SUGGESTIONS}
+          onChange={onChange}
+        />
       </div>
     </div>
   );

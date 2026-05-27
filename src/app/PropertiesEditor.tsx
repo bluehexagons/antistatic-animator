@@ -21,6 +21,8 @@ interface PropertiesEditorProps {
   onChange: () => void;
   /** Optional list of properties always offered for quick-add. */
   suggestions?: string[];
+  /** Extra keys to hide (e.g. those already shown by dedicated controls). */
+  hideKeys?: readonly string[];
 }
 
 const inferType = (v: Value): 'string' | 'number' | 'bool' | 'array' | 'object' | 'other' => {
@@ -37,7 +39,9 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
   isKeyframe = false,
   onChange,
   suggestions,
+  hideKeys,
 }) => {
+  const hidden = useMemo(() => new Set(hideKeys ?? []), [hideKeys]);
   // Force re-render trigger for in-place mutations
   const [, bump] = useState(0);
   const tick = useCallback(() => {
@@ -49,6 +53,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
   const keys = useMemo(
     () =>
       keyList.filter((k) => {
+        if (hidden.has(k)) return false;
         if (excludeProps.has(k)) {
           // Show 'hitbubbles: true' as a flag, but not arrays or 'keyframes'/'hurtbubbles'.
           if (k === 'hitbubbles' && obj[k] === true) return true;
@@ -56,7 +61,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
         }
         return true;
       }),
-    [obj, keyList.join(',')]
+    [obj, keyList.join(','), hidden]
   );
 
   const removeKey = (k: string) => {

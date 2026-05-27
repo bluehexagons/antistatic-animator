@@ -841,6 +841,22 @@ body {
   color: var(--fg);
 }
 
+.hbExtra {
+  padding-top: 4px;
+  margin-top: 2px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hbExtraLabel {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-mute);
+}
+
 /* --- Timeline (bottom) ------------------------------------------ */
 
 .timeline {

@@ -9,7 +9,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import React from 'react';
 import type { Animation, EntityData } from '../animator/types';
 import { StageViewer } from '../app/StageViewer';
 import { Inspector } from '../app/Inspector';
@@ -67,6 +66,11 @@ const animation: Animation = {
           knockback: 6,
           angle: 45,
           sakurai: true,
+          // Long-tail fields with no dedicated control — exercise the embedded
+          // "other properties" editor (string + array + object forms).
+          effect: 'electric',
+          color: [0.15, 1, 0.5, 1],
+          next: { type: 'aerial', radius: 4 },
         },
       ],
     },
@@ -119,6 +123,9 @@ describe('render smoke', () => {
     );
     expect(html).toContain('Hurtbubbles');
     expect(html).toContain('Hitbubbles');
+    // The embedded "other properties" editor surfaces long-tail fields.
+    expect(html).toContain('effect');
+    expect(html).toContain('next');
   });
 
   it('Timeline renders the keyframe strip', () => {
