@@ -7,10 +7,13 @@
  *  - middle/right drag to pan
  *  - left-click to select a bubble (hurtbubble or hitbubble)
  *  - left-drag a selected hurtbubble to move it
+ *  - left-drag empty space to marquee-select hurtbubbles; shift-click to
+ *    toggle members; drag/nudge the group together
  *  - a grid + ground reference line
  *  - hurtbubble tint by HurtbubbleState (armor/intangible/etc.)
  *  - hitbubble tint by HitbubbleType + smear trails + knockback gizmo
  *  - z-axis tinting (front warmer / back cooler) using bone.z
+ *  - onion-skin ghosts, bone-name labels, and a shield overlay
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -162,14 +165,25 @@ export const StageViewer: React.FC<StageViewerProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredBubble, setHoveredBubble] = useState(-1);
+  /** Marquee-selected hurtbubble indices (group). The single `selectedBubble`
+   *  drives the inspector; this drives group drag / nudge in the viewer. */
+  const [groupSel, setGroupSel] = useState<Set<number>>(new Set());
+  /** Live marquee rectangle in screen px while dragging, else null. */
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(
+    null
+  );
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState<Size>({ w: 800, h: 600 });
   const dragRef = useRef<{
-    mode: 'pan' | 'move-bubble' | 'none';
+    mode: 'pan' | 'move-bubble' | 'group-move' | 'marquee' | 'none';
     startClientX: number;
     startClientY: number;
     startCam: CameraState;
     startBubble?: { x: number; y: number; index: number };
+    /** Snapshot of group member positions for group-move. */
+    groupStart?: { index: number; x: number; y: number }[];
+    /** Marquee origin in screen px; `additive` unions with the prior set. */
+    marqueeStart?: { px: number; py: number; additive: boolean };
   }>({ mode: 'none', startClientX: 0, startClientY: 0, startCam: camera });
 
   useEffect(() => {
@@ -183,6 +197,13 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     setSize({ w: r.width, h: r.height });
     return () => ro.disconnect();
   }, []);
+
+  // Drop the group selection when the edited keyframe changes — indices would
+  // otherwise point at a different pose.
+  useEffect(() => {
+    setGroupSel(new Set());
+    setMarquee(null);
+  }, [keyframe, animation]);
 
   const { w, h } = size;
   const ox = w * (0.5 + camera.x * 0.5);
@@ -218,6 +239,47 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     }
     return Array.isArray(cur?.hitbubbles) ? cur.hitbubbles : null;
   }, [kf, keyframe, animation.keyframes]);
+
+  // Group nudge: arrows/WASD move every group member. Only active for multi-
+  // selections so it doesn't double up with BubbleEditor's single-bubble nudge.
+  useEffect(() => {
+    if (groupSel.size <= 1 || !hurtbubbles) return;
+    const handler = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const step = e.shiftKey ? 5 : e.altKey ? 0.1 : 1;
+      let dx = 0;
+      let dy = 0;
+      switch (e.key.toLowerCase()) {
+        case 'arrowup':
+        case 'w':
+          dy = step;
+          break;
+        case 'arrowdown':
+        case 's':
+          dy = -step;
+          break;
+        case 'arrowleft':
+        case 'a':
+          dx = -step;
+          break;
+        case 'arrowright':
+        case 'd':
+          dx = step;
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+      for (const idx of groupSel) {
+        hurtbubbles[idx * 4] = (hurtbubbles[idx * 4] ?? 0) + dx;
+        hurtbubbles[idx * 4 + 1] = (hurtbubbles[idx * 4 + 1] ?? 0) + dy;
+      }
+      onBubbleChange();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [groupSel, hurtbubbles, onBubbleChange]);
 
   const pickBubbleAt = useCallback(
     (worldX: number, worldY: number): number => {
@@ -271,26 +333,64 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       // Hurtbubble click takes precedence (since they're usually behind hitbubbles
       // visually but represent the editable rig).
       if (found >= 0 && hurtbubbles) {
-        onSelectBubble(found);
+        if (e.shiftKey) {
+          // Toggle membership in the group selection; no drag.
+          setGroupSel((prev) => {
+            const next = new Set(prev);
+            if (next.has(found)) next.delete(found);
+            else next.add(found);
+            return next;
+          });
+          onSelectBubble(found);
+          onSelectHitbubble(-1);
+          return;
+        }
         onSelectHitbubble(-1);
         svgRef.current.setPointerCapture(e.pointerId);
-        dragRef.current = {
-          mode: 'move-bubble',
-          startClientX: e.clientX,
-          startClientY: e.clientY,
-          startCam: camera,
-          startBubble: {
-            index: found,
-            x: hurtbubbles[found * 4],
-            y: hurtbubbles[found * 4 + 1],
-          },
-        };
+        if (groupSel.has(found) && groupSel.size > 1 && hurtbubbles) {
+          // Drag the whole group; keep the inspector pointed at the clicked one.
+          onSelectBubble(found);
+          dragRef.current = {
+            mode: 'group-move',
+            startClientX: e.clientX,
+            startClientY: e.clientY,
+            startCam: camera,
+            groupStart: [...groupSel].map((index) => ({
+              index,
+              x: hurtbubbles[index * 4],
+              y: hurtbubbles[index * 4 + 1],
+            })),
+          };
+        } else {
+          setGroupSel(new Set());
+          onSelectBubble(found);
+          dragRef.current = {
+            mode: 'move-bubble',
+            startClientX: e.clientX,
+            startClientY: e.clientY,
+            startCam: camera,
+            startBubble: {
+              index: found,
+              x: hurtbubbles[found * 4],
+              y: hurtbubbles[found * 4 + 1],
+            },
+          };
+        }
       } else if (hitIdx >= 0) {
         onSelectHitbubble(hitIdx);
         onSelectBubble(-1);
+        setGroupSel(new Set());
       } else {
-        onSelectBubble(-1);
-        onSelectHitbubble(-1);
+        // Empty space: start a marquee selection.
+        svgRef.current.setPointerCapture(e.pointerId);
+        dragRef.current = {
+          mode: 'marquee',
+          startClientX: e.clientX,
+          startClientY: e.clientY,
+          startCam: camera,
+          marqueeStart: { px, py, additive: e.shiftKey },
+        };
+        setMarquee({ x1: px, y1: py, x2: px, y2: py });
       }
     } else if (e.button === 1 || e.button === 2) {
       svgRef.current.setPointerCapture(e.pointerId);
@@ -320,6 +420,22 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       hurtbubbles[base] = drag.startBubble.x + dx;
       hurtbubbles[base + 1] = drag.startBubble.y + dy;
       onBubbleChange();
+    } else if (drag.mode === 'group-move' && drag.groupStart && hurtbubbles) {
+      const dx = (e.clientX - drag.startClientX) / camera.scale;
+      const dy = -(e.clientY - drag.startClientY) / camera.scale;
+      for (const g of drag.groupStart) {
+        hurtbubbles[g.index * 4] = g.x + dx;
+        hurtbubbles[g.index * 4 + 1] = g.y + dy;
+      }
+      onBubbleChange();
+    } else if (drag.mode === 'marquee' && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      setMarquee({
+        x1: drag.marqueeStart!.px,
+        y1: drag.marqueeStart!.py,
+        x2: e.clientX - rect.left,
+        y2: e.clientY - rect.top,
+      });
     } else if (drag.mode === 'none' && svgRef.current) {
       // Track hover so labels can surface the bubble under the cursor.
       const rect = svgRef.current.getBoundingClientRect();
@@ -330,7 +446,38 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (dragRef.current.mode !== 'none') {
+    const drag = dragRef.current;
+    if (drag.mode === 'marquee' && drag.marqueeStart) {
+      const x1w = fromSvg(drag.marqueeStart.px, drag.marqueeStart.py);
+      const rect = svgRef.current?.getBoundingClientRect();
+      const px2 = rect ? e.clientX - rect.left : drag.marqueeStart.px;
+      const py2 = rect ? e.clientY - rect.top : drag.marqueeStart.py;
+      const x2w = fromSvg(px2, py2);
+      const dragDist = Math.hypot(px2 - drag.marqueeStart.px, py2 - drag.marqueeStart.py);
+      const minX = Math.min(x1w.x, x2w.x);
+      const maxX = Math.max(x1w.x, x2w.x);
+      const minY = Math.min(x1w.y, x2w.y);
+      const maxY = Math.max(x1w.y, x2w.y);
+      if (dragDist < 4) {
+        // Treat a click (no real drag) as deselect.
+        if (!drag.marqueeStart.additive) {
+          setGroupSel(new Set());
+          onSelectBubble(-1);
+        }
+      } else if (hurtbubbles) {
+        const picked = new Set<number>(drag.marqueeStart.additive ? groupSel : []);
+        for (let i = 0; i < hurtbubbles.length; i += 4) {
+          const bx = hurtbubbles[i];
+          const by = hurtbubbles[i + 1];
+          if (bx >= minX && bx <= maxX && by >= minY && by <= maxY) picked.add(i / 4);
+        }
+        setGroupSel(picked);
+        // Point the inspector at one member so single-bubble nudge stays inert.
+        onSelectBubble(picked.size === 1 ? [...picked][0] : -1);
+      }
+      setMarquee(null);
+    }
+    if (drag.mode !== 'none') {
       svgRef.current?.releasePointerCapture(e.pointerId);
       dragRef.current = {
         mode: 'none',
@@ -672,6 +819,45 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     }
   }
 
+  // --- Group selection highlights ------------------------------
+  let groupOverlay: React.ReactNode = null;
+  if (groupSel.size > 1 && hurtbubbles) {
+    groupOverlay = (
+      <g pointerEvents="none">
+        {[...groupSel].map((i) => {
+          const base = i * 4;
+          if (base + 2 >= hurtbubbles.length) return null;
+          return (
+            <circle
+              key={`grp-${i}`}
+              cx={toSvgX(hurtbubbles[base])}
+              cy={toSvgY(hurtbubbles[base + 1])}
+              r={hurtbubbles[base + 2] * camera.scale}
+              fill="rgba(122, 222, 160, 0.16)"
+              stroke="#7adea0"
+              strokeWidth="1.5"
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  // --- Marquee rectangle ---------------------------------------
+  const marqueeOverlay = marquee ? (
+    <rect
+      x={Math.min(marquee.x1, marquee.x2)}
+      y={Math.min(marquee.y1, marquee.y2)}
+      width={Math.abs(marquee.x2 - marquee.x1)}
+      height={Math.abs(marquee.y2 - marquee.y1)}
+      fill="rgba(122, 222, 160, 0.10)"
+      stroke="#7adea0"
+      strokeWidth="1"
+      strokeDasharray="4 3"
+      pointerEvents="none"
+    />
+  ) : null;
+
   const originAxes = (
     <g>
       {showGround && (
@@ -711,7 +897,9 @@ export const StageViewer: React.FC<StageViewerProps> = ({
         {renderShield()}
         {renderHitbubbles()}
         {renderLabels()}
+        {groupOverlay}
         {selectedOverlay}
+        {marqueeOverlay}
       </svg>
     </div>
   );

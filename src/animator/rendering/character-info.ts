@@ -47,6 +47,39 @@ export const bubbleLabels = (character: EntityData): Map<number, string> => {
   return out;
 };
 
+/** Swap a left/right side token at the start of a bone or follow name.
+ *  Handles `r`/`l` single-letter prefixes (rfoot→lfoot) and `right`/`left`
+ *  words. Returns the input unchanged when no side token is present. */
+export const mirrorName = (name: string): string => {
+  if (/^right/i.test(name)) return name.replace(/^right/i, (m) => (m[0] === 'R' ? 'Left' : 'left'));
+  if (/^left/i.test(name)) return name.replace(/^left/i, (m) => (m[0] === 'L' ? 'Right' : 'right'));
+  // Single-letter side prefix immediately followed by a word char (rfoot, lLeg).
+  if (/^r[a-zA-Z]/.test(name)) return 'l' + name.slice(1);
+  if (/^l[a-zA-Z]/.test(name)) return 'r' + name.slice(1);
+  return name;
+};
+
+/** Build the flat-index permutation that swaps left/right bubbles when an
+ *  animation is mirrored. `perm[a]` is the bubble index whose (negated-x)
+ *  data should land at index `a`. Centre/unpaired bubbles map to themselves. */
+export const mirrorBubblePermutation = (character: EntityData): number[] => {
+  const bones = character.hurtbubbles;
+  const byName = new Map<string, HurtbubbleData>();
+  for (const b of bones) byName.set(b.name, b);
+
+  let max = -1;
+  for (const b of bones) max = Math.max(max, b.i1, b.i2);
+  const perm = Array.from({ length: max + 1 }, (_, i) => i);
+
+  for (const b of bones) {
+    const partner = byName.get(mirrorName(b.name));
+    if (!partner || partner === b) continue;
+    perm[b.i1] = partner.i1;
+    perm[b.i2] = partner.i2;
+  }
+  return perm;
+};
+
 /** Model name(s) attached to a bone via its prefab, joined for display. */
 export const boneModelLabel = (bone: HurtbubbleData): string | null => {
   const models = bone.prefab?.models;

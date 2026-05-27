@@ -181,6 +181,8 @@ export const Inspector: React.FC<InspectorProps> = ({
           Bones: <strong style={{ color: 'var(--fg)' }}>{character.hurtbubbles.length}</strong>
           {' · '}
           Use <kbd>WASD</kbd>/arrows to nudge (shift = ×5, alt = 0.1).
+          {' · '}
+          Marquee-drag empty space to multi-select; <kbd>shift</kbd>-click toggles members.
         </div>
       </Section>
     </aside>

@@ -10,6 +10,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Animation, EntityData } from '../animator/types';
 import { objHas } from '../utils';
 import { cloneKeyframe } from '../animator/operations/keyframe-ops';
+import { mirrorAnimation } from '../animator/operations/mirror';
 import { ThumbnailPreview } from './ThumbnailPreview';
 
 export type LoopMode = 'once' | 'loop' | 'ping-pong';
@@ -260,6 +261,16 @@ export const Timeline: React.FC<TimelineProps> = ({
           <span className="label">/ {animation.keyframes.length}</span>
         </div>
         <div className="grow" />
+        <button
+          className="btn ghost"
+          title="Mirror the whole animation horizontally (flip-X). Reversible — click again to undo."
+          onClick={() => {
+            mirrorAnimation(character, animation);
+            onAnimationChange();
+          }}
+        >
+          ⇄ Mirror
+        </button>
         <button
           className="btn ghost"
           title="Append a copy of the last keyframe"
