@@ -5,8 +5,9 @@
  */
 
 import React, { useCallback, useEffect } from 'react';
-import type { Animation, EntityData } from '../animator/types';
+import type { Animation, EntityData, HurtbubbleData } from '../animator/types';
 import { HurtbubbleStates } from '../animator/schema';
+import { boneModelLabel } from '../animator/rendering/character-info';
 
 export interface BubbleEditorProps {
   character: EntityData;
@@ -91,11 +92,11 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
     onChange();
   };
 
-  const boneNameFor = (bubbleIdx: number): string | null => {
+  const boneInfoFor = (bubbleIdx: number): { name: string; bone: HurtbubbleData } | null => {
     // Find a bone whose i1 or i2 matches this bubble index.
     for (const bone of bones) {
-      if (bone.i1 === bubbleIdx) return bone.name;
-      if (bone.i2 === bubbleIdx) return `${bone.name}2`;
+      if (bone.i1 === bubbleIdx) return { name: bone.name, bone };
+      if (bone.i2 === bubbleIdx) return { name: `${bone.name}2`, bone };
     }
     return null;
   };
@@ -117,7 +118,12 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
           const active = selectedBubble === i;
           const stateId = hb[base + 3];
           const state = HurtbubbleStates.find((s) => s.id === stateId);
-          const name = boneNameFor(i);
+          const info = boneInfoFor(i);
+          const model = info ? boneModelLabel(info.bone) : null;
+          const z = info?.bone.z;
+          const boneTitle = [info?.name, z !== undefined ? `z ${z}` : null, model]
+            .filter(Boolean)
+            .join(' · ');
           return (
             <div
               key={i}
@@ -126,8 +132,14 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
               style={state ? { borderLeft: `3px solid ${state.color}` } : undefined}
             >
               <span className="idx">{i}</span>
-              <span className="boneName" title={name ?? ''}>
-                {name ?? '—'}
+              <span className="boneName" title={boneTitle}>
+                {info?.name ?? '—'}
+                {z !== undefined && z !== 0 && (
+                  <span className="boneZ" title={`depth z = ${z}`}>
+                    {' '}
+                    z{z > 0 ? `+${z}` : z}
+                  </span>
+                )}
               </span>
               {[0, 1, 2].map((f) => (
                 <input
@@ -159,6 +171,23 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
           );
         })}
       </div>
+      {selectedBubble >= 0 &&
+        (() => {
+          const info = boneInfoFor(selectedBubble);
+          if (!info) return null;
+          const model = boneModelLabel(info.bone);
+          return (
+            <div className="boneDetail">
+              <span className="boneDetailName">{info.name}</span>
+              <span>
+                z <strong>{info.bone.z ?? 0}</strong>
+              </span>
+              <span title="3D model(s) that follow this bone">
+                model <strong>{model ?? '—'}</strong>
+              </span>
+            </div>
+          );
+        })()}
     </div>
   );
 };

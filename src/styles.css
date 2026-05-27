@@ -651,6 +651,34 @@ body {
   white-space: nowrap;
   padding: 0 2px;
 }
+.bubbleRow .boneZ {
+  color: var(--fg-mute);
+  font-size: 9px;
+}
+
+/* Per-bone detail line for the selected hurtbubble (z + 3D model). */
+.boneDetail {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding: 4px 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-mute);
+}
+.boneDetail .boneDetailName {
+  color: var(--accent);
+  font-weight: 600;
+}
+.boneDetail strong {
+  color: var(--fg);
+  font-weight: 600;
+}
 .bubbleRow select {
   background: var(--bg-2);
   border: 1px solid var(--border);
