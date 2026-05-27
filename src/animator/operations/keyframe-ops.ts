@@ -5,7 +5,7 @@
  * State management and UI updates are handled by React components.
  */
 
-import type { Animation, Keyframe, Hitbubble, Generic } from '../types';
+import type { Animation, Keyframe, Hitbubble } from '../types';
 
 /**
  * Clone a hurtbubbles array (deep copy)
@@ -15,37 +15,33 @@ export const cloneHurtbubbles = (hurtbubbles: number[]): number[] => {
 };
 
 /**
- * Clone a keyframe (deep copy)
+ * Recursive deep clone for plain JSON authoring data (arrays, objects,
+ * primitives). Keyframes never hold class instances or functions in the
+ * editor, so this is sufficient and avoids aliasing nested structures.
  */
-export const cloneKeyframe = (keyframe: Keyframe): Keyframe => {
-  const cloned: Keyframe = {
-    duration: keyframe.duration,
-    hurtbubbles: keyframe.hurtbubbles ? cloneHurtbubbles(keyframe.hurtbubbles) : undefined,
-  };
-
-  // Handle hitbubbles
-  if (keyframe.hitbubbles !== undefined) {
-    if (keyframe.hitbubbles === true) {
-      cloned.hitbubbles = true;
-    } else if (Array.isArray(keyframe.hitbubbles)) {
-      cloned.hitbubbles = keyframe.hitbubbles.map((hb) => ({ ...hb }));
-    }
+const deepClone = <T>(value: T): T => {
+  if (Array.isArray(value)) {
+    return value.map((v) => deepClone(v)) as unknown as T;
   }
-
-  // Copy any additional properties
-  for (const key in keyframe) {
-    if (
-      Object.prototype.hasOwnProperty.call(keyframe, key) &&
-      key !== 'duration' &&
-      key !== 'hurtbubbles' &&
-      key !== 'hitbubbles'
-    ) {
-      (cloned as Generic)[key] = (keyframe as Generic)[key];
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      out[key] = deepClone((value as Record<string, unknown>)[key]);
     }
+    return out as T;
   }
-
-  return cloned;
+  return value;
 };
+
+/**
+ * Clone a keyframe (deep copy).
+ *
+ * Must be a *deep* copy: hitbubbles carry nested objects (`smear`, `audio`)
+ * and keyframes carry nested overrides (`redirect`, `cancellable`, …) that
+ * would otherwise alias between a clone and its source, so editing one would
+ * silently mutate the other.
+ */
+export const cloneKeyframe = (keyframe: Keyframe): Keyframe => deepClone(keyframe);
 
 /**
  * Resolve hitbubbles for a keyframe, following references to previous keyframes

@@ -337,14 +337,15 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       if (found >= 0 && hurtbubbles) {
         if (e.shiftKey) {
           // Toggle membership in the group selection; no drag.
-          setGroupSel((prev) => {
-            const next = new Set(prev);
-            if (next.has(found)) next.delete(found);
-            else next.add(found);
-            return next;
-          });
-          onSelectBubble(found);
+          const next = new Set(groupSel);
+          if (next.has(found)) next.delete(found);
+          else next.add(found);
+          setGroupSel(next);
           onSelectHitbubble(-1);
+          // Keep the inspector pointed at a single member only; for a real
+          // group (>1) clear it so single-bubble nudge stays inert and the
+          // group nudge isn't double-applied to the clicked bubble.
+          onSelectBubble(next.size === 1 ? [...next][0] : -1);
           return;
         }
         onSelectHitbubble(-1);

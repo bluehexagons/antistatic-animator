@@ -78,6 +78,38 @@ describe('Keyframe Operations', () => {
       expect(cloned.hitbubbles).toBe(true);
     });
 
+    it('deep-clones nested hitbubble objects (no aliasing)', () => {
+      const original: Keyframe = {
+        duration: 10,
+        hurtbubbles: [0, 10, 5, 0],
+        hitbubbles: [{ x: 5, y: 10, radius: 8, smear: { x: 1, y: 2 }, flags: ['meteor'] }],
+      };
+      const cloned = cloneKeyframe(original);
+      const oHb = (original.hitbubbles as { smear: { x: number }; flags: string[] }[])[0];
+      const cHb = (cloned.hitbubbles as { smear: { x: number }; flags: string[] }[])[0];
+      expect(cHb.smear).not.toBe(oHb.smear);
+      expect(cHb.flags).not.toBe(oHb.flags);
+      // Mutating the clone must not touch the original.
+      cHb.smear.x = 999;
+      cHb.flags.push('wind');
+      expect(oHb.smear.x).toBe(1);
+      expect(oHb.flags).toEqual(['meteor']);
+    });
+
+    it('deep-clones nested keyframe overrides (redirect / cancellable)', () => {
+      const original: Keyframe = {
+        duration: 10,
+        hurtbubbles: [0, 10, 5, 0],
+        redirect: { up: 'upsmash' },
+        cancellable: ['jump'],
+      };
+      const cloned = cloneKeyframe(original) as typeof original;
+      (cloned.redirect as Record<string, string>).up = 'changed';
+      (cloned.cancellable as string[]).push('shield');
+      expect((original.redirect as Record<string, string>).up).toBe('upsmash');
+      expect(original.cancellable).toEqual(['jump']);
+    });
+
     it('should clone additional properties', () => {
       const original: Keyframe & { tween: string; customProp: string } = {
         duration: 10,
