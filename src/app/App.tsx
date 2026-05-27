@@ -255,11 +255,23 @@ const Shell: React.FC = () => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         void handleSave();
+        return;
+      }
+      // Keyframe stepping on , / . (video-style) — arrows are reserved for
+      // nudging the selected hurtbubble(s).
+      const kfs = state.animation?.keyframes;
+      if (kfs && (e.key === ',' || e.key === '.') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const next = state.keyframe + (e.key === '.' ? 1 : -1);
+        if (next >= 0 && next < kfs.length) {
+          e.preventDefault();
+          onKeyframeSelect(next);
+          setTick(0);
+        }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [handleSave]);
+  }, [handleSave, state.animation, state.keyframe, onKeyframeSelect]);
 
   // Empty / loading states
   const hasAnimation = !!state.animation && !!state.character;

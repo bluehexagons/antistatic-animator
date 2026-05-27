@@ -244,7 +244,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     <div className="timeline">
       <div className="timelineHeader">
         <div className="transport">
-          <button onClick={() => step(-1)} title="Previous keyframe (←)" disabled={keyframe <= 0}>
+          <button onClick={() => step(-1)} title="Previous keyframe ( , )" disabled={keyframe <= 0}>
             ⏮
           </button>
           <button
@@ -256,7 +256,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           </button>
           <button
             onClick={() => step(1)}
-            title="Next keyframe (→)"
+            title="Next keyframe ( . )"
             disabled={keyframe >= animation.keyframes.length - 1}
           >
             ⏭
