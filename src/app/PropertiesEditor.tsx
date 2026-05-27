@@ -11,7 +11,7 @@ import * as JSONC from 'jsonc-parser';
 import { objHas } from '../utils';
 import { multichoice, defaultTypes, excludeProps, valueSuggestions } from '../animator/constants';
 
-type Value = string | number | boolean | unknown[] | null;
+type Value = string | number | boolean | unknown[] | Record<string, unknown> | null;
 type Obj = Record<string, Value>;
 
 interface PropertiesEditorProps {
@@ -23,11 +23,12 @@ interface PropertiesEditorProps {
   suggestions?: string[];
 }
 
-const inferType = (v: Value): 'string' | 'number' | 'bool' | 'array' | 'other' => {
+const inferType = (v: Value): 'string' | 'number' | 'bool' | 'array' | 'object' | 'other' => {
   if (typeof v === 'boolean') return 'bool';
   if (typeof v === 'number') return 'number';
   if (typeof v === 'string') return 'string';
   if (Array.isArray(v)) return 'array';
+  if (v !== null && typeof v === 'object') return 'object';
   return 'other';
 };
 
@@ -106,6 +107,10 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
           />
         );
       case 'array':
+      case 'object':
+        // Edit arrays and objects (e.g. `redirect`, `spawn`) as JSON. Only
+        // commit when the parse yields the same shape, so a stray edit can't
+        // silently turn an object/array into a bare string.
         return (
           <input
             type="text"
@@ -113,7 +118,9 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
             onBlur={(e) => {
               try {
                 const parsed = JSONC.parse(e.target.value);
-                if (Array.isArray(parsed)) setKey(k, parsed);
+                const ok =
+                  t === 'array' ? Array.isArray(parsed) : parsed && typeof parsed === 'object';
+                if (ok) setKey(k, parsed);
               } catch {
                 /* ignore */
               }
