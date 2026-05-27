@@ -1,4 +1,5 @@
 import type { EntityData, Animation, AnimationMap } from '../animator/types';
+import type { createTools } from '../animator/api/tools';
 
 export {};
 
@@ -48,5 +49,7 @@ declare global {
       bubble: number;
     };
     parsed: AnimationMap;
+    /** Console API for power users (batch keyframe/bubble ops). */
+    Tools: ReturnType<typeof createTools>;
   }
 }

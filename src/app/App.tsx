@@ -11,6 +11,7 @@ import { AnimatorProvider, useAnimator } from '../animator/context/AnimatorConte
 import type { Animation, AnimationMap, EntityData } from '../animator/types';
 import { save as saveFile } from '../animator/operations/file-operations';
 import { clearBaselines } from '../animator/operations/diff';
+import { createTools } from '../animator/api/tools';
 import { library } from '../storage/library';
 import { ElectronStorage } from '../storage/electron';
 import { FsAccessStorage } from '../storage/fs-access';
@@ -247,6 +248,15 @@ const Shell: React.FC = () => {
     };
     window.parsed = state.parsed ?? {};
   }, [state]);
+
+  // Wire the documented window.Tools console API (batch keyframe/bubble ops).
+  useEffect(() => {
+    window.Tools = createTools(
+      () => state.parsed,
+      () => state.animation,
+      () => state.animFile
+    );
+  }, [state.parsed, state.animation, state.animFile]);
 
   // Keyboard shortcuts
   useEffect(() => {

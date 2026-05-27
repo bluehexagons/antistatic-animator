@@ -10,10 +10,13 @@ npm run build
 npm start
 ```
 
-1. Click "Select Directory" and choose your game's root folder
-2. Select a character from the first dropdown
-3. Select an animation from the second dropdown
-4. Edit hurtbubbles by dragging on canvas or using WASD keys
+1. Pick a source: open your game directory (Electron), pick a folder (browser
+   File System Access), or drag-and-drop your `data` files onto the window
+2. Choose a character from the sidebar's file list
+3. Choose one of its animations from the sidebar's animation list
+4. Edit hurtbubbles by dragging on the stage or nudging with WASD / arrows
+   (marquee-drag to multi-select); step keyframes with `,` / `.`; save with
+   Ctrl/Cmd+S
 
 ## Development
 
@@ -27,20 +30,23 @@ npm run lint         # Code quality checks
 
 ## Features
 
-- Visual canvas editor for collision boxes
-- Frame-by-frame keyframe editing
-- Property editing with type safety
-- JSONC format support (JSON with comments)
-- Keyboard navigation (WASD) and camera controls
-- Console API for batch operations
+- Visual stage editor for hurtbubbles (drag, marquee multi-select, group
+  nudge) and hitbubbles (full schema: damage/knockback/flags/follow/smear)
+- Knockback + smear gizmos, hurtbubble state colouring, z-depth tint
+- Onion-skin, bone-name labels, and a shield overlay
+- Interpolated playback with loop / ping-pong, scrubbing, keyframe copy/paste,
+  and a flip-X mirror tool
+- Per-keyframe / per-animation property editing for every engine field,
+  including array/object values, with schema-aware dropdowns and lint
+- JSONC-preserving save (keeps comments and formatting)
+- Console API (`window.Tools`) for batch operations
 
 ## Architecture
 
-Hybrid approach optimized for performance:
 - **React** for UI components and state management
-- **Vanilla JS** for 60fps canvas rendering
+- **SVG** for the stage and timeline-thumbnail rendering
 - **TypeScript** for type safety
-- **Electron** for desktop integration
+- **Electron** (with a browser/File System Access fallback) for file access
 
 ## Contributing
 
@@ -51,7 +57,8 @@ Hybrid approach optimized for performance:
 ## Releases
 
 Automated via GitHub Actions:
-- `CI` workflow validates all builds
+- `CI` workflow runs type-check, lint, tests, and build on `v*` tags
+  (and manual dispatch) — not on every commit
 - `Release` workflow publishes packages on `v*` tags
 
 ## Tools API
