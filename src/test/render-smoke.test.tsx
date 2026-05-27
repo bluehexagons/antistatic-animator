@@ -67,10 +67,10 @@ const animation: Animation = {
           angle: 45,
           sakurai: true,
           // Long-tail fields with no dedicated control — exercise the embedded
-          // "other properties" editor (string + array + object forms).
+          // "other properties" editor (string, bool, and array forms).
           effect: 'electric',
+          next: true,
           color: [0.15, 1, 0.5, 1],
-          next: { type: 'aerial', radius: 4 },
         },
       ],
     },

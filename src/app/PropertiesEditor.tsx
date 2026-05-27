@@ -181,6 +181,8 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
           if (multichoice[name]) obj[name] = multichoice[name].default;
           else if (type === 'bool') obj[name] = true;
           else if (type === 'number') obj[name] = 0;
+          else if (type === 'array') obj[name] = [];
+          else if (type === 'object') obj[name] = {};
           else obj[name] = '';
           tick();
         }}
@@ -189,20 +191,22 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
   );
 };
 
+type AddType = 'bool' | 'number' | 'string' | 'array' | 'object';
+
 interface AddPropertyProps {
   isKeyframe: boolean;
   existing: Set<string>;
   suggestions?: string[];
-  onAdd: (name: string, type: 'bool' | 'number' | 'string') => void;
+  onAdd: (name: string, type: AddType) => void;
 }
 
 const AddProperty: React.FC<AddPropertyProps> = ({ existing, onAdd, suggestions }) => {
   const [name, setName] = useState('');
-  const [type, setType] = useState<'bool' | 'number' | 'string'>('bool');
+  const [type, setType] = useState<AddType>('bool');
 
   const handleNameChange = (v: string) => {
     setName(v);
-    if (defaultTypes[v]) setType(defaultTypes[v] as 'bool' | 'number' | 'string');
+    if (defaultTypes[v]) setType(defaultTypes[v] as AddType);
   };
 
   const submit = () => {
@@ -234,13 +238,12 @@ const AddProperty: React.FC<AddPropertyProps> = ({ existing, onAdd, suggestions 
           <option key={s} value={s} />
         ))}
       </datalist>
-      <select
-        value={type}
-        onChange={(e) => setType(e.target.value as 'bool' | 'number' | 'string')}
-      >
+      <select value={type} onChange={(e) => setType(e.target.value as AddType)}>
         <option value="bool">bool</option>
         <option value="number">number</option>
         <option value="string">string</option>
+        <option value="array">array</option>
+        <option value="object">object</option>
       </select>
       <button className="propBtn" onClick={submit} title="Add property" aria-label="Add property">
         +

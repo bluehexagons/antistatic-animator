@@ -100,6 +100,20 @@ export const defaultTypes: { [s: string]: string } = {
   reversible: 'boolean',
   blocked: 'string',
   scale: 'number',
+  // Hitbubble long-tail fields (offered in the per-hitbubble "other" editor).
+  if: 'string',
+  next: 'bool',
+  color: 'array',
+  addVelocity: 'number',
+  shieldDamage: 'number',
+  setLag: 'number',
+  lag: 'number',
+  onHit: 'string',
+  onBlocked: 'string',
+  // Object/array-valued overrides.
+  redirect: 'object',
+  spawn: 'object',
+  events: 'array',
 };
 
 /** Properties to exclude from the general property editor */

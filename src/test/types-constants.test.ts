@@ -33,7 +33,7 @@ describe('Constants', () => {
     });
 
     it('should have valid type values', () => {
-      const validTypes = ['string', 'number', 'bool', 'boolean'];
+      const validTypes = ['string', 'number', 'bool', 'boolean', 'array', 'object'];
       Object.values(defaultTypes).forEach((type) => {
         expect(validTypes).toContain(type);
       });
