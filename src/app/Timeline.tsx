@@ -11,6 +11,12 @@ import type { Animation, EntityData } from '../animator/types';
 import { objHas } from '../utils';
 import { cloneKeyframe } from '../animator/operations/keyframe-ops';
 import { mirrorAnimation } from '../animator/operations/mirror';
+import {
+  copyKeyframe,
+  hasClipboardKeyframe,
+  pasteKeyframe,
+} from '../animator/operations/clipboard';
+import { ensureBaseline, isKeyframeModified } from '../animator/operations/diff';
 import { ThumbnailPreview } from './ThumbnailPreview';
 
 export type LoopMode = 'once' | 'loop' | 'ping-pong';
@@ -46,6 +52,22 @@ export const Timeline: React.FC<TimelineProps> = ({
     () => animation.keyframes.reduce((s, k) => s + (k.duration ?? 0), 0),
     [animation]
   );
+
+  // Snapshot the keyframes for session diff tracking (idempotent per array).
+  ensureBaseline(animation.keyframes);
+  const [clipReady, setClipReady] = useState(hasClipboardKeyframe());
+
+  const copyAt = (i: number) => {
+    copyKeyframe(animation.keyframes[i]);
+    setClipReady(true);
+  };
+  const pasteAfter = (i: number) => {
+    const kf = pasteKeyframe();
+    if (!kf) return;
+    animation.keyframes.splice(i + 1, 0, kf);
+    onAnimationChange();
+    onKeyframeSelect(i + 1);
+  };
 
   // Animation loop. Direction = +1 normally, flipped for ping-pong reverse leg.
   // We read tick / keyframe through refs so the rAF loop doesn't tear down
@@ -263,6 +285,14 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div className="grow" />
         <button
           className="btn ghost"
+          title="Paste copied keyframe after the current one"
+          disabled={!clipReady}
+          onClick={() => pasteAfter(keyframe)}
+        >
+          ⎙ Paste
+        </button>
+        <button
+          className="btn ghost"
           title="Mirror the whole animation horizontally (flip-X). Reversible — click again to undo."
           onClick={() => {
             mirrorAnimation(character, animation);
@@ -298,11 +328,12 @@ export const Timeline: React.FC<TimelineProps> = ({
           const width = Math.max(70, Math.min(140, 64 + (kf.duration ?? 1) * 4));
           const hasHits = objHas(kf, 'hitbubbles');
           const tween = (kf as { tween?: string }).tween;
+          const modified = isKeyframeModified(animation.keyframes, kf);
           return (
             <div
               key={i}
               data-kf={i}
-              className={`kfThumb ${active ? 'active' : ''}`}
+              className={`kfThumb ${active ? 'active' : ''} ${modified ? 'modified' : ''}`}
               onClick={() => {
                 onKeyframeSelect(i);
                 onTickChange(0);
@@ -310,6 +341,11 @@ export const Timeline: React.FC<TimelineProps> = ({
               style={{ width }}
             >
               <div className="kfBadges">
+                {modified && (
+                  <span className="kfBadge mod" title="Modified this session (unsaved)">
+                    ●
+                  </span>
+                )}
                 {hasHits && <span className="kfBadge hit">HIT</span>}
                 {tween && tween !== 'linear' && (
                   <span className="kfBadge">{String(tween).slice(0, 6)}</span>
@@ -340,6 +376,19 @@ export const Timeline: React.FC<TimelineProps> = ({
                   </button>
                   <button onClick={(e) => (e.stopPropagation(), cloneAt(i, 'right'))} title="Clone">
                     ⎘
+                  </button>
+                  <button
+                    onClick={(e) => (e.stopPropagation(), copyAt(i))}
+                    title="Copy keyframe to clipboard"
+                  >
+                    ⧉
+                  </button>
+                  <button
+                    onClick={(e) => (e.stopPropagation(), pasteAfter(i))}
+                    title="Paste keyframe after this one"
+                    disabled={!clipReady}
+                  >
+                    ⎙
                   </button>
                   <button onClick={(e) => (e.stopPropagation(), remove(i))} title="Delete">
                     ✕

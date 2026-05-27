@@ -1082,6 +1082,20 @@ body {
 .kfBadge.hit {
   background: rgba(240, 100, 100, 0.85);
 }
+.kfBadge.mod {
+  background: transparent;
+  color: var(--warn, #f0a04b);
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+.kfThumb.modified {
+  border-color: var(--warn, #f0a04b);
+}
+.kfThumb.modified.active {
+  border-color: var(--accent);
+}
 
 .kfActions {
   position: absolute;

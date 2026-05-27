@@ -10,6 +10,7 @@ import * as JSONC from 'jsonc-parser';
 import { AnimatorProvider, useAnimator } from '../animator/context/AnimatorContext';
 import type { Animation, AnimationMap, EntityData } from '../animator/types';
 import { save as saveFile } from '../animator/operations/file-operations';
+import { clearBaselines } from '../animator/operations/diff';
 import { library } from '../storage/library';
 import { ElectronStorage } from '../storage/electron';
 import { FsAccessStorage } from '../storage/fs-access';
@@ -165,6 +166,8 @@ const Shell: React.FC = () => {
     try {
       await saveFile(state.animFile, state.parsed);
       setSaveDirty(false);
+      // Everything on disk is now the baseline; clear session-modified marks.
+      clearBaselines();
     } catch (err) {
       console.error('save failed', err);
       alert(`Save failed: ${(err as Error).message ?? err}`);
