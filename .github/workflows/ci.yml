@@ -1,8 +1,10 @@
 name: CI
 
+# Runs only on version tags (and manual dispatch) — not on every commit.
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -22,5 +24,7 @@ jobs:
         run: npm run type-check
       - name: Lint
         run: npm run lint
+      - name: Test
+        run: npm run test:run
       - name: Build
         run: npm run build
