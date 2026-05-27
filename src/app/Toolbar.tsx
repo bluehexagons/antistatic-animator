@@ -89,28 +89,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           className="iconBtn"
           title="Toggle grid"
+          aria-pressed={showGrid}
           onClick={onToggleGrid}
-          style={{
-            background: showGrid ? 'var(--accent-soft)' : undefined,
-            color: showGrid ? 'var(--accent)' : undefined,
-          }}
+          style={toggleStyle(showGrid)}
         >
           ⊞
         </button>
         <button
           className="iconBtn"
           title="Toggle ground"
+          aria-pressed={showGround}
           onClick={onToggleGround}
-          style={{
-            background: showGround ? 'var(--accent-soft)' : undefined,
-            color: showGround ? 'var(--accent)' : undefined,
-          }}
+          style={toggleStyle(showGround)}
         >
           ⎯
         </button>
         <button
           className="iconBtn"
           title="Toggle hitboxes"
+          aria-pressed={showHitboxes}
           onClick={onToggleHitboxes}
           style={toggleStyle(showHitboxes, 'var(--hit)')}
         >
@@ -119,6 +116,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           className="iconBtn"
           title="Toggle onion-skin (previous / next keyframes)"
+          aria-pressed={showOnion}
           onClick={onToggleOnion}
           style={toggleStyle(showOnion)}
         >
@@ -127,6 +125,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           className="iconBtn"
           title="Toggle bone-name labels"
+          aria-pressed={showLabels}
           onClick={onToggleLabels}
           style={toggleStyle(showLabels)}
         >
@@ -136,6 +135,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           className="iconBtn"
           title="Toggle shield overlay"
+          aria-pressed={showShield}
           onClick={onToggleShield}
           style={toggleStyle(showShield, '#6aa9ff')}
         >

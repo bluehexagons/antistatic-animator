@@ -251,12 +251,17 @@ const Shell: React.FC = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // Save works everywhere (incl. while editing a field): commit the
+      // focused input first by blurring it, then save. Always preventDefault
+      // so the browser's "save page" dialog never appears.
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         void handleSave();
         return;
       }
+      // Remaining shortcuts ignore typing in form fields.
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       // Keyframe stepping on , / . (video-style) — arrows are reserved for
       // nudging the selected hurtbubble(s).
       const kfs = state.animation?.keyframes;
