@@ -7,6 +7,22 @@
 import type { Keyframe, AnimationMap, Animation, Generic } from '../types';
 import { save } from '../operations/file-operations';
 
+const bubbleOffset = (hurtbubbles: number[], index: number): number | null => {
+  const bubbleCount = Math.floor(hurtbubbles.length / 4);
+  if (!Number.isInteger(index)) return null;
+  if (index === -1) return bubbleCount * 4;
+  if (index < 0 || index > bubbleCount) return null;
+  return index * 4;
+};
+
+const deleteBubbleOffset = (hurtbubbles: number[], index: number): number | null => {
+  const bubbleCount = Math.floor(hurtbubbles.length / 4);
+  if (!Number.isInteger(index) || bubbleCount === 0) return null;
+  if (index === -1) return (bubbleCount - 1) * 4;
+  if (index < 0 || index >= bubbleCount) return null;
+  return index * 4;
+};
+
 /**
  * Create the Tools API object with references to state
  */
@@ -59,14 +75,12 @@ export const createTools = (
      * @param index Bubble index to insert at (-1 = end)
      */
     *insertBubble(index = -1): Generator<[Keyframe, number[]], void, void> {
-      const j = index * 4;
-      if (index < 0) {
-        return;
-      }
       for (const kf of Tools.iterateKeyframes()) {
         if (!kf.hurtbubbles || !Array.isArray(kf.hurtbubbles)) {
           continue;
         }
+        const j = bubbleOffset(kf.hurtbubbles, index);
+        if (j === null) continue;
         const slice = [0, 0, 0, 0];
         yield [kf, slice];
         kf.hurtbubbles.splice(j, 0, ...slice);
@@ -79,14 +93,12 @@ export const createTools = (
      * @param index Bubble index to delete (-1 = end)
      */
     deleteBubble(index = -1): void {
-      const j = index * 4;
-      if (index < 0) {
-        return;
-      }
       for (const kf of Tools.iterateKeyframes()) {
         if (!kf.hurtbubbles || !Array.isArray(kf.hurtbubbles)) {
           continue;
         }
+        const j = deleteBubbleOffset(kf.hurtbubbles, index);
+        if (j === null) continue;
         kf.hurtbubbles.splice(j, 4);
       }
     },

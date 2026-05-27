@@ -156,9 +156,19 @@ describe('Tools API', () => {
       expect(kfWithoutHurtbubbles).not.toHaveProperty('hurtbubbles');
     });
 
-    it('should handle invalid index', () => {
+    it('should append a bubble at index -1', () => {
+      const original = mockParsed.idle.keyframes[0].hurtbubbles!.slice();
       const insertions = Array.from(tools.insertBubble(-1));
+
+      expect(insertions.length).toBeGreaterThan(0);
+      expect(mockParsed.idle.keyframes[0].hurtbubbles).toEqual([...original, 0, 0, 0, 0]);
+    });
+
+    it('should ignore an out-of-range index', () => {
+      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
+      const insertions = Array.from(tools.insertBubble(99));
       expect(insertions.length).toBe(0);
+      expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength);
     });
   });
 
@@ -180,12 +190,19 @@ describe('Tools API', () => {
       expect(() => tools.deleteBubble(0)).not.toThrow();
     });
 
-    it('should handle invalid index', () => {
+    it('should delete the last bubble at index -1', () => {
       const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
 
       tools.deleteBubble(-1);
 
-      // Should not modify anything
+      expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength - 4);
+    });
+
+    it('should ignore an out-of-range index', () => {
+      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
+
+      tools.deleteBubble(99);
+
       expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength);
     });
   });

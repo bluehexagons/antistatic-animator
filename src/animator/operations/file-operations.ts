@@ -35,6 +35,21 @@ const reformatHurtbubbleArrays = (text: string): string =>
 /** Stable, comparable shape for an animation entry. */
 const canonicalize = (v: unknown): string => JSON.stringify(v);
 
+const parseAnimationMap = (text: string): AnimationMap | null => {
+  try {
+    const original = JSONC.parse(text) as AnimationMap;
+    if (!original || typeof original !== 'object' || Array.isArray(original)) return null;
+    return original;
+  } catch {
+    return null;
+  }
+};
+
+const renderCleanAnimationFile = (parsed: AnimationMap): string => {
+  const out = JSON.stringify(parsed, null, '  ');
+  return reformatHurtbubbleArrays(out) + '\n';
+};
+
 /**
  * Compute a minimal set of jsonc-parser modify ops that bring
  * `originalText` (parsed structure) into agreement with `current`.
@@ -45,13 +60,8 @@ const canonicalize = (v: unknown): string => JSON.stringify(v);
  */
 export const buildJsoncEdits = (originalText: string, current: AnimationMap): JSONC.Edit[] => {
   const edits: JSONC.Edit[] = [];
-  let original: AnimationMap;
-  try {
-    original = JSONC.parse(originalText) as AnimationMap;
-  } catch {
-    return [];
-  }
-  if (!original || typeof original !== 'object') return [];
+  const original = parseAnimationMap(originalText);
+  if (!original) return [];
 
   const seen = new Set<string>();
   for (const key of Object.getOwnPropertyNames(current)) {
@@ -79,6 +89,9 @@ export const renderAnimationFile = (
   parsed: AnimationMap
 ): string => {
   if (originalText) {
+    if (!parseAnimationMap(originalText)) {
+      return renderCleanAnimationFile(parsed);
+    }
     const edits = buildJsoncEdits(originalText, parsed);
     if (edits.length === 0) {
       return originalText.endsWith('\n') ? originalText : `${originalText}\n`;
@@ -88,8 +101,7 @@ export const renderAnimationFile = (
     return text.endsWith('\n') ? text : `${text}\n`;
   }
   // No original text — fall back to a clean stringify.
-  const out = JSON.stringify(parsed, null, '  ');
-  return reformatHurtbubbleArrays(out) + '\n';
+  return renderCleanAnimationFile(parsed);
 };
 
 /**

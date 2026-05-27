@@ -10,7 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 const args = process.argv.slice(2);
 const platform = args.find((arg) => arg.startsWith('--platform='))?.split('=')[1];
@@ -28,8 +28,9 @@ let version = packageJson.version;
 
 // Try to get version from git tag if available (takes precedence)
 try {
-  const gitTag = execSync('git describe --tags --exact-match 2>/dev/null || true', {
+  const gitTag = execFileSync('git', ['describe', '--tags', '--exact-match'], {
     encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
   }).trim();
   if (gitTag && gitTag.startsWith('v')) {
     version = gitTag.substring(1); // Remove the 'v' prefix
@@ -86,6 +87,11 @@ if (platform === 'darwin') {
   archiveExt = 'tar.gz';
 }
 
+if (!archiveName || !archiveExt) {
+  console.error(`Unsupported platform: ${platform}`);
+  process.exit(1);
+}
+
 const archivePath = path.join(archivesDir, archiveName);
 
 console.log(`Creating ${archiveName}...`);
@@ -104,26 +110,38 @@ try {
     // Use zip for Windows and macOS
     if (process.platform === 'win32') {
       // On Windows, use PowerShell's Compress-Archive
-      execSync(
-        `powershell -Command "Compress-Archive -Path '${absSourcePath}' -DestinationPath '${absArchivePath}'"`,
-        { stdio: 'inherit' }
+      execFileSync(
+        'powershell',
+        [
+          '-NoProfile',
+          '-Command',
+          'Compress-Archive -LiteralPath $env:ANTISTATIC_ARCHIVE_SOURCE -DestinationPath $env:ANTISTATIC_ARCHIVE_DESTINATION',
+        ],
+        {
+          stdio: 'inherit',
+          env: {
+            ...process.env,
+            ANTISTATIC_ARCHIVE_SOURCE: absSourcePath,
+            ANTISTATIC_ARCHIVE_DESTINATION: absArchivePath,
+          },
+        }
       );
     } else {
       // On Unix-like systems, use zip
       const cwd = path.dirname(absSourcePath);
       const dirname = path.basename(absSourcePath);
-      execSync(`cd "${cwd}" && zip -r -y "${absArchivePath}" "${dirname}"`, {
+      execFileSync('zip', ['-r', '-y', absArchivePath, dirname], {
         stdio: 'inherit',
-        shell: '/bin/bash',
+        cwd,
       });
     }
   } else if (archiveExt === 'tar.gz') {
     // Use tar.gz for Linux
     const cwd = path.dirname(absSourcePath);
     const dirname = path.basename(absSourcePath);
-    execSync(`cd "${cwd}" && tar -czf "${absArchivePath}" "${dirname}"`, {
+    execFileSync('tar', ['-czf', absArchivePath, dirname], {
       stdio: 'inherit',
-      shell: '/bin/bash',
+      cwd,
     });
   }
 

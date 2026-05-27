@@ -8,6 +8,8 @@
 
 import type { StorageBackend } from './types';
 
+const DATA_FILE_RE = /\.jsonc?$/i;
+
 export class UploadStorage implements StorageBackend {
   readonly kind = 'upload' as const;
   readonly canSave = true; // saves through download
@@ -26,12 +28,12 @@ export class UploadStorage implements StorageBackend {
   /** Load a flat list of files (basename → content) into memory. */
   async loadFiles(files: File[], label?: string): Promise<number> {
     this.files.clear();
-    for (const f of files) {
-      // Filter to character data files only — accept any folder layout.
+    const accepted = files.filter((f) => DATA_FILE_RE.test(f.name));
+    for (const f of accepted) {
       const text = await f.text();
       this.files.set(f.name, text);
     }
-    this.dirLabel = label || (files[0] ? guessDirLabel(files) : '');
+    this.dirLabel = label || (accepted[0] ? guessDirLabel(accepted) : '');
     return this.files.size;
   }
 

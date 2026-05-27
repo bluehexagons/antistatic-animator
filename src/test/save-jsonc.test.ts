@@ -100,6 +100,19 @@ describe('renderAnimationFile', () => {
     expect(out).toContain('"duration": 5');
   });
 
+  it('falls back to JSON.stringify when the original text is malformed', () => {
+    const parsed: AnimationMap = {
+      idle: {
+        type: 'movement',
+        keyframes: [{ duration: 5, hurtbubbles: [0, 0, 1, 1, 0, 5, 1, 1] }],
+      },
+    };
+    const out = renderAnimationFile('{ "idle": ', parsed);
+    expect(out).toContain('"idle"');
+    expect(out).toContain('"duration": 5');
+    expect(out).not.toContain('{ "idle": ');
+  });
+
   it('always ends with a trailing newline', () => {
     const parsed: AnimationMap = {
       idle: {

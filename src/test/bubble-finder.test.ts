@@ -101,6 +101,11 @@ describe('Bubble Finder', () => {
         expect(index % 4).toBe(0);
       });
     });
+
+    it('returns no matches for an invalid keyframe index', () => {
+      const result = findBubbles(mockCharacter, mockAnimation, 99, 0, 0, 800, 600, 2, 400, 300);
+      expect(result).toEqual([]);
+    });
   });
 
   describe('hbmap', () => {

@@ -27,6 +27,7 @@ import { StageViewer } from './StageViewer';
 import { SourcePicker } from './SourcePicker';
 import { DropZone } from './DropZone';
 import { useLibrary } from './hooks';
+import { findAnimationFile, isCharacterDataFile } from './file-names';
 
 const VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
 const ELECTRON_SOURCE_KEY = 'antistatic-dir';
@@ -72,7 +73,7 @@ const Shell: React.FC = () => {
     return library
       .files()
       .map((f) => f.name)
-      .filter((n) => /\.jsonc?$/.test(n) && !n.includes('_anim'))
+      .filter(isCharacterDataFile)
       .sort();
   }, [library.files().length, library.label]); // re-evaluated when library changes via useLibrary
 
@@ -89,6 +90,12 @@ const Shell: React.FC = () => {
   const handleSelectFile = useCallback(
     (file: string) => {
       setSelectedFile(file);
+      dispatch({ type: 'SET_CHARACTER', payload: null });
+      dispatch({ type: 'SET_PARSED', payload: null });
+      dispatch({ type: 'SET_ANIM_FILE', payload: '' });
+      dispatch({ type: 'SET_ANIMATION', payload: { animation: null } });
+      setSelectedHitbubble(-1);
+      setSaveDirty(false);
       const content = library.get(file);
       if (!content) return;
       try {
@@ -98,7 +105,7 @@ const Shell: React.FC = () => {
         console.error('failed to parse character', err);
         return;
       }
-      const animFile = `${file.split('.')[0]}_anim.json`;
+      const animFile = findAnimationFile(file, (name) => library.has(name));
       dispatch({ type: 'SET_ANIM_FILE', payload: animFile });
       const animContent = library.get(animFile);
       if (animContent) {
@@ -112,8 +119,6 @@ const Shell: React.FC = () => {
       } else {
         dispatch({ type: 'SET_PARSED', payload: null });
       }
-      dispatch({ type: 'SET_ANIMATION', payload: { animation: null } });
-      setSaveDirty(false);
     },
     [dispatch]
   );

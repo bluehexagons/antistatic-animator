@@ -53,7 +53,7 @@ export const findBubbles = (
   const wx = (x - w * (0.5 + ox * 0.5)) / scale;
   const wy = -(y - h * (0.5 + oy * 0.5)) / scale;
 
-  const hb = animation.keyframes[keyframe].hurtbubbles;
+  const hb = animation.keyframes[keyframe]?.hurtbubbles;
 
   // Return empty array if no hurtbubbles
   if (!hb || !Array.isArray(hb)) {
