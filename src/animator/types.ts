@@ -16,13 +16,29 @@ export const enum Actions {
   panCamera = 2,
 }
 
-/** Character hurtbubble bone definition */
+/** A 3D model attached to a bone (mirrors `PrefabData.models[]`). */
+export type BoneModel = {
+  name: string;
+  alias?: string;
+  [prop: string]: Generic;
+};
+
+/** Character hurtbubble bone definition (mirrors engine `HBData`). */
 export type HurtbubbleData = {
   name: string;
   i1: number;
   i2: number;
   z: number;
-  ik: boolean;
+  ik?: number | boolean;
+  /** Bone mirrors across the body centre when the character turns. */
+  flip?: boolean;
+  /** Model orientation is inverted for this bone. */
+  invert?: boolean;
+  /** Bone cannot be grabbed. */
+  ungrabbable?: boolean;
+  /** 3D prefab whose models follow this bone. */
+  prefab?: { models?: BoneModel[] };
+  [prop: string]: Generic;
 };
 
 /** Attack hitbox definition */

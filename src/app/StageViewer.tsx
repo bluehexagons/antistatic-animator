@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Animation, EntityData, Hitbubble } from '../animator/types';
 import { objHas } from '../utils';
 import { hbmap } from '../animator/rendering/bubble-finder';
+import { bubbleLabels } from '../animator/rendering/character-info';
 import type { CameraState } from '../animator/context/AnimatorContext';
 import { HitbubbleColors, HurtbubbleStateById } from '../animator/schema';
 import { interpolatedPose } from '../animator/operations/interpolate';
@@ -38,6 +39,9 @@ export interface StageViewerProps {
   showGrid: boolean;
   showGround: boolean;
   showHitboxes: boolean;
+  showOnion: boolean;
+  showLabels: boolean;
+  showShield: boolean;
 }
 
 interface Size {
@@ -152,8 +156,12 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   showGrid,
   showGround,
   showHitboxes,
+  showOnion,
+  showLabels,
+  showShield,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredBubble, setHoveredBubble] = useState(-1);
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState<Size>({ w: 800, h: 600 });
   const dragRef = useRef<{
@@ -312,6 +320,12 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       hurtbubbles[base] = drag.startBubble.x + dx;
       hurtbubbles[base + 1] = drag.startBubble.y + dy;
       onBubbleChange();
+    } else if (drag.mode === 'none' && svgRef.current) {
+      // Track hover so labels can surface the bubble under the cursor.
+      const rect = svgRef.current.getBoundingClientRect();
+      const { x: wx, y: wy } = fromSvg(e.clientX - rect.left, e.clientY - rect.top);
+      const found = pickBubbleAt(wx, wy);
+      setHoveredBubble((prev) => (prev === found ? prev : found));
     }
   };
 
@@ -418,6 +432,127 @@ export const StageViewer: React.FC<StageViewerProps> = ({
         />
       );
     });
+  };
+
+  // --- Onion-skin: faded ghosts of the neighbouring keyframes ---
+  const renderPoseGhost = (pose: number[], color: string, keyPrefix: string) => {
+    return bones.map((bone, idx) => {
+      const i1 = bone.i1 * 4;
+      const i2 = bone.i2 * 4;
+      if (i1 >= pose.length || i2 >= pose.length) return null;
+      const x1 = toSvgX(pose[i1]);
+      const y1 = toSvgY(pose[i1 + 1]);
+      const x2 = toSvgX(pose[i2]);
+      const y2 = toSvgY(pose[i2 + 1]);
+      const r = pose[i1 + 2] * camera.scale;
+      return (
+        <polygon
+          key={`${keyPrefix}-${idx}`}
+          points={getCapsulePoints(x1, y1, x2, y2, r)}
+          fill="none"
+          stroke={color}
+          strokeWidth={0.75}
+          opacity={0.4}
+        />
+      );
+    });
+  };
+
+  const renderOnionSkin = () => {
+    if (!showOnion) return null;
+    const ghosts: React.ReactNode[] = [];
+    const prev = animation.keyframes[keyframe - 1]?.hurtbubbles;
+    const next = animation.keyframes[keyframe + 1]?.hurtbubbles;
+    if (Array.isArray(prev)) {
+      ghosts.push(<g key="onion-prev">{renderPoseGhost(prev as number[], '#ff8a4a', 'prev')}</g>);
+    }
+    if (Array.isArray(next)) {
+      ghosts.push(<g key="onion-next">{renderPoseGhost(next as number[], '#6aa9ff', 'next')}</g>);
+    }
+    return ghosts;
+  };
+
+  // --- Shield overlay: capsule from (shieldX,Y) to (shieldX2,Y2) -
+  const renderShield = () => {
+    if (!showShield) return null;
+    const num = (k: string): number | undefined => {
+      const v = (character as Record<string, unknown>)[k];
+      return typeof v === 'number' ? v : undefined;
+    };
+    const sx = num('shieldX');
+    const sy = num('shieldY');
+    if (sx === undefined || sy === undefined) return null;
+    const sx2 = num('shieldX2') ?? sx;
+    const sy2 = num('shieldY2') ?? sy;
+    // Approximate the full-energy radius the engine computes at shield-up:
+    // baseSize + growth (+ the energy term, ~1).
+    const r = ((num('shieldMinSize') ?? 8) + (num('shieldGrowth') ?? 0) + 1) * camera.scale;
+    if (r <= 0) return null;
+    const points = getCapsulePoints(toSvgX(sx), toSvgY(sy), toSvgX(sx2), toSvgY(sy2), r);
+    return (
+      <g pointerEvents="none">
+        <polygon
+          points={points}
+          fill="#6aa9ff"
+          fillOpacity={0.12}
+          stroke="#6aa9ff"
+          strokeWidth={1}
+        />
+        <text
+          x={toSvgX((sx + sx2) / 2)}
+          y={toSvgY((sy + sy2) / 2)}
+          fill="#6aa9ff"
+          fontFamily="monospace"
+          fontSize="9"
+          textAnchor="middle"
+          opacity={0.8}
+        >
+          shield
+        </text>
+      </g>
+    );
+  };
+
+  // --- Bone-name labels ----------------------------------------
+  const labelMap = useMemo(() => bubbleLabels(character), [character]);
+  const namedIndices = useMemo(() => {
+    // Indices that carry a character-level alias (head/core) are always shown.
+    const set = new Set<number>();
+    for (const k of Object.getOwnPropertyNames(character)) {
+      if (k.endsWith('bubble') && typeof (character as Record<string, unknown>)[k] === 'number') {
+        set.add((character as Record<string, unknown>)[k] as number);
+      }
+    }
+    return set;
+  }, [character]);
+
+  const renderLabels = () => {
+    const pose = displayPose ?? hurtbubbles;
+    if (!pose) return null;
+    const nodes: React.ReactNode[] = [];
+    for (let i = 0; i * 4 < pose.length; i++) {
+      const base = i * 4;
+      const label = labelMap.get(i);
+      if (!label) continue;
+      const show = showLabels || namedIndices.has(i) || hoveredBubble === i;
+      if (!show) continue;
+      const named = namedIndices.has(i);
+      nodes.push(
+        <text
+          key={`label-${i}`}
+          x={toSvgX(pose[base]) + pose[base + 2] * camera.scale + 4}
+          y={toSvgY(pose[base + 1]) - 2}
+          fill={named ? '#ffe066' : 'var(--fg-mute, #8a93a3)'}
+          fontFamily="monospace"
+          fontSize="9"
+          pointerEvents="none"
+          opacity={named ? 0.95 : 0.8}
+        >
+          {label}
+        </text>
+      );
+    }
+    return nodes;
   };
 
   // --- Hitbubble rendering -------------------------------------
@@ -565,13 +700,17 @@ export const StageViewer: React.FC<StageViewerProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onPointerLeave={() => setHoveredBubble(-1)}
         onWheel={handleWheel}
         onContextMenu={onContextMenu}
       >
         {gridLines}
         {originAxes}
+        {renderOnionSkin()}
         {renderHurtbubbles()}
+        {renderShield()}
         {renderHitbubbles()}
+        {renderLabels()}
         {selectedOverlay}
       </svg>
     </div>

@@ -22,6 +22,12 @@ export interface ToolbarProps {
   onToggleGround: () => void;
   showHitboxes: boolean;
   onToggleHitboxes: () => void;
+  showOnion: boolean;
+  onToggleOnion: () => void;
+  showLabels: boolean;
+  onToggleLabels: () => void;
+  showShield: boolean;
+  onToggleShield: () => void;
   onResetCamera: () => void;
 }
 
@@ -54,8 +60,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleGround,
   showHitboxes,
   onToggleHitboxes,
+  showOnion,
+  onToggleOnion,
+  showLabels,
+  onToggleLabels,
+  showShield,
+  onToggleShield,
   onResetCamera,
 }) => {
+  const toggleStyle = (on: boolean, color = 'var(--accent)') => ({
+    background: on ? 'var(--accent-soft)' : undefined,
+    color: on ? color : undefined,
+  });
   return (
     <header className="toolbar">
       <div className="brand">
@@ -96,12 +112,33 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           className="iconBtn"
           title="Toggle hitboxes"
           onClick={onToggleHitboxes}
-          style={{
-            background: showHitboxes ? 'var(--accent-soft)' : undefined,
-            color: showHitboxes ? 'var(--hit)' : undefined,
-          }}
+          style={toggleStyle(showHitboxes, 'var(--hit)')}
         >
           ◉
+        </button>
+        <button
+          className="iconBtn"
+          title="Toggle onion-skin (previous / next keyframes)"
+          onClick={onToggleOnion}
+          style={toggleStyle(showOnion)}
+        >
+          ◍
+        </button>
+        <button
+          className="iconBtn"
+          title="Toggle bone-name labels"
+          onClick={onToggleLabels}
+          style={toggleStyle(showLabels)}
+        >
+          🏷
+        </button>
+        <button
+          className="iconBtn"
+          title="Toggle shield overlay"
+          onClick={onToggleShield}
+          style={toggleStyle(showShield, '#6aa9ff')}
+        >
+          🛡
         </button>
         <button className="iconBtn" title="Reset camera" onClick={onResetCamera}>
           ⌂

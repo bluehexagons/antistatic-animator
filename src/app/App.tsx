@@ -35,6 +35,9 @@ const Shell: React.FC = () => {
   const [showGrid, setShowGrid] = useState(true);
   const [showGround, setShowGround] = useState(true);
   const [showHitboxes, setShowHitboxes] = useState(true);
+  const [showOnion, setShowOnion] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
+  const [showShield, setShowShield] = useState(false);
   const [saveDirty, setSaveDirty] = useState(false);
   const [showPicker, setShowPicker] = useState(!library.ready);
 
@@ -266,6 +269,12 @@ const Shell: React.FC = () => {
         onToggleGround={() => setShowGround((v) => !v)}
         showHitboxes={showHitboxes}
         onToggleHitboxes={() => setShowHitboxes((v) => !v)}
+        showOnion={showOnion}
+        onToggleOnion={() => setShowOnion((v) => !v)}
+        showLabels={showLabels}
+        onToggleLabels={() => setShowLabels((v) => !v)}
+        showShield={showShield}
+        onToggleShield={() => setShowShield((v) => !v)}
         onResetCamera={resetCamera}
       />
 
@@ -311,6 +320,9 @@ const Shell: React.FC = () => {
             showGrid={showGrid}
             showGround={showGround}
             showHitboxes={showHitboxes}
+            showOnion={showOnion}
+            showLabels={showLabels}
+            showShield={showShield}
           />
         ) : (
           <div className="stageEmpty">
