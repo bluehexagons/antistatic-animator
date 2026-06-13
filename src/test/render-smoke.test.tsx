@@ -106,6 +106,7 @@ describe('render smoke', () => {
     );
     expect(html).toContain('<svg');
     expect(html).toContain('shield');
+    expect(html).toContain('rfoot: model offset');
   });
 
   it('Inspector renders all sections', () => {

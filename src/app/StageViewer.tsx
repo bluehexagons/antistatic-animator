@@ -598,44 +598,43 @@ export const StageViewer: React.FC<StageViewerProps> = ({
 
   const renderModelTransforms = () => {
     const pose = displayPose ?? hurtbubbles;
-    if (!pose || !modelTransforms) return null;
+    if (!pose) return null;
+
+    const activeModelTransforms = modelTransforms ?? modelDefaults;
 
     return bones.map((bone, idx) => {
       const offset = idx * HURTBUBBLE_MODEL_TRANSFORM_FIELDS;
       const i1 = bone.i1 * 4;
       const i2 = bone.i2 * 4;
-      if (i1 >= pose.length || i2 >= pose.length || offset + 2 >= modelTransforms.length) {
+      if (i1 >= pose.length || i2 >= pose.length || offset + 2 >= activeModelTransforms.length) {
         return null;
       }
 
       const hasModel = Array.isArray(bone.prefab?.models) && bone.prefab.models.length > 0;
       const changed =
-        modelTransforms[offset] !== (modelDefaults[offset] ?? 0) ||
-        modelTransforms[offset + 1] !== (modelDefaults[offset + 1] ?? 0) ||
-        modelTransforms[offset + 2] !== (modelDefaults[offset + 2] ?? 0);
+        activeModelTransforms[offset] !== (modelDefaults[offset] ?? 0) ||
+        activeModelTransforms[offset + 1] !== (modelDefaults[offset + 1] ?? 0) ||
+        activeModelTransforms[offset + 2] !== (modelDefaults[offset + 2] ?? 0);
       if (!hasModel && !changed) return null;
 
       const cx = (pose[i1] + pose[i2]) * 0.5;
       const cy = (pose[i1 + 1] + pose[i2 + 1]) * 0.5;
-      const vx = cx + modelTransforms[offset];
-      const vy = cy + modelTransforms[offset + 1];
+      const vx = cx + activeModelTransforms[offset];
+      const vy = cy + activeModelTransforms[offset + 1];
       const radius = Math.max(pose[i1 + 2] ?? 4, 4);
       const axisLength = radius * 0.9;
-      const radians = ((modelTransforms[offset + 2] ?? 0) * Math.PI) / 180;
+      const radians = ((activeModelTransforms[offset + 2] ?? 0) * Math.PI) / 180;
       const xAxisX = vx + Math.cos(radians) * axisLength;
       const xAxisY = vy + Math.sin(radians) * axisLength;
       const yAxisX = vx + Math.cos(radians + Math.PI / 2) * axisLength * 0.7;
       const yAxisY = vy + Math.sin(radians + Math.PI / 2) * axisLength * 0.7;
       const selected = selectedBubble === bone.i1 || selectedBubble === bone.i2;
       const opacity = selected ? 0.95 : changed ? 0.75 : 0.45;
+      const title = `${bone.name}: model offset (${activeModelTransforms[offset].toFixed(2)}, ${(-activeModelTransforms[offset + 1]).toFixed(2)}), rotation ${activeModelTransforms[offset + 2].toFixed(2)} deg`;
 
       return (
         <g key={`model-transform-${idx}`} pointerEvents="none" opacity={opacity}>
-          <title>
-            {bone.name}: model offset ({modelTransforms[offset].toFixed(2)},{' '}
-            {(-modelTransforms[offset + 1]).toFixed(2)}), rotation{' '}
-            {modelTransforms[offset + 2].toFixed(2)} deg
-          </title>
+          <title>{title}</title>
           <line
             x1={toSvgX(cx)}
             y1={toSvgY(cy)}
