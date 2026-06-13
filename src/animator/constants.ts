@@ -114,10 +114,16 @@ export const defaultTypes: { [s: string]: string } = {
   redirect: 'object',
   spawn: 'object',
   events: 'array',
+  hurtbubbleModelTransforms: 'object',
 };
 
 /** Properties to exclude from the general property editor */
-export const excludeProps = new Set(['hitbubbles', 'keyframes', 'hurtbubbles']);
+export const excludeProps = new Set([
+  'hitbubbles',
+  'keyframes',
+  'hurtbubbles',
+  'hurtbubbleModelTransforms',
+]);
 
 /** Nudge delay for keyboard navigation (ms) */
 export const NUDGE_DELAY = 120;

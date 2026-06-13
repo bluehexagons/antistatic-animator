@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { mirrorPose, mirrorHitbubble, mirrorAnimation } from '../animator/operations/mirror';
+import {
+  mirrorPose,
+  mirrorHitbubble,
+  mirrorAnimation,
+  mirrorModelTransformFrame,
+} from '../animator/operations/mirror';
 import { mirrorName, mirrorBubblePermutation } from '../animator/rendering/character-info';
 import type { Animation, EntityData, Hitbubble } from '../animator/types';
 
@@ -112,6 +117,13 @@ describe('mirrorHitbubble', () => {
   });
 });
 
+describe('mirrorModelTransformFrame', () => {
+  it('negates x and rotation while swapping mirrored bones', () => {
+    const out = mirrorModelTransformFrame([2, -3, 10, -4, -5, -20], [1, 0]);
+    expect(out).toEqual([4, -5, 20, -2, -3, -10]);
+  });
+});
+
 describe('mirrorAnimation', () => {
   it('mirrors every keyframe in place and round-trips', () => {
     const anim: Animation = {
@@ -136,5 +148,25 @@ describe('mirrorAnimation', () => {
     // round-trip
     mirrorAnimation(character, anim);
     expect(anim).toEqual(snapshot);
+  });
+
+  it('mirrors model transform anchors with the animation', () => {
+    const anim: Animation = {
+      name: 'wave',
+      keyframes: [
+        {
+          duration: 3,
+          hurtbubbleModelTransforms: {
+            rfoot: { x: 2, y: 3, rotation: 10 },
+            lfoot: { x: -4, y: 5, rotation: -20 },
+          },
+        },
+      ],
+    };
+    mirrorAnimation(character, anim);
+    expect(anim.keyframes[0].hurtbubbleModelTransforms).toMatchObject({
+      rfoot: { x: 4, y: 5, rotation: 20 },
+      lfoot: { x: -2, y: 3, rotation: -10 },
+    });
   });
 });

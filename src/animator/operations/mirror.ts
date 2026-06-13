@@ -13,6 +13,13 @@
 
 import type { Animation, EntityData, Hitbubble } from '../types';
 import { mirrorBubblePermutation, mirrorName } from '../rendering/character-info';
+import { HURTBUBBLE_MODEL_TRANSFORM_FIELDS } from './model-transforms';
+import {
+  keyframeHasModelTransforms,
+  modelTransformDefaults,
+  modelTransformFrameToAuthorObject,
+  normalizeModelTransformData,
+} from './model-transform-timeline';
 
 /** Normalise a degree value into [0, 360). */
 const norm = (deg: number): number => ((deg % 360) + 360) % 360;
@@ -28,6 +35,28 @@ export const mirrorPose = (pose: number[], perm: number[]): number[] => {
     out[a * 4 + 1] = pose[from * 4 + 1]; // y
     out[a * 4 + 2] = pose[from * 4 + 2]; // radius
     out[a * 4 + 3] = pose[from * 4 + 3]; // state (discrete)
+  }
+  return out;
+};
+
+const mirrorBonePermutation = (character: EntityData): number[] => {
+  const byName = new Map<string, number>();
+  character.hurtbubbles.forEach((bone, index) => {
+    if (bone.name) byName.set(bone.name, index);
+  });
+  return character.hurtbubbles.map((bone, index) => byName.get(mirrorName(bone.name)) ?? index);
+};
+
+export const mirrorModelTransformFrame = (frame: number[], perm: number[]): number[] => {
+  const out = frame.slice();
+  const count = Math.floor(frame.length / HURTBUBBLE_MODEL_TRANSFORM_FIELDS);
+  for (let a = 0; a < count; a++) {
+    const from = perm[a] ?? a;
+    const dst = a * HURTBUBBLE_MODEL_TRANSFORM_FIELDS;
+    const src = from * HURTBUBBLE_MODEL_TRANSFORM_FIELDS;
+    out[dst] = -frame[src];
+    out[dst + 1] = frame[src + 1];
+    out[dst + 2] = -frame[src + 2];
   }
   return out;
 };
@@ -48,10 +77,23 @@ export const mirrorHitbubble = (hb: Hitbubble): void => {
 /** Mirror every keyframe of an animation in place. */
 export const mirrorAnimation = (character: EntityData, animation: Animation): void => {
   const perm = mirrorBubblePermutation(character);
+  const bonePerm = mirrorBonePermutation(character);
+  const modelDefaults = modelTransformDefaults(character);
   for (const kf of animation.keyframes) {
     if (Array.isArray(kf.hurtbubbles)) {
       const mirrored = mirrorPose(kf.hurtbubbles as number[], perm);
       for (let i = 0; i < mirrored.length; i++) (kf.hurtbubbles as number[])[i] = mirrored[i];
+    }
+    if (keyframeHasModelTransforms(kf) && kf.hurtbubbleModelTransforms !== true) {
+      const frame = normalizeModelTransformData(
+        character,
+        kf.hurtbubbleModelTransforms,
+        modelDefaults
+      );
+      kf.hurtbubbleModelTransforms = modelTransformFrameToAuthorObject(
+        mirrorModelTransformFrame(frame, bonePerm),
+        character
+      );
     }
     if (Array.isArray(kf.hitbubbles)) {
       for (const hb of kf.hitbubbles) mirrorHitbubble(hb);

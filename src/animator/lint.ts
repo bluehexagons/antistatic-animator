@@ -20,6 +20,7 @@ import {
   TweenNames,
 } from './schema';
 import type { Animation, EntityData, Hitbubble, Keyframe } from './types';
+import { modelTransformUnknownKeys } from './operations/model-transform-timeline';
 
 export interface LintIssue {
   severity: 'error' | 'warn' | 'info';
@@ -177,6 +178,49 @@ export function lintAnimation(
             severity: 'warn',
             keyframe: i,
             message: `Hitbox #${h} has non-positive radius (${hb.radius}).`,
+          });
+        }
+      }
+    }
+
+    if (objHas(kf, 'hurtbubbleModelTransforms')) {
+      const data = kf.hurtbubbleModelTransforms;
+      if (data === true) {
+        let j = i - 1;
+        while (j >= 0 && animation.keyframes[j]?.hurtbubbleModelTransforms === true) j--;
+        if (
+          j < 0 ||
+          !animation.keyframes[j] ||
+          !objHas(animation.keyframes[j], 'hurtbubbleModelTransforms')
+        ) {
+          issues.push({
+            severity: 'error',
+            keyframe: i,
+            message: '`hurtbubbleModelTransforms: true` chain has no anchor predecessor.',
+          });
+        }
+      } else if (Array.isArray(data)) {
+        const flatNumeric = data.every((value) => typeof value === 'number');
+        if (flatNumeric && data.length !== character.hurtbubbles.length * 3) {
+          issues.push({
+            severity: 'warn',
+            keyframe: i,
+            message: `Flat hurtbubbleModelTransforms has ${data.length} numbers; character expects ${character.hurtbubbles.length * 3} (${character.hurtbubbles.length} bones × 3 fields).`,
+          });
+        } else if (!flatNumeric && data.length > character.hurtbubbles.length) {
+          issues.push({
+            severity: 'warn',
+            keyframe: i,
+            message: `Per-bone hurtbubbleModelTransforms has ${data.length} entries; character only has ${character.hurtbubbles.length} bones.`,
+          });
+        }
+      } else {
+        const unknown = modelTransformUnknownKeys(character, data);
+        for (const key of unknown) {
+          issues.push({
+            severity: 'warn',
+            keyframe: i,
+            message: `Model transform target "${key}" not found on character.`,
           });
         }
       }

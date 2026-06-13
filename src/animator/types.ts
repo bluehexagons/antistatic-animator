@@ -2,6 +2,11 @@
  * Type definitions for the animator module
  */
 
+import type {
+  HurtbubbleModelTransformData,
+  HurtbubbleModelTranslationData,
+} from './operations/model-transforms';
+
 /**
  * Generic type for dynamic/unknown properties
  * Used when objects have runtime properties that cannot be statically typed
@@ -38,6 +43,13 @@ export type HurtbubbleData = {
   ungrabbable?: boolean;
   /** 3D prefab whose models follow this bone. */
   prefab?: { models?: BoneModel[] };
+  /** Model orientation follows the bone capsule unless disabled. */
+  rotateModel?: boolean;
+  /** Static/default visual transform for the bone's attached model. */
+  modelTransform?: HurtbubbleModelTransformData;
+  modelTranslation?: HurtbubbleModelTranslationData;
+  modelOffset?: HurtbubbleModelTranslationData;
+  modelRotation?: number;
   [prop: string]: Generic;
 };
 
@@ -59,6 +71,8 @@ export type Keyframe = {
   duration: number;
   hitbubbles?: Hitbubble[] | true; // true = reference to previous keyframe
   hurtbubbles?: Hurtbubble[];
+  /** Per-bone attached-model x/y/rotation transforms; true continues previous. */
+  hurtbubbleModelTransforms?: true | Generic;
   /** Tween the pose from this keyframe toward the next using `tween`. */
   interpolate?: boolean;
   /** Named easing function from the Ease table. */

@@ -639,6 +639,113 @@ body {
   border-color: var(--accent);
 }
 
+/* --- Attached-model transform editor ---------------------------- */
+
+.modelTransformToolbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.miniButton {
+  background: var(--bg-2);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 7px;
+  font: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+}
+.miniButton:hover {
+  color: var(--fg);
+  border-color: var(--accent-glow);
+  background: var(--accent-soft);
+}
+.miniButton.danger:hover {
+  color: var(--hit);
+  border-color: rgba(255, 120, 120, 0.45);
+  background: rgba(255, 120, 120, 0.08);
+}
+.modelTransformHint {
+  color: var(--fg-mute);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.modelTransformList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: -2px;
+  padding: 2px;
+}
+.modelTransformHeader,
+.modelTransformRow {
+  display: grid;
+  grid-template-columns: 22px minmax(48px, 1fr) repeat(3, minmax(0, 0.75fr)) minmax(64px, 1fr);
+  gap: 4px;
+  align-items: center;
+}
+.modelTransformHeader {
+  padding: 4px 4px 2px;
+  font-size: 10px;
+  color: var(--fg-mute);
+  font-family: var(--font-mono);
+  text-align: center;
+}
+.modelTransformRow {
+  padding: 3px 4px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+.modelTransformRow.hasModel {
+  background: rgba(246, 200, 95, 0.05);
+}
+.modelTransformRow:hover {
+  background: var(--bg-2);
+}
+.modelTransformRow .idx,
+.modelTransformHeader .idx {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-mute);
+  text-align: right;
+  padding-right: 4px;
+}
+.modelTransformRow .boneName,
+.modelTransformRow .modelName {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modelTransformRow .boneName {
+  color: var(--fg-dim);
+}
+.modelTransformRow .modelName {
+  color: var(--fg-mute);
+}
+.modelTransformRow input {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  outline: none;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.modelTransformRow input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
 /* --- Lint list --------------------------------------------------- */
 
 .lintList {

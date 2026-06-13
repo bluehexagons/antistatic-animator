@@ -24,6 +24,11 @@ import { bubbleLabels } from '../animator/rendering/character-info';
 import type { CameraState } from '../animator/context/AnimatorContext';
 import { HitbubbleColors, HurtbubbleStateById } from '../animator/schema';
 import { interpolatedPose } from '../animator/operations/interpolate';
+import { HURTBUBBLE_MODEL_TRANSFORM_FIELDS } from '../animator/operations/model-transforms';
+import {
+  interpolatedModelTransformFrame,
+  modelTransformDefaults,
+} from '../animator/operations/model-transform-timeline';
 
 export interface StageViewerProps {
   character: EntityData;
@@ -230,6 +235,11 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     () => interpolatedPose(animation, keyframe, tick),
     [animation, keyframe, tick]
   );
+  const modelTransforms = useMemo(
+    () => interpolatedModelTransformFrame(animation, character, keyframe, tick),
+    [animation, character, keyframe, tick]
+  );
+  const modelDefaults = useMemo(() => modelTransformDefaults(character), [character]);
 
   const hitbubbles = useMemo<Hitbubble[] | null>(() => {
     if (!kf || !objHas(kf, 'hitbubbles')) return null;
@@ -586,6 +596,84 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     });
   };
 
+  const renderModelTransforms = () => {
+    const pose = displayPose ?? hurtbubbles;
+    if (!pose || !modelTransforms) return null;
+
+    return bones.map((bone, idx) => {
+      const offset = idx * HURTBUBBLE_MODEL_TRANSFORM_FIELDS;
+      const i1 = bone.i1 * 4;
+      const i2 = bone.i2 * 4;
+      if (i1 >= pose.length || i2 >= pose.length || offset + 2 >= modelTransforms.length) {
+        return null;
+      }
+
+      const hasModel = Array.isArray(bone.prefab?.models) && bone.prefab.models.length > 0;
+      const changed =
+        modelTransforms[offset] !== (modelDefaults[offset] ?? 0) ||
+        modelTransforms[offset + 1] !== (modelDefaults[offset + 1] ?? 0) ||
+        modelTransforms[offset + 2] !== (modelDefaults[offset + 2] ?? 0);
+      if (!hasModel && !changed) return null;
+
+      const cx = (pose[i1] + pose[i2]) * 0.5;
+      const cy = (pose[i1 + 1] + pose[i2 + 1]) * 0.5;
+      const vx = cx + modelTransforms[offset];
+      const vy = cy + modelTransforms[offset + 1];
+      const radius = Math.max(pose[i1 + 2] ?? 4, 4);
+      const axisLength = radius * 0.9;
+      const radians = ((modelTransforms[offset + 2] ?? 0) * Math.PI) / 180;
+      const xAxisX = vx + Math.cos(radians) * axisLength;
+      const xAxisY = vy + Math.sin(radians) * axisLength;
+      const yAxisX = vx + Math.cos(radians + Math.PI / 2) * axisLength * 0.7;
+      const yAxisY = vy + Math.sin(radians + Math.PI / 2) * axisLength * 0.7;
+      const selected = selectedBubble === bone.i1 || selectedBubble === bone.i2;
+      const opacity = selected ? 0.95 : changed ? 0.75 : 0.45;
+
+      return (
+        <g key={`model-transform-${idx}`} pointerEvents="none" opacity={opacity}>
+          <title>
+            {bone.name}: model offset ({modelTransforms[offset].toFixed(2)},{' '}
+            {(-modelTransforms[offset + 1]).toFixed(2)}), rotation{' '}
+            {modelTransforms[offset + 2].toFixed(2)} deg
+          </title>
+          <line
+            x1={toSvgX(cx)}
+            y1={toSvgY(cy)}
+            x2={toSvgX(vx)}
+            y2={toSvgY(vy)}
+            stroke="#f6c85f"
+            strokeWidth={selected ? 1.5 : 1}
+            strokeDasharray="3 2"
+          />
+          <circle
+            cx={toSvgX(vx)}
+            cy={toSvgY(vy)}
+            r={Math.max(3, camera.scale * 0.12)}
+            fill="#f6c85f"
+            stroke="#11151d"
+            strokeWidth="0.75"
+          />
+          <line
+            x1={toSvgX(vx)}
+            y1={toSvgY(vy)}
+            x2={toSvgX(xAxisX)}
+            y2={toSvgY(xAxisY)}
+            stroke="#ff6b6b"
+            strokeWidth={selected ? 1.6 : 1.1}
+          />
+          <line
+            x1={toSvgX(vx)}
+            y1={toSvgY(vy)}
+            x2={toSvgX(yAxisX)}
+            y2={toSvgY(yAxisY)}
+            stroke="#6aa9ff"
+            strokeWidth={selected ? 1.4 : 1}
+          />
+        </g>
+      );
+    });
+  };
+
   // --- Onion-skin: faded ghosts of the neighbouring keyframes ---
   const renderPoseGhost = (pose: number[], color: string, keyPrefix: string) => {
     return bones.map((bone, idx) => {
@@ -899,6 +987,7 @@ export const StageViewer: React.FC<StageViewerProps> = ({
         {originAxes}
         {renderOnionSkin()}
         {renderHurtbubbles()}
+        {renderModelTransforms()}
         {renderShield()}
         {renderHitbubbles()}
         {renderLabels()}

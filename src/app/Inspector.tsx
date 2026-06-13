@@ -9,6 +9,7 @@ import type { Animation, EntityData } from '../animator/types';
 import { PropertiesEditor } from './PropertiesEditor';
 import { BubbleEditor } from './BubbleEditor';
 import { HitbubbleEditor } from './HitbubbleEditor';
+import { ModelTransformEditor } from './ModelTransformEditor';
 import { lintAnimation } from '../animator/lint';
 import { objHas } from '../utils';
 
@@ -111,6 +112,11 @@ export const Inspector: React.FC<InspectorProps> = ({
     : kf?.hitbubbles === true
       ? '↩'
       : 0;
+  const modelTransformCount = objHas(kf ?? {}, 'hurtbubbleModelTransforms')
+    ? kf?.hurtbubbleModelTransforms === true
+      ? '↩'
+      : character.hurtbubbles.length
+    : 0;
   const issues = useMemo(() => lintAnimation(character, animation), [character, animation]);
   const errorCount = issues.filter((i) => i.severity === 'error').length;
   const warnCount = issues.filter((i) => i.severity === 'warn').length;
@@ -151,6 +157,18 @@ export const Inspector: React.FC<InspectorProps> = ({
         <>
           <Section title={`Keyframe #${keyframe}`}>
             <PropertiesEditor obj={kf} isKeyframe onChange={onAnimationChange} />
+          </Section>
+          <Section
+            title="Model Transforms"
+            count={modelTransformCount}
+            defaultOpen={!!modelTransformCount}
+          >
+            <ModelTransformEditor
+              character={character}
+              animation={animation}
+              keyframe={keyframe}
+              onChange={onAnimationChange}
+            />
           </Section>
           <Section title="Hitbubbles" count={hitCount} defaultOpen={!!hitCount}>
             <HitbubbleEditor

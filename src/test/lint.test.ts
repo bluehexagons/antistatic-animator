@@ -114,4 +114,24 @@ describe('lintAnimation', () => {
     const issues = lintAnimation(sampleCharacter(), { keyframes: [] });
     expect(issues.some((i) => i.severity === 'error' && /no keyframes/.test(i.message))).toBe(true);
   });
+
+  it('flags model transform continuations without an anchor', () => {
+    const issues = lintAnimation(
+      sampleCharacter(),
+      animationWith({
+        keyframes: [{ duration: 5, hurtbubbleModelTransforms: true }],
+      })
+    );
+    expect(issues.some((i) => /hurtbubbleModelTransforms: true/.test(i.message))).toBe(true);
+  });
+
+  it('flags unknown model transform targets', () => {
+    const issues = lintAnimation(
+      sampleCharacter(),
+      animationWith({
+        keyframes: [{ duration: 5, hurtbubbleModelTransforms: { notabone: { x: 1 } } }],
+      })
+    );
+    expect(issues.some((i) => /Model transform target/.test(i.message))).toBe(true);
+  });
 });
