@@ -5,7 +5,7 @@ import fs from 'fs';
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
 
 export default defineConfig({
-  base: './',
+  base: process.env.VITE_BASE || './',
   plugins: [react()],
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
