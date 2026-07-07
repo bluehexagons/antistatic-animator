@@ -124,17 +124,3 @@ export const excludeProps = new Set([
   'hurtbubbles',
   'hurtbubbleModelTransforms',
 ]);
-
-/** Nudge delay for keyboard navigation (ms) */
-export const NUDGE_DELAY = 120;
-
-/** Animation speed for keyboard repeat (ms per tick) */
-export const SPEED = 16;
-
-/** Keyboard direction bit flags */
-export const direction = {
-  up: 1 << 0,
-  left: 1 << 1,
-  down: 1 << 2,
-  right: 1 << 3,
-};

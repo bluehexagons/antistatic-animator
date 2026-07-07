@@ -16,6 +16,7 @@ import {
   HandlerEvents,
   HitbubbleTypes,
   HurtbubbleStateById,
+  HurtbubbleStateId,
   KnownHandlerNames,
   TweenNames,
 } from './schema';
@@ -63,7 +64,7 @@ const expectedHurtbubbleCount = (character: EntityData): number => {
 export function lintAnimation(
   character: EntityData,
   animation: Animation,
-  name?: string
+  _name?: string
 ): LintIssue[] {
   const issues: LintIssue[] = [];
   const expectedHb = expectedHurtbubbleCount(character);
@@ -113,7 +114,7 @@ export function lintAnimation(
       // unknown state values
       for (let j = 3; j < kf.hurtbubbles.length; j += 4) {
         const s = kf.hurtbubbles[j];
-        if (typeof s === 'number' && !HurtbubbleStateById.has(s as 0)) {
+        if (typeof s === 'number' && !HurtbubbleStateById.has(s as HurtbubbleStateId)) {
           issues.push({
             severity: 'warn',
             keyframe: i,
@@ -146,7 +147,7 @@ export function lintAnimation(
     } else if (Array.isArray(kf.hitbubbles)) {
       for (let h = 0; h < kf.hitbubbles.length; h++) {
         const hb: Hitbubble = kf.hitbubbles[h];
-        if (hb.type && !HitbubbleTypes.includes(hb.type as never)) {
+        if (hb.type && !(HitbubbleTypes as readonly string[]).includes(hb.type)) {
           issues.push({
             severity: 'warn',
             keyframe: i,
@@ -227,12 +228,11 @@ export function lintAnimation(
     }
 
     // tween must be known
-    const tween = (kf as Record<string, unknown>).tween;
-    if (typeof tween === 'string' && tween && !knownTweens.has(tween)) {
+    if (typeof kf.tween === 'string' && kf.tween && !knownTweens.has(kf.tween)) {
       issues.push({
         severity: 'warn',
         keyframe: i,
-        message: `Unknown tween "${tween}" — not in the easing table.`,
+        message: `Unknown tween "${kf.tween}" — not in the easing table.`,
       });
     }
 
@@ -258,12 +258,6 @@ export function lintAnimation(
         message: `Keyframe duration ${JSON.stringify(kf.duration)} is non-positive or missing.`,
       });
     }
-  }
-
-  // Reference to `name` exists in messages above only conceptually; including it
-  // here keeps lint outputs identifiable in batched lint runs.
-  if (name && issues.length > 0 && objHas(animation, 'name')) {
-    // no-op: name kept for the caller's grouping convenience
   }
 
   return issues;

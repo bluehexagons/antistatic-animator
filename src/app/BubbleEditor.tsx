@@ -6,7 +6,7 @@
 
 import React, { useCallback, useEffect } from 'react';
 import type { Animation, EntityData, HurtbubbleData } from '../animator/types';
-import { HurtbubbleStates } from '../animator/schema';
+import { HurtbubbleStateById, HurtbubbleStateId, HurtbubbleStates } from '../animator/schema';
 import { boneModelLabel } from '../animator/rendering/character-info';
 
 export interface BubbleEditorProps {
@@ -117,7 +117,7 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
           const base = i * FIELDS;
           const active = selectedBubble === i;
           const stateId = hb[base + 3];
-          const state = HurtbubbleStates.find((s) => s.id === stateId);
+          const state = HurtbubbleStateById.get(stateId as HurtbubbleStateId);
           const info = boneInfoFor(i);
           const model = info ? boneModelLabel(info.bone) : null;
           const z = info?.bone.z;

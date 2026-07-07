@@ -1,21 +1,37 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getLocalStorageItem, setLocalStorageItem } from '../runtime/local-storage';
 
-const originalLocalStorage = window.localStorage;
+// happy-dom in Node doesn't provide localStorage; mock it.
+const fakeStorage = new Map<string, string>();
+const mockStorage = {
+  getItem: vi.fn((key: string) => fakeStorage.get(key) ?? null),
+  setItem: vi.fn((key: string, value: string) => {
+    fakeStorage.set(key, value);
+  }),
+  removeItem: vi.fn((key: string) => {
+    fakeStorage.delete(key);
+  }),
+  clear: vi.fn(() => {
+    fakeStorage.clear();
+  }),
+};
+
+beforeEach(() => {
+  fakeStorage.clear();
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: mockStorage,
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
-  Object.defineProperty(window, 'localStorage', {
-    configurable: true,
-    value: originalLocalStorage,
-  });
 });
 
 describe('local-storage helpers', () => {
   it('reads and writes values when storage is available', () => {
     setLocalStorageItem('antistatic-test', 'value');
     expect(getLocalStorageItem('antistatic-test')).toBe('value');
-    window.localStorage.removeItem('antistatic-test');
   });
 
   it('ignores storage access failures', () => {

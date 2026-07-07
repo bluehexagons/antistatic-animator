@@ -116,7 +116,7 @@ export const ModelTransformEditor: React.FC<ModelTransformEditorProps> = ({
                 <input
                   key={field}
                   type="number"
-                  step="any"
+                  step="0.1"
                   value={displayValue(frame, i, field)}
                   onChange={(e) => setField(i, field, e.target.value)}
                 />

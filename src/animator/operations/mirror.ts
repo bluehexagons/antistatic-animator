@@ -81,8 +81,8 @@ export const mirrorAnimation = (character: EntityData, animation: Animation): vo
   const modelDefaults = modelTransformDefaults(character);
   for (const kf of animation.keyframes) {
     if (Array.isArray(kf.hurtbubbles)) {
-      const mirrored = mirrorPose(kf.hurtbubbles as number[], perm);
-      for (let i = 0; i < mirrored.length; i++) (kf.hurtbubbles as number[])[i] = mirrored[i];
+      const mirrored = mirrorPose(kf.hurtbubbles, perm);
+      for (let i = 0; i < mirrored.length; i++) kf.hurtbubbles[i] = mirrored[i];
     }
     if (keyframeHasModelTransforms(kf) && kf.hurtbubbleModelTransforms !== true) {
       const frame = normalizeModelTransformData(

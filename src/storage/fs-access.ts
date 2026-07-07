@@ -9,11 +9,11 @@ const CHAR_PATH = ['app', 'characters', 'data'];
 const DATA_FILE_RE = /\.jsonc?$/i;
 
 // File System Access API typings vary by TS lib version; declare what we need.
-interface FsHandle {
+export interface FsHandle {
   kind: 'file' | 'directory';
   name: string;
 }
-interface FsDirHandle extends FsHandle {
+export interface FsDirHandle extends FsHandle {
   kind: 'directory';
   getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<FsDirHandle>;
   getFileHandle(name: string, options?: { create?: boolean }): Promise<FsFileHandle>;
@@ -21,12 +21,12 @@ interface FsDirHandle extends FsHandle {
   queryPermission?(d?: { mode?: 'read' | 'readwrite' }): Promise<'granted' | 'denied' | 'prompt'>;
   requestPermission?(d?: { mode?: 'read' | 'readwrite' }): Promise<'granted' | 'denied' | 'prompt'>;
 }
-interface FsFileHandle extends FsHandle {
+export interface FsFileHandle extends FsHandle {
   kind: 'file';
   getFile(): Promise<File>;
   createWritable(): Promise<FsWritable>;
 }
-interface FsWritable {
+export interface FsWritable {
   write(data: string | Blob | ArrayBuffer): Promise<void>;
   close(): Promise<void>;
 }

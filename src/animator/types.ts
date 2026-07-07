@@ -14,13 +14,6 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- intentional escape hatch for legacy dynamic properties
 export type Generic = any;
 
-/** Action types for drag operations */
-export const enum Actions {
-  none = 0,
-  moveHurtbubble = 1,
-  panCamera = 2,
-}
-
 /** A 3D model attached to a bone (mirrors `PrefabData.models[]`). */
 export type BoneModel = {
   name: string;
@@ -105,35 +98,9 @@ export type Multichoices = {
   choices: string[];
 };
 
-/** Drag state */
-export type DragState = {
-  active: number;
-  x: number;
-  y: number;
-  action: Actions;
-  startX: number;
-  startY: number;
-};
-
-/** Editing state */
-export type EditingState = {
-  character: EntityData | null;
-  animation: Animation | null;
-  keyframe: number;
-  bubble: number;
-};
-
 /** Camera state */
 export type CameraState = {
   x: number;
   y: number;
   scale: number;
-};
-
-/** Keyboard direction flags */
-export type DirectionFlags = {
-  up: number;
-  left: number;
-  down: number;
-  right: number;
 };

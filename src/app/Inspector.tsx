@@ -72,10 +72,9 @@ const calcStats = (animation: Animation) => {
   }
   for (let i = 0; i < kfs.length - 1; i++) total += kfs[i].duration ?? 0;
   const hits = hitTimings.join(', ');
-  if (objHas(animation, 'iasa')) {
-    const iasa = animation.iasa as number;
-    backswing -= iasa;
-    total -= iasa;
+  if (objHas(animation, 'iasa') && typeof animation.iasa === 'number') {
+    backswing -= animation.iasa;
+    total -= animation.iasa;
   }
   return { total, windup, hits, backswing };
 };

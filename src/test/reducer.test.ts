@@ -47,4 +47,23 @@ describe('appReducer SET_ANIMATION', () => {
     expect(next.keyframe).toBe(0);
     expect(next.selectedBubble).toBe(-1);
   });
+
+  it('in-place edit with updateParsed replaces the parsed map entry', () => {
+    const parsed = { jab: anim(), utilt: anim() };
+    const start = { ...initialState, parsed, animation: parsed.jab, animationName: 'jab' };
+    const edited = { ...parsed.jab, iasa: 10 } as Animation;
+    const next = appReducer(start, {
+      type: 'SET_ANIMATION',
+      payload: { animation: edited, updateParsed: true },
+    });
+    expect(next.animation).toBe(edited);
+    expect(next.parsed?.jab).toBe(edited);
+    expect(next.parsed?.utilt).toBe(parsed.utilt); // other entries unchanged
+  });
+
+  it('REPLACE_STATE restores a full state snapshot', () => {
+    const restored = { ...initialState, animationName: 'restored' };
+    const next = appReducer(initialState, { type: 'REPLACE_STATE', payload: restored });
+    expect(next).toBe(restored);
+  });
 });

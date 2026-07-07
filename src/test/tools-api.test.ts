@@ -127,7 +127,7 @@ describe('Tools API', () => {
 
   describe('insertBubble', () => {
     it('should insert a bubble at specified index', () => {
-      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
+      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles?.length ?? 0;
 
       // Insert at index 1 (after first bubble)
       const insertions = Array.from(tools.insertBubble(1));
@@ -142,7 +142,7 @@ describe('Tools API', () => {
       });
 
       // Hurtbubbles array should be longer after insertion
-      expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength + 4);
+      expect(mockParsed.idle.keyframes[0].hurtbubbles?.length).toBe(originalLength + 4);
     });
 
     it('should skip keyframes without hurtbubbles', () => {
@@ -157,7 +157,7 @@ describe('Tools API', () => {
     });
 
     it('should append a bubble at index -1', () => {
-      const original = mockParsed.idle.keyframes[0].hurtbubbles!.slice();
+      const original = mockParsed.idle.keyframes[0].hurtbubbles?.slice() ?? [];
       const insertions = Array.from(tools.insertBubble(-1));
 
       expect(insertions.length).toBeGreaterThan(0);
@@ -165,21 +165,21 @@ describe('Tools API', () => {
     });
 
     it('should ignore an out-of-range index', () => {
-      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
+      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles?.length ?? 0;
       const insertions = Array.from(tools.insertBubble(99));
       expect(insertions.length).toBe(0);
-      expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength);
+      expect(mockParsed.idle.keyframes[0].hurtbubbles?.length).toBe(originalLength);
     });
   });
 
   describe('deleteBubble', () => {
     it('should delete a bubble at specified index', () => {
-      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
+      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles?.length ?? 0;
 
       tools.deleteBubble(0);
 
       // Should remove 4 elements (one bubble)
-      expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength - 4);
+      expect(mockParsed.idle.keyframes[0].hurtbubbles?.length).toBe(originalLength - 4);
     });
 
     it('should skip keyframes without hurtbubbles', () => {
@@ -191,19 +191,19 @@ describe('Tools API', () => {
     });
 
     it('should delete the last bubble at index -1', () => {
-      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
+      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles?.length ?? 0;
 
       tools.deleteBubble(-1);
 
-      expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength - 4);
+      expect(mockParsed.idle.keyframes[0].hurtbubbles?.length).toBe(originalLength - 4);
     });
 
     it('should ignore an out-of-range index', () => {
-      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles!.length;
+      const originalLength = mockParsed.idle.keyframes[0].hurtbubbles?.length ?? 0;
 
       tools.deleteBubble(99);
 
-      expect(mockParsed.idle.keyframes[0].hurtbubbles!.length).toBe(originalLength);
+      expect(mockParsed.idle.keyframes[0].hurtbubbles?.length).toBe(originalLength);
     });
   });
 });

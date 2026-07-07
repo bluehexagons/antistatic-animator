@@ -55,4 +55,17 @@ describe('interpolatedPose', () => {
     const pose = interpolatedPose(anim, 0, 5);
     expect(pose).toBe(anim.keyframes[0].hurtbubbles);
   });
+
+  it('skips interpolation when hurtbubble lengths differ between keyframes', () => {
+    const anim: Animation = {
+      type: 'movement',
+      keyframes: [
+        { duration: 10, interpolate: true, hurtbubbles: [0, 0, 1, 1] },
+        { duration: 10, hurtbubbles: [10, 20, 5, 1, 15, 25, 6, 1] },
+      ],
+    };
+    const pose = interpolatedPose(anim, 0, 5);
+    expect(pose).toBe(anim.keyframes[0].hurtbubbles);
+    expect(pose?.length).toBe(4);
+  });
 });

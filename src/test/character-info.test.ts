@@ -68,3 +68,55 @@ describe('boneModelLabel', () => {
     expect(boneModelLabel(character.hurtbubbles[1])).toBeNull();
   });
 });
+
+import { mirrorName, mirrorBubblePermutation } from '../animator/rendering/character-info';
+
+describe('mirrorName', () => {
+  it('swaps left/right for right/left tokens', () => {
+    expect(mirrorName('rightfoot')).toBe('leftfoot');
+    expect(mirrorName('leftfoot')).toBe('rightfoot');
+    expect(mirrorName('Rfoot')).toBe('Lfoot');
+    expect(mirrorName('Lfoot')).toBe('Rfoot');
+  });
+
+  it('swaps single-letter side prefixes', () => {
+    expect(mirrorName('rLeg')).toBe('lLeg');
+    expect(mirrorName('lLeg')).toBe('rLeg');
+  });
+
+  it('returns unchanged when no side token', () => {
+    expect(mirrorName('head')).toBe('head');
+    expect(mirrorName('shoulder')).toBe('shoulder');
+  });
+});
+
+describe('mirrorBubblePermutation', () => {
+  it('swaps left/right bone indices', () => {
+    const char: EntityData = {
+      name: 'test',
+      hurtbubbles: [
+        { name: 'larm', i1: 0, i2: 0, z: 0 },
+        { name: 'rarm', i1: 1, i2: 1, z: 0 },
+        { name: 'lleg', i1: 2, i2: 2, z: 0 },
+        { name: 'rleg', i1: 3, i2: 3, z: 0 },
+      ],
+    };
+    const perm = mirrorBubblePermutation(char);
+    expect(perm[0]).toBe(1);
+    expect(perm[1]).toBe(0);
+    expect(perm[2]).toBe(3);
+    expect(perm[3]).toBe(2);
+  });
+
+  it('leaves unpaired middle bone unchanged (prevents mutation)', () => {
+    const char: EntityData = {
+      name: 'test',
+      hurtbubbles: [
+        { name: 'body', i1: 2, i2: 2, z: 0 },
+        { name: 'core', i1: 2, i2: 2, z: 0 }, // duplicate i1
+      ],
+    };
+    const perm = mirrorBubblePermutation(char);
+    expect(perm[2]).toBe(2);
+  });
+});

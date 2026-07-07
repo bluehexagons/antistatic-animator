@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as JSONC from 'jsonc-parser';
 
 import { AnimatorProvider, useAnimator } from '../animator/context/AnimatorContext';
+import { ErrorBoundary } from './ErrorBoundary';
 import type { Animation, AnimationMap, EntityData } from '../animator/types';
 import { save as saveFile } from '../animator/operations/file-operations';
 import { clearBaselines } from '../animator/operations/diff';
@@ -33,7 +34,7 @@ const VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
 const ELECTRON_SOURCE_KEY = 'antistatic-dir';
 
 const Shell: React.FC = () => {
-  const { state, dispatch } = useAnimator();
+  const { state, dispatch, undo, redo, canUndo, canRedo } = useAnimator();
   useLibrary(); // subscribe
 
   // UI-only state
@@ -98,7 +99,7 @@ const Shell: React.FC = () => {
       .map((f) => f.name)
       .filter(isCharacterDataFile)
       .sort();
-  }, [library.files().length, library.label]); // re-evaluated when library changes via useLibrary
+  }, [library.size, library.label]); // re-evaluated when library changes via useLibrary
 
   // Animation map list for the current file.
   const animationKeyframeCounts = useMemo(() => {
@@ -164,17 +165,14 @@ const Shell: React.FC = () => {
     if (state.animation) {
       // Re-render with a shallow clone so identity-keyed memos recompute
       // (the keyframes array reference is retained, so keyframe edits stay
-      // shared). Repoint the parsed map entry at the clone, otherwise
-      // animation-level property edits would diverge from what save()
-      // serialises. Omitting `name` preserves the current keyframe/selection.
+      // shared). updateParsed tells the reducer to also repoint the parsed
+      // map entry, keeping save() and the editor view consistent.
+      // Omitting `name` preserves the current keyframe/selection.
       const clone = { ...state.animation } as Animation;
-      if (state.parsed && state.animationName) {
-        state.parsed[state.animationName] = clone;
-      }
-      dispatch({ type: 'SET_ANIMATION', payload: { animation: clone } });
+      dispatch({ type: 'SET_ANIMATION', payload: { animation: clone, updateParsed: true } });
     }
     setSaveDirty(true);
-  }, [state.animation, state.parsed, state.animationName, dispatch]);
+  }, [state.animation, dispatch]);
 
   const onSelectBubble = useCallback(
     (i: number) => dispatch({ type: 'SET_SELECTED_BUBBLE', payload: i }),
@@ -276,15 +274,18 @@ const Shell: React.FC = () => {
     updateCamera({ x: 0, y: 0.1, scale: 2 });
   }, [updateCamera]);
 
-  // Expose editing state for console power-users (matches previous behavior).
+  // Expose editing state for console power-users (dev-only; use window.Tools
+  // for scripting in production).
   useEffect(() => {
-    window.editing = {
-      character: state.character,
-      animation: state.animation,
-      keyframe: state.keyframe,
-      bubble: state.selectedBubble,
-    };
-    window.parsed = state.parsed ?? {};
+    if (import.meta.env.DEV) {
+      window.editing = {
+        character: state.character,
+        animation: state.animation,
+        keyframe: state.keyframe,
+        bubble: state.selectedBubble,
+      };
+      window.parsed = state.parsed ?? {};
+    }
   }, [state]);
 
   // Wire the documented window.Tools console API (batch keyframe/bubble ops).
@@ -296,35 +297,62 @@ const Shell: React.FC = () => {
     );
   }, [state.parsed, state.animation, state.animFile]);
 
-  // Keyboard shortcuts
+  // Stale refs keep the keyboard listener stable — the effect mounts once and
+  // reads the latest callbacks/state via refs instead of forcing a re-attach
+  // on every render.
+  const undoRef = useRef(undo);
+  undoRef.current = undo;
+  const redoRef = useRef(redo);
+  redoRef.current = redo;
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  const onKeyframeSelectRef = useRef(onKeyframeSelect);
+  onKeyframeSelectRef.current = onKeyframeSelect;
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const setTickRef = useRef(setTick);
+  setTickRef.current = setTick;
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const s = stateRef.current;
       // Save works everywhere (incl. while editing a field): commit the
       // focused input first by blurring it, then save. Always preventDefault
       // so the browser's "save page" dialog never appears.
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-        void handleSave();
+        void handleSaveRef.current();
         return;
       }
-      // Remaining shortcuts ignore typing in form fields.
+      // Undo/redo and keyframe navigation skip when the user is typing in a
+      // text field — they'd expect browser-native undo, not an animation step.
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // Undo/redo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redoRef.current();
+        } else {
+          undoRef.current();
+        }
+        return;
+      }
       // Keyframe stepping on , / . (video-style) — arrows are reserved for
       // nudging the selected hurtbubble(s).
-      const kfs = state.animation?.keyframes;
+      const kfs = s.animation?.keyframes;
       if (kfs && (e.key === ',' || e.key === '.') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const next = state.keyframe + (e.key === '.' ? 1 : -1);
+        const next = s.keyframe + (e.key === '.' ? 1 : -1);
         if (next >= 0 && next < kfs.length) {
           e.preventDefault();
-          onKeyframeSelect(next);
-          setTick(0);
+          onKeyframeSelectRef.current(next);
+          setTickRef.current(0);
         }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [handleSave, state.animation, state.keyframe, onKeyframeSelect]);
+  }, []);
 
   // Empty / loading states
   const hasAnimation = !!state.animation && !!state.character;
@@ -354,6 +382,10 @@ const Shell: React.FC = () => {
         showShield={showShield}
         onToggleShield={() => setShowShield((v) => !v)}
         onResetCamera={resetCamera}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
       />
 
       <Sidebar
@@ -383,25 +415,27 @@ const Shell: React.FC = () => {
           </div>
         </div>
         {hasAnimation ? (
-          <StageViewer
-            character={state.character!}
-            animation={state.animation!}
-            keyframe={state.keyframe}
-            tick={tick}
-            camera={state.camera}
-            selectedBubble={state.selectedBubble}
-            onSelectBubble={onSelectBubble}
-            selectedHitbubble={selectedHitbubble}
-            onSelectHitbubble={setSelectedHitbubble}
-            onCameraChange={updateCamera}
-            onBubbleChange={onAnimationChange}
-            showGrid={showGrid}
-            showGround={showGround}
-            showHitboxes={showHitboxes}
-            showOnion={showOnion}
-            showLabels={showLabels}
-            showShield={showShield}
-          />
+          <ErrorBoundary label="Stage">
+            <StageViewer
+              character={state.character!}
+              animation={state.animation!}
+              keyframe={state.keyframe}
+              tick={tick}
+              camera={state.camera}
+              selectedBubble={state.selectedBubble}
+              onSelectBubble={onSelectBubble}
+              selectedHitbubble={selectedHitbubble}
+              onSelectHitbubble={setSelectedHitbubble}
+              onCameraChange={updateCamera}
+              onBubbleChange={onAnimationChange}
+              showGrid={showGrid}
+              showGround={showGround}
+              showHitboxes={showHitboxes}
+              showOnion={showOnion}
+              showLabels={showLabels}
+              showShield={showShield}
+            />
+          </ErrorBoundary>
         ) : (
           <div className="stageEmpty">
             <h2>{library.ready ? 'Pick an animation to start' : 'No source loaded'}</h2>
@@ -415,16 +449,18 @@ const Shell: React.FC = () => {
       </main>
 
       {hasAnimation && state.character && state.animation ? (
-        <Inspector
-          character={state.character}
-          animation={state.animation}
-          keyframe={state.keyframe}
-          selectedBubble={state.selectedBubble}
-          onSelectBubble={onSelectBubble}
-          selectedHitbubble={selectedHitbubble}
-          onSelectHitbubble={setSelectedHitbubble}
-          onAnimationChange={onAnimationChange}
-        />
+        <ErrorBoundary label="Inspector">
+          <Inspector
+            character={state.character}
+            animation={state.animation}
+            keyframe={state.keyframe}
+            selectedBubble={state.selectedBubble}
+            onSelectBubble={onSelectBubble}
+            selectedHitbubble={selectedHitbubble}
+            onSelectHitbubble={setSelectedHitbubble}
+            onAnimationChange={onAnimationChange}
+          />
+        </ErrorBoundary>
       ) : (
         <aside className="inspector">
           <div className="section">
@@ -437,19 +473,21 @@ const Shell: React.FC = () => {
       )}
 
       {hasAnimation && state.character && state.animation ? (
-        <Timeline
-          character={state.character}
-          animation={state.animation}
-          keyframe={state.keyframe}
-          onKeyframeSelect={onKeyframeSelect}
-          onAnimationChange={onAnimationChange}
-          playing={playing}
-          onPlayingChange={setPlaying}
-          tick={tick}
-          onTickChange={setTick}
-          loopMode={loopMode}
-          onLoopModeChange={setLoopMode}
-        />
+        <ErrorBoundary label="Timeline">
+          <Timeline
+            character={state.character}
+            animation={state.animation}
+            keyframe={state.keyframe}
+            onKeyframeSelect={onKeyframeSelect}
+            onAnimationChange={onAnimationChange}
+            playing={playing}
+            onPlayingChange={setPlaying}
+            tick={tick}
+            onTickChange={setTick}
+            loopMode={loopMode}
+            onLoopModeChange={setLoopMode}
+          />
+        </ErrorBoundary>
       ) : (
         <div
           className="timeline"
@@ -501,8 +539,11 @@ const Shell: React.FC = () => {
                 className="sourceOption"
                 onClick={handlePickElectron}
                 disabled={!detectCapabilities().hasElectron}
+                aria-label="Open game directory (Electron)"
               >
-                <span className="icon">📁</span>
+                <span className="icon" aria-hidden="true">
+                  📁
+                </span>
                 <span className="text">
                   <strong>Open game directory…</strong>
                   <small>Native (Electron)</small>
@@ -512,15 +553,20 @@ const Shell: React.FC = () => {
                 className="sourceOption"
                 onClick={handlePickFsAccess}
                 disabled={!detectCapabilities().hasFsAccess}
+                aria-label="Pick folder (File System Access)"
               >
-                <span className="icon">📁</span>
+                <span className="icon" aria-hidden="true">
+                  📁
+                </span>
                 <span className="text">
                   <strong>Pick folder…</strong>
                   <small>File System Access API</small>
                 </span>
               </button>
-              <button className="sourceOption" onClick={handlePickUpload}>
-                <span className="icon">📥</span>
+              <button className="sourceOption" onClick={handlePickUpload} aria-label="Upload files">
+                <span className="icon" aria-hidden="true">
+                  📥
+                </span>
                 <span className="text">
                   <strong>Drag &amp; drop / upload</strong>
                   <small>Saves via download</small>

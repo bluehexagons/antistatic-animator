@@ -22,7 +22,7 @@ import { objHas } from '../utils';
 import { hbmap } from '../animator/rendering/bubble-finder';
 import { bubbleLabels } from '../animator/rendering/character-info';
 import type { CameraState } from '../animator/context/AnimatorContext';
-import { HitbubbleColors, HurtbubbleStateById } from '../animator/schema';
+import { HitbubbleColors, HurtbubbleStateById, HurtbubbleStateId } from '../animator/schema';
 import { interpolatedPose } from '../animator/operations/interpolate';
 import { HURTBUBBLE_MODEL_TRANSFORM_FIELDS } from '../animator/operations/model-transforms';
 import {
@@ -578,7 +578,7 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       const x2 = toSvgX(pose[i2]);
       const y2 = toSvgY(pose[i2 + 1]);
       const r = pose[i1 + 2] * camera.scale;
-      const state = HurtbubbleStateById.get(pose[i1 + 3] as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 11);
+      const state = HurtbubbleStateById.get(pose[i1 + 3] as HurtbubbleStateId);
       const z = zTint(bone.z);
       // If this bone has a non-normal state, override the fill with the state color.
       const useState = state && state.id !== 1 && state.id !== 0;
@@ -703,10 +703,10 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     const prev = animation.keyframes[keyframe - 1]?.hurtbubbles;
     const next = animation.keyframes[keyframe + 1]?.hurtbubbles;
     if (Array.isArray(prev)) {
-      ghosts.push(<g key="onion-prev">{renderPoseGhost(prev as number[], '#ff8a4a', 'prev')}</g>);
+      ghosts.push(<g key="onion-prev">{renderPoseGhost(prev, '#ff8a4a', 'prev')}</g>);
     }
     if (Array.isArray(next)) {
-      ghosts.push(<g key="onion-next">{renderPoseGhost(next as number[], '#6aa9ff', 'next')}</g>);
+      ghosts.push(<g key="onion-next">{renderPoseGhost(next, '#6aa9ff', 'next')}</g>);
     }
     return ghosts;
   };

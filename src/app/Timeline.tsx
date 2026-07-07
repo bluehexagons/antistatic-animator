@@ -215,7 +215,8 @@ export const Timeline: React.FC<TimelineProps> = ({
   const onStripPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     // Only scrub on background; bail if clicking inside a thumb (it handles its own click).
-    const t = e.target as HTMLElement;
+    if (!(e.target instanceof HTMLElement)) return;
+    const t = e.target;
     if (t.closest('[data-kf]') || t.closest('.kfActions')) return;
     scrubRef.current = true;
     stripRef.current?.setPointerCapture(e.pointerId);

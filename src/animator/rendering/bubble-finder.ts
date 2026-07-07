@@ -65,13 +65,16 @@ export const findBubbles = (
     const dx = hbx - wx;
     const dy = hby - wy;
     const sqDist = dx * dx + dy * dy;
-    const sqRadius = hbr * hbr;
-    dists.push(sqDist);
-    if (sqDist < sqRadius) {
+    if (sqDist < hbr * hbr) {
       bubbles.push(i);
+      dists.push(sqDist);
     }
   }
-  return bubbles.sort((a, b) => {
-    return dists[a * 0.25] - dists[b * 0.25];
-  });
+  if (dists.length < 2) return bubbles;
+  // Schwartzian transform: pair index+dist, sort by dist, extract index.
+  // Avoids O(n²) indexOf lookups inside the comparator.
+  return bubbles
+    .map((index, j) => ({ index, dist: dists[j] }))
+    .sort((a, b) => a.dist - b.dist)
+    .map((entry) => entry.index);
 };

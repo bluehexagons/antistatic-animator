@@ -5,6 +5,16 @@
   Original code MIT License + 3-clause BSD http://robertpenner.com/easing_terms_of_use.html
 */
 
+/** Resolve an easing function by name, falling back to linear for unknown names. */
+export const easeFn = (name: string | undefined): ((t: number) => number) => {
+  if (!name) return (t) => t;
+  const fn = (Ease as Record<string, unknown>)[name];
+  if (typeof fn === 'function') {
+    return fn as (t: number) => number;
+  }
+  return (t) => t;
+};
+
 export const Ease = {
   backIn: (time: number, overshoot = 1.70158) => {
     return time * time * ((overshoot + 1) * time - overshoot);
@@ -236,7 +246,7 @@ export const Ease = {
     return -0.5 * (Math.cos(Math.PI * time) - 1);
   },
 
-  inOut: (time: number, start: (t: number) => number, end: (t: number) => number) => {
+  inOut: (time: number, start: (t: number) => number, end: (t: number) => number): number => {
     if (time <= 0.5) {
       return start(time * 2) * 0.5;
     } else {

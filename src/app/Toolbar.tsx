@@ -15,6 +15,12 @@ export interface ToolbarProps {
   onSave: () => void;
   saveDirty: boolean;
 
+  // undo / redo
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+
   // view toggles
   showGrid: boolean;
   onToggleGrid: () => void;
@@ -54,6 +60,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onOpenSource,
   onSave,
   saveDirty,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   showGrid,
   onToggleGrid,
   showGround,
@@ -143,6 +153,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </button>
         <button className="iconBtn" title="Reset camera" onClick={onResetCamera}>
           ⌂
+        </button>
+        <span className="toolbarSep" />
+        <button className="iconBtn" title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={onUndo}>
+          ↩
+        </button>
+        <button
+          className="iconBtn"
+          title="Redo (Ctrl+Shift+Z)"
+          disabled={!canRedo}
+          onClick={onRedo}
+        >
+          ↪
         </button>
       </div>
 

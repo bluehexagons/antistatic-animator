@@ -129,9 +129,9 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
 }) => {
   const set = <K extends string>(k: K, v: unknown) => {
     if (v === undefined || v === '' || (typeof v === 'number' && Number.isNaN(v))) {
-      delete (hb as Record<string, unknown>)[k];
+      delete hb[k];
     } else {
-      (hb as Record<string, unknown>)[k] = v;
+      hb[k] = v;
     }
     onChange();
   };
@@ -145,12 +145,12 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
   const audioName = audioObj ? (audioObj.name ?? '') : typeof hb.audio === 'string' ? hb.audio : '';
   const setAudio = (v: string) => {
     if (audioObj) {
-      if (!v) delete (hb as Record<string, unknown>).audio;
+      if (!v) delete hb.audio;
       else audioObj.name = v;
     } else if (!v) {
-      delete (hb as Record<string, unknown>).audio;
+      delete hb.audio;
     } else {
-      (hb as Record<string, unknown>).audio = v;
+      hb.audio = v;
     }
     onChange();
   };
@@ -164,8 +164,8 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
     const arr = [...next];
     // Write back as a readable name array (the form most shipped data uses);
     // unknown names already in `flags` are carried along.
-    if (arr.length === 0) delete (hb as Record<string, unknown>).flags;
-    else (hb as Record<string, unknown>).flags = arr;
+    if (arr.length === 0) delete hb.flags;
+    else hb.flags = arr;
     onChange();
   };
 
@@ -219,8 +219,8 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
             <span>{f.label}</span>
             <input
               type="number"
-              step={f.step ?? 'any'}
-              value={((hb as Record<string, unknown>)[f.key] as number | undefined) ?? ''}
+              step={f.step ?? '0.1'}
+              value={(hb[f.key] as number | undefined) ?? ''}
               onChange={(e) =>
                 set(f.key, e.target.value === '' ? undefined : parseFloat(e.target.value))
               }

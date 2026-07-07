@@ -124,7 +124,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
               try {
                 const parsed = JSONC.parse(e.target.value);
                 const ok =
-                  t === 'array' ? Array.isArray(parsed) : parsed && typeof parsed === 'object';
+                  t === 'array' ? Array.isArray(parsed) : !!parsed && typeof parsed === 'object';
                 if (ok) setKey(k, parsed);
               } catch {
                 /* ignore */

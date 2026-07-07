@@ -18,9 +18,9 @@ Everything below operates on the same JSONC files the game loads. No
 schema changes on the game side; the animator just learns to author
 more of what's already there.
 
-## Status (2026-05)
+## Status (2026-07)
 
-Batches A–G are implemented. Remaining deliberate gaps:
+Batches A–G are implemented (G2/G3 added 2026-07). Remaining deliberate gaps:
 
 - **F3** (camera-rotation gizmo) — skipped; no functional 3D camera yet,
   so it would only add inert UI.

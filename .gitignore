@@ -8,6 +8,9 @@ releases
 # ESLint cache
 .eslintcache
 
+# Coverage output
+coverage
+
 # Editor directories
 .vscode/*
 !.vscode/settings.json

@@ -43,6 +43,11 @@ export class Library {
     return !!this.backend?.ready;
   }
 
+  /** Number of cached files (avoids allocating an array via files()). */
+  get size(): number {
+    return this.cache.size;
+  }
+
   get canSave(): boolean {
     return !!this.backend?.canSave;
   }

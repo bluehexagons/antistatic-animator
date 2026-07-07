@@ -40,6 +40,14 @@ export const bubbleLabels = (character: EntityData): Map<number, string> => {
     if (!out.has(bone.i1)) out.set(bone.i1, bone.name);
     if (bone.i2 !== bone.i1 && !out.has(bone.i2)) out.set(bone.i2, `${bone.name}2`);
   });
+  // Initialize all indices from the max i1/i2 to ensure coverage
+  let max = -1;
+  for (const bone of character.hurtbubbles) {
+    max = Math.max(max, bone.i1, bone.i2);
+  }
+  for (let i = 0; i <= max; i++) {
+    if (!out.has(i)) out.set(i, String(i));
+  }
   // Aliases win over derived bone names.
   for (const [idx, names] of aliases) {
     out.set(idx, names.join('/'));
@@ -48,14 +56,20 @@ export const bubbleLabels = (character: EntityData): Map<number, string> => {
 };
 
 /** Swap a left/right side token at the start of a bone or follow name.
- *  Handles `r`/`l` single-letter prefixes (rfoot→lfoot) and `right`/`left`
- *  words. Returns the input unchanged when no side token is present. */
+ *  Handles `r`/`l` single-letter prefixes (rfoot→lfoot), `right`/`left`
+ *  words (rightHand→leftHand), preserving case of the first character.
+ *  Returns the input unchanged when no side token is present. */
 export const mirrorName = (name: string): string => {
-  if (/^right/i.test(name)) return name.replace(/^right/i, (m) => (m[0] === 'R' ? 'Left' : 'left'));
-  if (/^left/i.test(name)) return name.replace(/^left/i, (m) => (m[0] === 'L' ? 'Right' : 'right'));
-  // Single-letter side prefix immediately followed by a word char (rfoot, lLeg).
+  // Full-word "right" / "left" (case-sensitive to avoid collision with r/l prefix)
+  if (name.startsWith('right')) return 'left' + name.slice(5);
+  if (name.startsWith('Right')) return 'Left' + name.slice(5);
+  if (name.startsWith('left')) return 'right' + name.slice(4);
+  if (name.startsWith('Left')) return 'Right' + name.slice(4);
+  // Single-letter side prefix immediately followed by a word char (rfoot, lLeg, Rfoot, Lfoot).
   if (/^r[a-zA-Z]/.test(name)) return 'l' + name.slice(1);
+  if (/^R[a-zA-Z]/.test(name)) return 'L' + name.slice(1);
   if (/^l[a-zA-Z]/.test(name)) return 'r' + name.slice(1);
+  if (/^L[a-zA-Z]/.test(name)) return 'R' + name.slice(1);
   return name;
 };
 

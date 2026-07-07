@@ -38,6 +38,8 @@ export const HurtbubbleStates = [
   { id: 11, name: 'decoration', color: '#555c6a', desc: 'Visual only, no collision' },
 ] as const;
 
+export type HurtbubbleStateId = (typeof HurtbubbleStates)[number]['id'];
+
 export const HurtbubbleStateById = new Map(HurtbubbleStates.map((s) => [s.id, s] as const));
 
 /** HitbubbleType — `bubbles.ts:52` */

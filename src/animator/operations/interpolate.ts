@@ -6,19 +6,10 @@
  * keyframe's pose, parameterised by tick / duration.
  */
 
-import { Ease } from '../../easing';
+import { easeFn } from '../../easing';
 import type { Animation } from '../types';
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-const easeFn = (name: string | undefined): ((t: number) => number) => {
-  if (!name) return (t) => t;
-  const fn = (Ease as Record<string, unknown>)[name];
-  if (typeof fn === 'function') {
-    return fn as (t: number) => number;
-  }
-  return (t) => t;
-};
 
 /**
  * Compute the displayed hurtbubble pose for the current animation state.
@@ -42,20 +33,27 @@ export const interpolatedPose = (
   if (!Array.isArray(hb)) return null;
 
   if (!(kf as { interpolate?: boolean }).interpolate || tick <= 0) {
-    return hb as number[];
+    return hb;
   }
   const next = animation.keyframes[keyframe + 1];
   if (!next || !Array.isArray(next.hurtbubbles)) {
-    return hb as number[];
+    return hb;
   }
-  const dur = (kf.duration ?? 1) || 1;
+  const dur = kf.duration ?? 1;
   const t = Math.max(0, Math.min(1, tick / dur));
   const ease = easeFn((kf as { tween?: string }).tween);
   const u = ease(t);
 
-  const a = hb as number[];
-  const b = next.hurtbubbles as number[];
-  const len = Math.min(a.length, b.length);
+  const a = hb;
+  const b = next.hurtbubbles;
+  if (a.length !== b.length) {
+    console.warn(
+      `interpolatedPose: keyframe ${keyframe} hurtbubble count (${a.length}) ` +
+        `differs from next keyframe (${b.length}); skipping interpolation`
+    );
+    return hb;
+  }
+  const len = a.length;
   const out = new Array(len);
   for (let i = 0; i < len; i += 4) {
     out[i] = lerp(a[i], b[i], u);

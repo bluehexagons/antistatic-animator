@@ -163,55 +163,6 @@ export const createAuthoredHurtbubbleModelTransformDefaults = (
   return frame;
 };
 
-export const createDefaultHurtbubbleModelTransformFrame = (
-  bubbles: readonly HurtbubbleModelTransformDefaults[]
-) => {
-  const frame: number[] = [];
-  for (let i = 0; i < bubbles.length; i++) {
-    const hb = bubbles[i];
-    frame.push(
-      hb.defaultModelTranslation[0],
-      hb.defaultModelTranslation[1],
-      hb.defaultModelRotation
-    );
-  }
-  return frame;
-};
-
-export const applyHurtbubbleModelTransformFrame = (
-  bubbles: HurtbubbleModelTransformTarget[],
-  frame: number[] | null
-) => {
-  for (let i = 0; i < bubbles.length; i++) {
-    const hb = bubbles[i];
-    const offset = i * HURTBUBBLE_MODEL_TRANSFORM_FIELDS;
-
-    if (frame && offset + 2 < frame.length) {
-      hb.modelTranslation[0] = frame[offset];
-      hb.modelTranslation[1] = frame[offset + 1];
-      hb.modelRotation = frame[offset + 2];
-    } else {
-      hb.modelTranslation[0] = hb.defaultModelTranslation[0];
-      hb.modelTranslation[1] = hb.defaultModelTranslation[1];
-      hb.modelRotation = hb.defaultModelRotation;
-    }
-  }
-};
-
-export const cloneHurtbubbleModelTransformData = (data: unknown): unknown => {
-  if (Array.isArray(data)) {
-    return data.map((value) => cloneHurtbubbleModelTransformData(value));
-  }
-  if (data !== null && typeof data === 'object') {
-    const clone: Record<string, unknown> = {};
-    for (const key of Object.getOwnPropertyNames(data)) {
-      clone[key] = cloneHurtbubbleModelTransformData((data as Record<string, unknown>)[key]);
-    }
-    return clone;
-  }
-  return data;
-};
-
 export const resolveHurtbubbleModelTransformIndex = (
   key: string,
   bubbleCount: number,

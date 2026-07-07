@@ -25,8 +25,10 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({ onElectron, onFsAcce
         </p>
         <div className="sourceOptions">
           {caps.hasElectron && (
-            <button className="sourceOption" onClick={onElectron}>
-              <span className="icon">📁</span>
+            <button className="sourceOption" onClick={onElectron} aria-label="Open game directory">
+              <span className="icon" aria-hidden="true">
+                📁
+              </span>
               <span className="text">
                 <strong>Open game directory…</strong>
                 <small>Browse to your Antistatic installation. Reads & saves directly.</small>
@@ -34,8 +36,10 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({ onElectron, onFsAcce
             </button>
           )}
           {caps.hasFsAccess && !caps.hasElectron && (
-            <button className="sourceOption" onClick={onFsAccess}>
-              <span className="icon">📁</span>
+            <button className="sourceOption" onClick={onFsAccess} aria-label="Pick a folder">
+              <span className="icon" aria-hidden="true">
+                📁
+              </span>
               <span className="text">
                 <strong>Pick a folder…</strong>
                 <small>
@@ -45,8 +49,10 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({ onElectron, onFsAcce
               </span>
             </button>
           )}
-          <button className="sourceOption" onClick={onUpload}>
-            <span className="icon">📥</span>
+          <button className="sourceOption" onClick={onUpload} aria-label="Upload files">
+            <span className="icon" aria-hidden="true">
+              📥
+            </span>
             <span className="text">
               <strong>Drag &amp; drop files</strong>
               <small>
