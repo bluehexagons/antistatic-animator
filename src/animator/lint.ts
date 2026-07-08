@@ -10,7 +10,7 @@
  */
 
 import { Ease } from '../easing';
-import { objHas } from '../utils';
+import { objHas, followCandidates } from '../utils';
 import {
   AnimationTypeNames,
   HandlerEvents,
@@ -32,23 +32,6 @@ export interface LintIssue {
 
 const knownTweens = new Set([...TweenNames, ...Object.getOwnPropertyNames(Ease)]);
 const knownTypes = new Set<string>(AnimationTypeNames);
-
-/** Resolve the set of bubble names a hitbubble's `follow` can reference. */
-const followCandidates = (character: EntityData): Set<string> => {
-  const out = new Set<string>();
-  for (const b of character.hurtbubbles) {
-    if (b?.name) {
-      out.add(b.name);
-      out.add(`${b.name}2`);
-    }
-  }
-  for (const k of Object.getOwnPropertyNames(character)) {
-    if (k.endsWith('bubble') && typeof (character as Record<string, unknown>)[k] === 'number') {
-      out.add(k);
-    }
-  }
-  return out;
-};
 
 const expectedHurtbubbleCount = (character: EntityData): number => {
   // Each bone has i1/i2 pointing into the flat array; the array's length

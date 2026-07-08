@@ -9,7 +9,7 @@ import * as JSONC from 'jsonc-parser';
 
 import { AnimatorProvider, useAnimator } from '../animator/context/AnimatorContext';
 import { ErrorBoundary } from './ErrorBoundary';
-import type { Animation, AnimationMap, EntityData } from '../animator/types';
+import type { AnimationMap, EntityData } from '../animator/types';
 import { save as saveFile } from '../animator/operations/file-operations';
 import { clearBaselines } from '../animator/operations/diff';
 import { createTools } from '../animator/api/tools';
@@ -27,7 +27,7 @@ import { Timeline, type LoopMode } from './Timeline';
 import { StageViewer } from './StageViewer';
 import { SourcePicker } from './SourcePicker';
 import { DropZone } from './DropZone';
-import { useLibrary } from './hooks';
+import { useLibrary, useLatest } from './hooks';
 import { findAnimationFile, isCharacterDataFile } from './file-names';
 
 const VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
@@ -168,7 +168,7 @@ const Shell: React.FC = () => {
       // shared). updateParsed tells the reducer to also repoint the parsed
       // map entry, keeping save() and the editor view consistent.
       // Omitting `name` preserves the current keyframe/selection.
-      const clone = { ...state.animation } as Animation;
+      const clone = { ...state.animation };
       dispatch({ type: 'SET_ANIMATION', payload: { animation: clone, updateParsed: true } });
     }
     setSaveDirty(true);
@@ -300,18 +300,12 @@ const Shell: React.FC = () => {
   // Stale refs keep the keyboard listener stable — the effect mounts once and
   // reads the latest callbacks/state via refs instead of forcing a re-attach
   // on every render.
-  const undoRef = useRef(undo);
-  undoRef.current = undo;
-  const redoRef = useRef(redo);
-  redoRef.current = redo;
-  const handleSaveRef = useRef(handleSave);
-  handleSaveRef.current = handleSave;
-  const onKeyframeSelectRef = useRef(onKeyframeSelect);
-  onKeyframeSelectRef.current = onKeyframeSelect;
-  const stateRef = useRef(state);
-  stateRef.current = state;
-  const setTickRef = useRef(setTick);
-  setTickRef.current = setTick;
+  const undoRef = useLatest(undo);
+  const redoRef = useLatest(redo);
+  const handleSaveRef = useLatest(handleSave);
+  const onKeyframeSelectRef = useLatest(onKeyframeSelect);
+  const stateRef = useLatest(state);
+  const setTickRef = useLatest(setTick);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

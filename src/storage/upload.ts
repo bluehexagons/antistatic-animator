@@ -6,9 +6,8 @@
  * JSON, which the user can drop back into their project.
  */
 
+import { DATA_FILE_RE } from '../utils';
 import type { StorageBackend } from './types';
-
-const DATA_FILE_RE = /\.jsonc?$/i;
 
 export class UploadStorage implements StorageBackend {
   readonly kind = 'upload' as const;

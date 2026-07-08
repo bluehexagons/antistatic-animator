@@ -4,10 +4,10 @@
  * Exposed as window.Tools for power users
  */
 
-import type { Keyframe, AnimationMap, Animation, Generic } from '../types';
+import type { Keyframe, AnimationMap, Animation } from '../types';
 import { save } from '../operations/file-operations';
 
-const bubbleOffset = (hurtbubbles: number[], index: number): number | null => {
+const bubbleOffset = (hurtbubbles: readonly number[], index: number): number | null => {
   const bubbleCount = Math.floor(hurtbubbles.length / 4);
   if (!Number.isInteger(index)) return null;
   if (index === -1) return bubbleCount * 4;
@@ -15,7 +15,7 @@ const bubbleOffset = (hurtbubbles: number[], index: number): number | null => {
   return index * 4;
 };
 
-const deleteBubbleOffset = (hurtbubbles: number[], index: number): number | null => {
+const deleteBubbleOffset = (hurtbubbles: readonly number[], index: number): number | null => {
   const bubbleCount = Math.floor(hurtbubbles.length / 4);
   if (!Number.isInteger(index) || bubbleCount === 0) return null;
   if (index === -1) return (bubbleCount - 1) * 4;
@@ -63,8 +63,7 @@ export const createTools = (
       const parsed = getParsed();
       if (!parsed) return;
       for (const a of Object.getOwnPropertyNames(parsed)) {
-        // Legacy: dynamic property access
-        yield parsed[a] as Generic;
+        yield parsed[a];
       }
     },
 

@@ -1,4 +1,5 @@
 import { easeFn } from '../../easing';
+import { objHas } from '../../utils';
 import type { Animation, EntityData, HurtbubbleData, Keyframe } from '../types';
 import {
   HURTBUBBLE_MODEL_TRANSFORM_FIELDS,
@@ -16,11 +17,8 @@ export type ModelTransformObjectEntry = {
 
 export type ModelTransformObject = Record<string, ModelTransformObjectEntry>;
 
-const hasOwn = (value: object, key: string | number) =>
-  Object.prototype.hasOwnProperty.call(value, key);
-
 export const keyframeHasModelTransforms = (keyframe: Keyframe | undefined): keyframe is Keyframe =>
-  !!keyframe && hasOwn(keyframe, 'hurtbubbleModelTransforms');
+  !!keyframe && objHas(keyframe, 'hurtbubbleModelTransforms');
 
 export const modelTransformNameResolver = (character: EntityData) => (key: string) => {
   for (let i = 0; i < character.hurtbubbles.length; i++) {

@@ -11,8 +11,8 @@ import * as JSONC from 'jsonc-parser';
 import { objHas } from '../utils';
 import { multichoice, defaultTypes, excludeProps, valueSuggestions } from '../animator/constants';
 
-type Value = string | number | boolean | unknown[] | Record<string, unknown> | null;
-type Obj = Record<string, Value>;
+export type Value = string | number | boolean | unknown[] | Record<string, unknown> | null;
+export type Obj = Record<string, Value>;
 
 interface PropertiesEditorProps {
   obj: Obj;

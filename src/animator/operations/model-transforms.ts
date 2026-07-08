@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+import { objHas } from '../../utils';
+
 export const HURTBUBBLE_MODEL_TRANSFORM_FIELDS = 3;
 
 export type HurtbubbleModelTranslationData = [number, number] | { x?: number; y?: number };
@@ -43,9 +45,6 @@ export type HurtbubbleModelTransformTarget = HurtbubbleModelTransformDefaults & 
 
 export type HurtbubbleModelTransformNameResolver = (key: string) => number | undefined;
 
-const hasOwn = (value: object, key: string | number) =>
-  Object.prototype.hasOwnProperty.call(value, key);
-
 const finiteOrZero = (value: unknown) => {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : 0;
@@ -62,18 +61,18 @@ export const writeHurtbubbleModelTranslation = (
   let y = Number.isFinite(frame[offset + 1]) ? frame[offset + 1] : 0;
 
   if (Array.isArray(translation)) {
-    if (hasOwn(translation, 0)) {
+    if (objHas(translation, 0)) {
       x = finiteOrZero(translation[0]);
     }
-    if (hasOwn(translation, 1)) {
+    if (objHas(translation, 1)) {
       const nextY = finiteOrZero(translation[1]);
       y = flipY ? -nextY : nextY;
     }
   } else if (translation !== null && typeof translation === 'object') {
-    if (hasOwn(translation, 'x')) {
+    if (objHas(translation, 'x')) {
       x = finiteOrZero(translation.x);
     }
-    if (hasOwn(translation, 'y')) {
+    if (objHas(translation, 'y')) {
       const nextY = finiteOrZero(translation.y);
       y = flipY ? -nextY : nextY;
     }
@@ -97,14 +96,14 @@ export const writeHurtbubbleModelTransform = (
   }
 
   if (Array.isArray(transform)) {
-    if (hasOwn(transform, 0)) {
+    if (objHas(transform, 0)) {
       frame[offset] = finiteOrZero(transform[0]);
     }
-    if (hasOwn(transform, 1)) {
+    if (objHas(transform, 1)) {
       const y = finiteOrZero(transform[1]);
       frame[offset + 1] = flipY ? -y : y;
     }
-    if (hasOwn(transform, 2)) {
+    if (objHas(transform, 2)) {
       frame[offset + 2] = finiteOrZero(transform[2]);
     }
     return;
@@ -119,18 +118,18 @@ export const writeHurtbubbleModelTransform = (
   if (translation) {
     writeHurtbubbleModelTranslation(frame, index, translation, flipY);
   }
-  if (hasOwn(transform, 'x')) {
+  if (objHas(transform, 'x')) {
     frame[offset] = finiteOrZero(transform.x);
   }
-  if (hasOwn(transform, 'y')) {
+  if (objHas(transform, 'y')) {
     const y = finiteOrZero(transform.y);
     frame[offset + 1] = flipY ? -y : y;
   }
-  if (hasOwn(transform, 'rotation')) {
+  if (objHas(transform, 'rotation')) {
     frame[offset + 2] = finiteOrZero(transform.rotation);
-  } else if (hasOwn(transform, 'rotate')) {
+  } else if (objHas(transform, 'rotate')) {
     frame[offset + 2] = finiteOrZero(transform.rotate);
-  } else if (hasOwn(transform, 'angle')) {
+  } else if (objHas(transform, 'angle')) {
     frame[offset + 2] = finiteOrZero(transform.angle);
   }
 };
@@ -146,7 +145,7 @@ export const readHurtbubbleModelTransformDefault = (data: HurtbubbleModelTransfo
   } else if (data.modelOffset !== undefined) {
     writeHurtbubbleModelTranslation(frame, 0, data.modelOffset, true);
   }
-  if (hasOwn(data, 'modelRotation')) {
+  if (objHas(data, 'modelRotation')) {
     frame[2] = finiteOrZero(data.modelRotation);
   }
 

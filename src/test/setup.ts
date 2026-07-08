@@ -4,12 +4,11 @@
  */
 
 import { vi } from 'vitest';
-import type { Generic } from '../animator/types';
 
 // Mock canvas context for happy-dom
 if (typeof HTMLCanvasElement !== 'undefined') {
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext = function (contextType: string, ...args: Generic[]) {
+  HTMLCanvasElement.prototype.getContext = function (contextType: string, ...args: unknown[]) {
     if (contextType === '2d') {
       return {
         beginPath: vi.fn(),
@@ -26,7 +25,8 @@ if (typeof HTMLCanvasElement !== 'undefined') {
         strokeStyle: '',
         lineWidth: 1,
         canvas: this,
-      } as Generic;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+      } as any;
     }
     return originalGetContext.call(this, contextType, ...args);
   };

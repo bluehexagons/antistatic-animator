@@ -1,4 +1,5 @@
-const DATA_FILE_RE = /\.jsonc?$/i;
+import { DATA_FILE_RE } from '../utils';
+
 const ANIMATION_FILE_RE = /_anim\.jsonc?$/i;
 
 export const isCharacterDataFile = (name: string): boolean =>

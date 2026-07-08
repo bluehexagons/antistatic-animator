@@ -163,6 +163,16 @@ export const Timeline: React.FC<TimelineProps> = ({
     onTickChange(0);
   };
 
+  const addKeyframe = (src: Keyframe) => {
+    animation.keyframes.push(src);
+    onAnimationChange();
+    onKeyframeSelect(animation.keyframes.length - 1);
+  };
+  const cloneLastAndAdd = () => {
+    const last = animation.keyframes.length - 1;
+    const src = last >= 0 ? cloneKeyframe(animation.keyframes[last]) : newKeyframe();
+    addKeyframe(src);
+  };
   const cloneAt = (i: number, side: 'left' | 'right') => {
     const src = animation.keyframes[i] ? cloneKeyframe(animation.keyframes[i]) : newKeyframe();
     animation.keyframes.splice(side === 'left' ? i : i + 1, 0, src);
@@ -318,13 +328,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         <button
           className="btn ghost"
           title="Append a copy of the last keyframe"
-          onClick={() => {
-            const last = animation.keyframes.length - 1;
-            const src = last >= 0 ? cloneKeyframe(animation.keyframes[last]) : newKeyframe();
-            animation.keyframes.push(src);
-            onAnimationChange();
-            onKeyframeSelect(animation.keyframes.length - 1);
-          }}
+          onClick={cloneLastAndAdd}
         >
           + Add keyframe
         </button>
@@ -399,17 +403,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             </div>
           );
         })}
-        <button
-          className="kfAdd"
-          title="Add new keyframe"
-          onClick={() => {
-            const last = animation.keyframes.length - 1;
-            const src = last >= 0 ? cloneKeyframe(animation.keyframes[last]) : newKeyframe();
-            animation.keyframes.push(src);
-            onAnimationChange();
-            onKeyframeSelect(animation.keyframes.length - 1);
-          }}
-        >
+        <button className="kfAdd" title="Add new keyframe" onClick={cloneLastAndAdd}>
           +
         </button>
         {playhead !== null && <div className="timelinePlayhead" style={{ left: playhead }} />}

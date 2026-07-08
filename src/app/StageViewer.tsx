@@ -19,7 +19,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Animation, EntityData, Hitbubble } from '../animator/types';
 import { objHas } from '../utils';
-import { hbmap } from '../animator/rendering/bubble-finder';
 import { bubbleLabels } from '../animator/rendering/character-info';
 import type { CameraState } from '../animator/context/AnimatorContext';
 import { HitbubbleColors, HurtbubbleStateById, HurtbubbleStateId } from '../animator/schema';
@@ -29,6 +28,8 @@ import {
   interpolatedModelTransformFrame,
   modelTransformDefaults,
 } from '../animator/operations/model-transform-timeline';
+import { getCapsulePoints, resolveHitbubble, zTint } from './stage/stage-utils';
+import { KnockbackGizmo } from './stage/KnockbackGizmo';
 
 export interface StageViewerProps {
   character: EntityData;
@@ -55,98 +56,6 @@ export interface StageViewerProps {
 interface Size {
   w: number;
   h: number;
-}
-
-function getCapsulePoints(x1: number, y1: number, x2: number, y2: number, r: number) {
-  const points: number[] = [];
-  const rads = 2 * Math.PI - Math.atan2(x2 - x1, y2 - y1);
-  let perp = rads - Math.PI;
-  const step = Math.PI / 4;
-  for (let i = 0; i < 4; i++) {
-    points.push(x1 + Math.cos(perp) * r, y1 + Math.sin(perp) * r);
-    perp += step;
-  }
-  perp = rads + Math.PI * 2;
-  for (let i = 0; i < 5; i++) {
-    points.push(x2 + Math.cos(perp) * r, y2 + Math.sin(perp) * r);
-    perp += step;
-  }
-  return points.map((n) => n.toFixed(2)).join(' ');
-}
-
-/** Resolve a hitbubble's world position, including follow + smear anchors. */
-function resolveHitbubble(hb: Hitbubble, character: EntityData, hurtbubbles: number[] | null) {
-  let x = hb.x ?? 0;
-  let y = hb.y ?? 0;
-  let anchorX = 0;
-  let anchorY = 0;
-  let hasAnchor = false;
-  let smearX = (hb.smear as { x?: number } | undefined)?.x ?? 0;
-  let smearY = (hb.smear as { y?: number } | undefined)?.y ?? 0;
-  let smearAnchorX = 0;
-  let smearAnchorY = 0;
-  let hasSmear = !!hb.smear;
-  let smearAnchorPresent = false;
-
-  if (hurtbubbles && objHas(hb, 'follow')) {
-    const map = hbmap(character.hurtbubbles);
-    const idx = map.get(hb.follow as string);
-    if (idx !== undefined) {
-      const b = character.hurtbubbles[Math.abs(idx) - 1];
-      const base = 4 * (idx > 0 ? b.i1 : b.i2);
-      anchorX = hurtbubbles[base] ?? 0;
-      anchorY = hurtbubbles[base + 1] ?? 0;
-      x += anchorX;
-      y += anchorY;
-      hasAnchor = true;
-    }
-  }
-  if (hurtbubbles && hasSmear) {
-    const smear = hb.smear as { follow?: string; x?: number; y?: number };
-    if (smear.follow) {
-      const map = hbmap(character.hurtbubbles);
-      const idx = map.get(smear.follow);
-      if (idx !== undefined) {
-        const b = character.hurtbubbles[Math.abs(idx) - 1];
-        const base = 4 * (idx > 0 ? b.i1 : b.i2);
-        smearAnchorX = hurtbubbles[base] ?? 0;
-        smearAnchorY = hurtbubbles[base + 1] ?? 0;
-        smearX += smearAnchorX;
-        smearY += smearAnchorY;
-        smearAnchorPresent = true;
-      }
-    } else if (hasAnchor) {
-      // smear without explicit follow inherits the hitbubble's follow anchor
-      smearX += anchorX;
-      smearY += anchorY;
-    }
-  }
-
-  return {
-    x,
-    y,
-    anchorX,
-    anchorY,
-    hasAnchor,
-    smearX,
-    smearY,
-    smearAnchorX,
-    smearAnchorY,
-    hasSmear,
-    smearAnchorPresent,
-  };
-}
-
-/** Bone-z to tint nudge for the bones' capsule color (front warmer / back cooler). */
-function zTint(z: number | undefined): { fill: string; stroke: string } {
-  if (z === undefined || z === 0) {
-    return { fill: 'rgba(205, 210, 220, 0.32)', stroke: 'rgba(20, 23, 28, 0.85)' };
-  }
-  if (z > 0) {
-    // front: slightly warmer
-    return { fill: 'rgba(255, 215, 180, 0.34)', stroke: 'rgba(60, 30, 20, 0.85)' };
-  }
-  return { fill: 'rgba(170, 200, 230, 0.30)', stroke: 'rgba(20, 30, 50, 0.85)' };
 }
 
 export const StageViewer: React.FC<StageViewerProps> = ({
@@ -995,78 +904,5 @@ export const StageViewer: React.FC<StageViewerProps> = ({
         {marqueeOverlay}
       </svg>
     </div>
-  );
-};
-
-interface KnockbackGizmoProps {
-  cx: number;
-  cy: number;
-  r: number;
-  hb: Hitbubble;
-  color: string;
-  selected: boolean;
-}
-
-/** Renders the knockback direction + magnitude as an arrow rooted at the
- *  hitbubble centre. Sakurai-angle hitboxes get an extra ground-angle leg. */
-const KnockbackGizmo: React.FC<KnockbackGizmoProps> = ({ cx, cy, r, hb, color, selected }) => {
-  const angle = typeof hb.angle === 'number' ? hb.angle : 0;
-  const knockback = typeof hb.knockback === 'number' ? hb.knockback : 0;
-  const growth = typeof hb.growth === 'number' ? hb.growth : 0;
-  // Arrow length scales with KB; capped so it stays visible but doesn't fly off-screen.
-  const len = Math.max(r * 1.2, Math.min(180, r * 0.8 + (knockback + growth * 0.6) * 3));
-  const rad = (angle * Math.PI) / 180;
-  // Game convention: angle 0 = right, 90 = up. SVG y is flipped.
-  const ex = cx + Math.cos(rad) * len;
-  const ey = cy - Math.sin(rad) * len;
-
-  const arrowHead = (x: number, y: number, ax: number, ay: number) => {
-    const a = Math.atan2(y - ay, x - ax);
-    const sz = 6;
-    const a1 = a + Math.PI / 6;
-    const a2 = a - Math.PI / 6;
-    return `M ${x} ${y} L ${x - Math.cos(a1) * sz} ${y - Math.sin(a1) * sz} L ${
-      x - Math.cos(a2) * sz
-    } ${y - Math.sin(a2) * sz} Z`;
-  };
-
-  const opacity = selected ? 0.95 : 0.55;
-
-  return (
-    <g>
-      <line
-        x1={cx}
-        y1={cy}
-        x2={ex}
-        y2={ey}
-        stroke={color}
-        strokeWidth={selected ? 2 : 1.2}
-        opacity={opacity}
-      />
-      <path d={arrowHead(ex, ey, cx, cy)} fill={color} opacity={opacity} />
-      {hb.sakurai && (
-        <>
-          {/* Sakurai: also show grounded fallback at 45° (approximate). */}
-          {(() => {
-            const fallback = 45;
-            const frad = (fallback * Math.PI) / 180;
-            const fx = cx + Math.cos(frad) * len * 0.7;
-            const fy = cy - Math.sin(frad) * len * 0.7;
-            return (
-              <line
-                x1={cx}
-                y1={cy}
-                x2={fx}
-                y2={fy}
-                stroke={color}
-                strokeWidth="0.8"
-                strokeDasharray="2 3"
-                opacity={opacity * 0.6}
-              />
-            );
-          })()}
-        </>
-      )}
-    </g>
   );
 };

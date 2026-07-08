@@ -2,7 +2,7 @@
  * Misc hooks shared by the shell.
  */
 
-import { useSyncExternalStore } from 'react';
+import { useRef, useSyncExternalStore } from 'react';
 import { library } from '../storage/library';
 
 /**
@@ -14,4 +14,14 @@ export function useLibrary() {
     () => library.label + '|' + library.kind + '|' + library.size,
     () => library.label + '|' + library.kind + '|' + library.size
   );
+}
+
+/**
+ * Returns a stable ref whose `.current` always holds the latest value.
+ * Useful in effects that must not re-attach when the captured value changes.
+ */
+export function useLatest<T>(value: T): { readonly current: T } {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
 }

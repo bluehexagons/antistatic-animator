@@ -3,10 +3,10 @@
  * Provides read+write to a user-selected character data directory.
  */
 
+import { DATA_FILE_RE } from '../utils';
 import type { StorageBackend } from './types';
 
 const CHAR_PATH = ['app', 'characters', 'data'];
-const DATA_FILE_RE = /\.jsonc?$/i;
 
 // File System Access API typings vary by TS lib version; declare what we need.
 export interface FsHandle {

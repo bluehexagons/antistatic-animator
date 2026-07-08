@@ -26,7 +26,7 @@ const norm = (deg: number): number => ((deg % 360) + 360) % 360;
 
 /** Mirror one flat hurtbubble pose array using a bubble-index permutation.
  *  Returns a new array; does not mutate the input. */
-export const mirrorPose = (pose: number[], perm: number[]): number[] => {
+export const mirrorPose = (pose: number[], perm: readonly number[]): number[] => {
   const out = pose.slice();
   const count = Math.floor(pose.length / 4);
   for (let a = 0; a < count; a++) {
@@ -47,7 +47,7 @@ const mirrorBonePermutation = (character: EntityData): number[] => {
   return character.hurtbubbles.map((bone, index) => byName.get(mirrorName(bone.name)) ?? index);
 };
 
-export const mirrorModelTransformFrame = (frame: number[], perm: number[]): number[] => {
+export const mirrorModelTransformFrame = (frame: number[], perm: readonly number[]): number[] => {
   const out = frame.slice();
   const count = Math.floor(frame.length / HURTBUBBLE_MODEL_TRANSFORM_FIELDS);
   for (let a = 0; a < count; a++) {

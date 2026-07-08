@@ -9,7 +9,7 @@ import type { HurtbubbleData, EntityData, Animation } from '../types';
  * Create a map of hurtbubble names to indices
  * Used to resolve hitbubble "follow" property references
  */
-export const hbmap = (hbs: HurtbubbleData[]) => {
+export const hbmap = (hbs: readonly HurtbubbleData[]) => {
   const m = new Map<string, number>();
   for (let i = 0; i < hbs.length; i++) {
     m.set(hbs[i].name, i + 1);

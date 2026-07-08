@@ -15,12 +15,12 @@
 
 import type { Keyframe } from '../types';
 
-const baselines = new Map<Keyframe[], Map<Keyframe, string>>();
+const baselines = new Map<readonly Keyframe[], Map<Keyframe, string>>();
 
 const serialize = (kf: Keyframe): string => JSON.stringify(kf);
 
 /** Snapshot a keyframes array the first time it's seen. No-op after. */
-export const ensureBaseline = (keyframes: Keyframe[]): void => {
+export const ensureBaseline = (keyframes: readonly Keyframe[]): void => {
   if (baselines.has(keyframes)) return;
   const map = new Map<Keyframe, string>();
   for (const kf of keyframes) map.set(kf, serialize(kf));
@@ -28,7 +28,7 @@ export const ensureBaseline = (keyframes: Keyframe[]): void => {
 };
 
 /** True when a keyframe was added or edited since the baseline snapshot. */
-export const isKeyframeModified = (keyframes: Keyframe[], kf: Keyframe): boolean => {
+export const isKeyframeModified = (keyframes: readonly Keyframe[], kf: Keyframe): boolean => {
   const map = baselines.get(keyframes);
   if (!map) return false;
   if (!map.has(kf)) return true; // added this session
@@ -36,7 +36,7 @@ export const isKeyframeModified = (keyframes: Keyframe[], kf: Keyframe): boolean
 };
 
 /** Forget one keyframes array's baseline (re-snapshotted on next sighting). */
-export const resetBaseline = (keyframes: Keyframe[]): void => {
+export const resetBaseline = (keyframes: readonly Keyframe[]): void => {
   baselines.delete(keyframes);
 };
 

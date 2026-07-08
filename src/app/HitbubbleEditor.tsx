@@ -7,9 +7,10 @@
  * subset actually used by shipped character JSONC.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Animation, EntityData, Hitbubble, Keyframe } from '../animator/types';
 import { HitbubbleColors, HitbubbleFlags, HitbubbleTypes, flagsToNames } from '../animator/schema';
+import { followCandidates } from '../utils';
 import { PropertiesEditor } from './PropertiesEditor';
 
 /** Keys the card already edits with dedicated controls — hidden from the
@@ -57,25 +58,6 @@ export interface HitbubbleEditorProps {
   onSelect: (i: number) => void;
   onChange: () => void;
 }
-
-/** Bone names a hitbubble can follow. Includes named indices on the
- *  character ("headbubble" → bone[3]) and the bone names themselves. */
-const followCandidates = (character: EntityData): string[] => {
-  const out = new Set<string>();
-  for (const b of character.hurtbubbles) {
-    if (b?.name) {
-      out.add(b.name);
-      out.add(`${b.name}2`);
-    }
-  }
-  // Named-bubble aliases on the character.
-  for (const k of Object.getOwnPropertyNames(character)) {
-    if (k.endsWith('bubble') && typeof character[k] === 'number') {
-      out.add(k);
-    }
-  }
-  return [...out].sort();
-};
 
 const NewHitbubbleDefaults = (): Hitbubble => ({
   type: 'ground',
@@ -298,7 +280,7 @@ export const HitbubbleEditor: React.FC<HitbubbleEditorProps> = ({
   onChange,
 }) => {
   const kf: Keyframe | undefined = animation.keyframes[keyframe];
-  const followOptions = useFollowOptions(character);
+  const followOptions = useMemo(() => [...followCandidates(character)].sort(), [character]);
   const [showRaw, setShowRaw] = useState(false);
 
   if (!kf) return null;
@@ -408,7 +390,3 @@ export const HitbubbleEditor: React.FC<HitbubbleEditorProps> = ({
     </div>
   );
 };
-
-function useFollowOptions(character: EntityData): string[] {
-  return React.useMemo(() => followCandidates(character), [character]);
-}

@@ -10,7 +10,7 @@ import type { Animation, Keyframe, Hitbubble } from '../types';
 /**
  * Clone a hurtbubbles array (deep copy)
  */
-export const cloneHurtbubbles = (hurtbubbles: number[]): number[] => {
+export const cloneHurtbubbles = (hurtbubbles: readonly number[]): number[] => {
   return [...hurtbubbles];
 };
 
