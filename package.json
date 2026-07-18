@@ -2,8 +2,18 @@
   "name": "antistatic-animator",
   "version": "0.1.1",
   "description": "",
-  "main": "dist/electron.js",
+  "homepage": "https://github.com/bluehexagons/antistatic-animator#readme",
+  "bugs": {
+    "url": "https://github.com/bluehexagons/antistatic-animator/issues"
+  },
+  "license": "MIT",
+  "author": "bluehexagons",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluehexagons/antistatic-animator.git"
+  },
   "type": "commonjs",
+  "main": "dist/electron.js",
   "scripts": {
     "build": "npm run build:renderer && npm run build:main && npm run build:preload",
     "build:main": "esbuild ./src/electron.ts --bundle --platform=node --format=cjs --target=node22 --outfile=dist/electron.js --external:electron --external:electron-devtools-installer",
@@ -25,42 +35,30 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src --ext ts,tsx",
-    "lint:fix": "eslint src --ext ts,tsx --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+    "lint": "oxlint src --deny-warnings",
+    "lint:fix": "oxlint src --fix --deny-warnings",
+    "format": "oxfmt src package.json",
+    "format:check": "oxfmt --check src package.json",
     "prepare": "husky"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/bluehexagons/antistatic-animator.git"
-  },
-  "author": "bluehexagons",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/bluehexagons/antistatic-animator/issues"
-  },
-  "homepage": "https://github.com/bluehexagons/antistatic-animator#readme",
-  "engines": {
-    "node": ">=22.22.1"
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "jsonc-parser": "^3.3.1"
   },
   "devDependencies": {
     "@electron/packager": "^20.0.0",
-    "@eslint/js": "^10.0.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.60.0",
-    "@typescript-eslint/parser": "^8.60.0",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/ui": "^4.1.7",
     "electron": "^43.1.1",
     "electron-devtools-installer": "^4.0.0",
     "esbuild": "^0.28.0",
-    "eslint": "^10.4.0",
-    "eslint-config-prettier": "^10.1.8",
     "happy-dom": "^20.9.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
-    "prettier": "^3.8.3",
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "typescript": "^6.0.3",
@@ -68,17 +66,16 @@
     "vite": "^8.0.14",
     "vitest": "^4.1.7"
   },
-  "dependencies": {
-    "ajv": "^8.20.0",
-    "jsonc-parser": "^3.3.1"
-  },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
+      "oxlint --fix --deny-warnings",
+      "oxfmt --no-error-on-unmatched-pattern"
     ],
     "*.{json,css}": [
-      "prettier --write"
+      "oxfmt --no-error-on-unmatched-pattern"
     ]
+  },
+  "engines": {
+    "node": ">=22.22.1"
   }
 }

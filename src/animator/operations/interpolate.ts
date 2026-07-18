@@ -54,7 +54,8 @@ export const interpolatedPose = (
     return hb;
   }
   const len = a.length;
-  const out = new Array(len);
+  const out: number[] = [];
+  out.length = len;
   for (let i = 0; i < len; i += 4) {
     out[i] = lerp(a[i], b[i], u);
     out[i + 1] = lerp(a[i + 1], b[i + 1], u);

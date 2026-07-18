@@ -25,7 +25,6 @@ if (typeof HTMLCanvasElement !== 'undefined') {
         strokeStyle: '',
         lineWidth: 1,
         canvas: this,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
       } as any;
     }
     return originalGetContext.call(this, contextType, ...args);
