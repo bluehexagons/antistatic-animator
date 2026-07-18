@@ -21,6 +21,9 @@ npm start
    from the scene list. Drag positioned objects in the viewport and edit exact
    values in the inspector/timeline.
 
+For the stage editor and game-runtime acceptance pass, see
+[`docs/stage-authoring-qa.md`](docs/stage-authoring-qa.md).
+
 ## Development
 
 ```bash
@@ -30,6 +33,10 @@ npm start            # Run Electron app
 npm run type-check   # TypeScript validation
 npm run lint         # Code quality checks
 ```
+
+Set `ANTISTATIC_ANIMATOR_DEVTOOLS=1` when launching Electron to install React
+Developer Tools. Normal source builds skip the network-dependent extension
+installation.
 
 ## Features
 
@@ -63,6 +70,7 @@ npm run lint         # Code quality checks
 ## Releases
 
 Automated via GitHub Actions:
+
 - `CI` workflow runs type-check, lint, tests, and build on `v*` tags
   (and manual dispatch) — not on every commit
 - `Release` workflow publishes packages on `v*` tags

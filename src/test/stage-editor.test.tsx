@@ -18,6 +18,7 @@ import {
   sampleStagePosition,
   stageAnimationDuration,
 } from '../stage/animation';
+import { cameraForStageBounds, stageAuthoringBounds } from '../stage/view';
 
 describe('stage animation preview', () => {
   it('interpolates tracks and preserves collision segment dimensions', () => {
@@ -73,6 +74,34 @@ describe('stage animation preview', () => {
   });
 });
 
+describe('stage viewport framing', () => {
+  it('fits collision, spawn metadata, and moving-platform extents', () => {
+    const stage = createStageDocument('Fit');
+    stage.spawns.push({ x: 300, y: 100, face: true });
+    stage.scene.animations = [
+      {
+        id: 'move',
+        tracks: [
+          {
+            target: { kind: 'collision', id: 'main-platform' },
+            keyframes: [{ time: 10, position: [-500, -80] }],
+          },
+        ],
+      },
+    ];
+    stage.scene.models = [
+      { id: 'shell', primitive: { type: 'box' }, position: [0, 0, 0], size: [5000, 5000, 5000] },
+    ];
+
+    const bounds = stageAuthoringBounds(stage);
+    expect(bounds).toEqual({ minX: -500, minY: -80, maxX: 300, maxY: 100 });
+    const camera = cameraForStageBounds(bounds, 1000, 600);
+    expect(camera.scale).toBeCloseTo(0.975);
+    expect(camera.x).toBeCloseTo(0.195);
+    expect(camera.y).toBeCloseTo(-0.0325);
+  });
+});
+
 describe('stage document operations', () => {
   it('creates and parses a schema-v2 stage', () => {
     const stage = createStageDocument('Fixture');
@@ -82,6 +111,12 @@ describe('stage document operations', () => {
     expect(parsed.issues).toEqual([]);
     expect(parsed.document?.name).toBe('Fixture');
     expect(parsed.document?.scene.schemaVersion).toBe(2);
+  });
+
+  it('rejects structurally invalid documents before rendering', () => {
+    const parsed = parseStageDocument('{ "name": "Incomplete" }');
+    expect(parsed.document).toBeNull();
+    expect(parsed.issues.length).toBeGreaterThan(0);
   });
 
   it('adds, renames, and removes scene objects while preserving references', () => {
@@ -109,6 +144,25 @@ describe('stage document operations', () => {
     expect(stageSceneItems(stage).some((item) => item.selection.id === emitterSelection.id)).toBe(
       false
     );
+  });
+
+  it('removes references and orphaned animations with deleted targets', () => {
+    const stage = createStageDocument('Fixture');
+    const model = addStageSceneItem(stage, 'model');
+    stage.scene.collision![0].model = model.id;
+    addStageSceneItem(stage, 'particleEmitter');
+    stage.scene.effects!.particleEmitters![0].target = model.id;
+    addStageSceneItem(stage, 'animation');
+    stage.scene.animations![0].tracks.push({
+      target: { kind: 'model', id: model.id! },
+      keyframes: [{ time: 0, position: [0, 0, 0] }],
+    });
+
+    expect(removeStageSceneItem(stage, model)).toBe(true);
+    expect(stage.scene.collision![0].model).toBeUndefined();
+    expect(stage.scene.effects!.particleEmitters![0].target).toBeUndefined();
+    expect(stage.scene.animations).toEqual([]);
+    expect(validateStageDocument(stage)).toEqual([]);
   });
 
   it('preserves untouched JSONC comments when saving', () => {
@@ -140,8 +194,8 @@ describe('stage document operations', () => {
     const stage = createStageDocument('Broken');
     stage.blastLeft = 100;
     stage.blastRight = -100;
-    stage.blastTop = -50;
-    stage.blastBottom = 50;
+    stage.blastTop = 50;
+    stage.blastBottom = -50;
     const emitter = addStageSceneItem(stage, 'particleEmitter');
     stage.scene.effects!.particleEmitters![0].radius = [4, 2];
     const animation = addStageSceneItem(stage, 'animation');
@@ -154,12 +208,26 @@ describe('stage document operations', () => {
     });
 
     const messages = validateStageDocument(stage).map((issue) => issue.message);
-    expect(messages).toContain('must be less than blastRight');
-    expect(messages).toContain('must be less than blastTop');
+    expect(messages).toContain('must resolve left of blastRight');
+    expect(messages).toContain('must resolve above blastBottom');
     expect(messages).toContain('minimum must not exceed maximum');
     expect(messages).toContain('duplicate keyframe time 3');
     expect(emitter.id).toBeTruthy();
     expect(animation.id).toBeTruthy();
+  });
+
+  it('validates blast bounds after applying positive or negative stage scale', () => {
+    const stage = createStageDocument('Bounds');
+    stage.blastLeft = -100;
+    stage.blastRight = 100;
+    stage.blastTop = -80;
+    stage.blastBottom = 60;
+    expect(validateStageDocument(stage)).toEqual([]);
+
+    stage.scaleY = -1;
+    stage.blastTop = 80;
+    stage.blastBottom = -60;
+    expect(validateStageDocument(stage)).toEqual([]);
   });
 
   it('rejects partial blast bounds and runtime no-op numeric values', () => {
@@ -192,6 +260,7 @@ describe('stage editor rendering', () => {
     stage.blastTop = 730;
     stage.blastRight = 590;
     stage.blastBottom = -425;
+    stage.scaleY = -1;
     const noop = vi.fn();
 
     const canvas = renderToStaticMarkup(
@@ -232,7 +301,7 @@ describe('stage editor rendering', () => {
       />
     );
     expect(stageInspector).toContain('Camera anchors');
-    expect(stageInspector).toContain('Use game defaults');
+    expect(stageInspector).toContain('Set common bounds');
 
     const timeline = renderToStaticMarkup(
       <StageTimeline

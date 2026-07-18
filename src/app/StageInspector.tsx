@@ -214,14 +214,16 @@ const BlastBoundsEditor: React.FC<{ stage: StageDocument; onChange: () => void }
         <button
           className="btn ghost"
           onClick={() => {
-            stage.blastLeft = -590;
-            stage.blastTop = 730;
-            stage.blastRight = 590;
-            stage.blastBottom = -425;
+            const scaleX = stage.scaleX ?? 1;
+            const scaleY = stage.scaleY ?? 1;
+            stage.blastLeft = -590 / scaleX;
+            stage.blastTop = -730 / scaleY;
+            stage.blastRight = 590 / scaleX;
+            stage.blastBottom = 425 / scaleY;
             onChange();
           }}
         >
-          Use game defaults
+          Set common bounds
         </button>
         <button
           className="btn ghost"

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CameraState } from '../animator/context/AnimatorContext';
 import { evaluateStageAnimation } from '../stage/animation';
+import { cameraForStageBounds, stageAuthoringBounds } from '../stage/view';
 import type { StageAnimation, StageDocument, StageSelection, Vec2, Vec3 } from '../stage/types';
 
 export interface StageSceneViewerProps {
@@ -14,6 +15,7 @@ export interface StageSceneViewerProps {
   previewAnimation?: StageAnimation;
   previewFrame?: number;
   onBeginEdit?: () => void;
+  fitRequest?: number;
 }
 
 const selected = (selection: StageSelection, kind: StageSelection['kind'], id: string) =>
@@ -46,10 +48,11 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
   previewAnimation,
   previewFrame = 0,
   onBeginEdit,
+  fitRequest = 0,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const [size, setSize] = useState({ w: 800, h: 600 });
+  const [size, setSize] = useState({ w: 0, h: 0 });
   const preview = useMemo(
     () => evaluateStageAnimation(stage, previewAnimation, previewFrame),
     [stage, previewAnimation, previewFrame]
@@ -77,16 +80,24 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  const lastFitRef = useRef(Number.NaN);
+  useEffect(() => {
+    if (size.w <= 0 || size.h <= 0) return;
+    if (lastFitRef.current === fitRequest) return;
+    lastFitRef.current = fitRequest;
+    onCameraChange(cameraForStageBounds(stageAuthoringBounds(stage), size.w, size.h));
+  }, [fitRequest, onCameraChange, size.h, size.w, stage]);
+
   const originX = size.w * (0.5 + camera.x * 0.5);
   const originY = size.h * (0.5 + camera.y * 0.5);
   const toX = useCallback((x: number) => originX + x * camera.scale, [originX, camera.scale]);
-  const toY = useCallback((y: number) => originY - y * camera.scale, [originY, camera.scale]);
+  const toY = useCallback((y: number) => originY + y * camera.scale, [originY, camera.scale]);
   const worldAt = useCallback(
     (clientX: number, clientY: number) => {
       const bounds = svgRef.current!.getBoundingClientRect();
       return {
         x: (clientX - bounds.left - originX) / camera.scale,
-        y: -(clientY - bounds.top - originY) / camera.scale,
+        y: (clientY - bounds.top - originY) / camera.scale,
       };
     },
     [originX, originY, camera.scale]
@@ -303,9 +314,9 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           <g>
             <rect
               x={toX(stage.blastLeft!)}
-              y={toY(stage.blastTop!)}
-              width={(stage.blastRight! - stage.blastLeft!) * camera.scale}
-              height={(stage.blastTop! - stage.blastBottom!) * camera.scale}
+              y={toY(Math.min(stage.blastTop!, stage.blastBottom!))}
+              width={Math.abs(stage.blastRight! - stage.blastLeft!) * camera.scale}
+              height={Math.abs(stage.blastBottom! - stage.blastTop!) * camera.scale}
               fill="none"
               stroke="rgba(240,100,100,.5)"
               strokeDasharray="8 5"
@@ -364,7 +375,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             >
               <rect
                 x={toX(position[0] - Math.abs(dimensions[0]) / 2)}
-                y={toY(position[1] + Math.abs(dimensions[1]) / 2)}
+                y={toY(position[1] - Math.abs(dimensions[1]) / 2)}
                 width={Math.max(8, Math.abs(dimensions[0]) * camera.scale)}
                 height={Math.max(8, Math.abs(dimensions[1]) * camera.scale)}
                 fill={active ? 'rgba(106,169,255,.3)' : 'rgba(106,169,255,.1)'}
@@ -495,7 +506,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               ) : (
                 <rect
                   x={toX(position[0] - dimensions[0])}
-                  y={toY(position[1] + dimensions[1])}
+                  y={toY(position[1] - dimensions[1])}
                   width={Math.max(8, dimensions[0] * 2 * camera.scale)}
                   height={Math.max(8, dimensions[1] * 2 * camera.scale)}
                   {...common}

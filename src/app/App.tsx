@@ -72,6 +72,7 @@ const Shell: React.FC = () => {
   const [loopMode, setLoopMode] = useState<LoopMode>('loop');
   const [stageFrame, setStageFrame] = useState(0);
   const [stagePlaying, setStagePlaying] = useState(false);
+  const [stageFitRequest, setStageFitRequest] = useState(0);
 
   const clearOpenFile = useCallback(() => {
     setSelectedFile(null);
@@ -189,7 +190,7 @@ const Shell: React.FC = () => {
       dispatch({ type: 'SET_STAGE_FILE', payload: file });
       dispatch({ type: 'SET_STAGE', payload: parsed.document });
       dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
-      dispatch({ type: 'SET_CAMERA', payload: { x: 0, y: 0, scale: 0.75 } });
+      setStageFitRequest((value) => value + 1);
     },
     [clearOpenFile, dispatch]
   );
@@ -289,6 +290,7 @@ const Shell: React.FC = () => {
     dispatch({ type: 'SET_STAGE_FILE', payload: path });
     dispatch({ type: 'SET_STAGE', payload: document });
     dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
+    setStageFitRequest((value) => value + 1);
     setSaveDirty(false);
   }, [clearOpenFile, dispatch]);
 
@@ -402,7 +404,8 @@ const Shell: React.FC = () => {
   );
 
   const resetCamera = useCallback(() => {
-    updateCamera(mode === 'stage' ? { x: 0, y: 0, scale: 0.75 } : { x: 0, y: 0.1, scale: 2 });
+    if (mode === 'stage') setStageFitRequest((value) => value + 1);
+    else updateCamera({ x: 0, y: 0.1, scale: 2 });
   }, [mode, updateCamera]);
 
   // Expose editing state for console power-users (dev-only; use window.Tools
@@ -588,6 +591,7 @@ const Shell: React.FC = () => {
                 setStageFrame(0);
                 setStagePlaying(false);
               }}
+              fitRequest={stageFitRequest}
             />
           </ErrorBoundary>
         ) : mode === 'character' && hasAnimation ? (

@@ -23,10 +23,12 @@ ipcMain.handle('showOpenDialog', (_event, config) => {
 app.whenReady().then(async () => {
   createWindow();
 
-  // Only install devtools in development (not in packaged app)
-  if (!app.isPackaged) {
+  // Extension installation can require network access and is unnecessary for
+  // normal source builds. Keep it explicit so manual testers get a quiet,
+  // deterministic startup while developers can still opt in.
+  if (!app.isPackaged && process.env.ANTISTATIC_ANIMATOR_DEVTOOLS === '1') {
     try {
-      const { default: installExtension, REACT_DEVELOPER_TOOLS } =
+      const { installExtension, REACT_DEVELOPER_TOOLS } =
         await import('electron-devtools-installer');
       const name = await installExtension(REACT_DEVELOPER_TOOLS);
       console.log(`Added Extension: ${name}`);

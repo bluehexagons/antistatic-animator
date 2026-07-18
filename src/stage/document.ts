@@ -43,11 +43,13 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
   const issues: StageIssue[] = [];
   const blastBounds = [stage.blastLeft, stage.blastTop, stage.blastBottom, stage.blastRight];
   if (blastBounds.every((value) => value !== undefined)) {
-    if (stage.blastLeft! >= stage.blastRight!) {
-      issues.push({ path: '/blastLeft', message: 'must be less than blastRight' });
+    const scaleX = stage.scaleX ?? 1;
+    const scaleY = stage.scaleY ?? 1;
+    if (stage.blastLeft! * scaleX >= stage.blastRight! * scaleX) {
+      issues.push({ path: '/blastLeft', message: 'must resolve left of blastRight' });
     }
-    if (stage.blastBottom! >= stage.blastTop!) {
-      issues.push({ path: '/blastBottom', message: 'must be less than blastTop' });
+    if (stage.blastTop! * scaleY >= stage.blastBottom! * scaleY) {
+      issues.push({ path: '/blastTop', message: 'must resolve above blastBottom' });
     }
   }
   const collectIds = (kind: string, values: { id: string }[] | undefined) => {
@@ -153,8 +155,11 @@ export const parseStageDocument = (source: string): StageParseResult => {
       })),
     };
   }
-  const issues = validateStageDocument(value);
-  return { document: value as StageDocument, issues };
+  if (!validateSchema(value)) {
+    return { document: null, issues: (validateSchema.errors ?? []).map(schemaIssue) };
+  }
+  const document = value as StageDocument;
+  return { document, issues: semanticIssues(document) };
 };
 
 export const createStageDocument = (name = 'New Stage'): StageDocument => ({
@@ -305,10 +310,38 @@ export const removeStageSceneItem = (stage: StageDocument, selection: StageSelec
     return true;
   };
   switch (selection.kind) {
-    case 'model':
-      return remove(stage.scene.models);
-    case 'collision':
-      return remove(stage.scene.collision);
+    case 'model': {
+      const removed = remove(stage.scene.models);
+      if (!removed) return false;
+      for (const collision of stage.scene.collision ?? []) {
+        if (collision.model === selection.id) delete collision.model;
+      }
+      for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
+        if (emitter.target === selection.id) delete emitter.target;
+      }
+      for (const animation of stage.scene.animations ?? []) {
+        animation.tracks = animation.tracks.filter(
+          (track) => track.target.kind !== 'model' || track.target.id !== selection.id
+        );
+      }
+      stage.scene.animations = stage.scene.animations?.filter(
+        (animation) => animation.tracks.length > 0
+      );
+      return true;
+    }
+    case 'collision': {
+      const removed = remove(stage.scene.collision);
+      if (!removed) return false;
+      for (const animation of stage.scene.animations ?? []) {
+        animation.tracks = animation.tracks.filter(
+          (track) => track.target.kind !== 'collision' || track.target.id !== selection.id
+        );
+      }
+      stage.scene.animations = stage.scene.animations?.filter(
+        (animation) => animation.tracks.length > 0
+      );
+      return true;
+    }
     case 'pointLight':
       return remove(stage.scene.effects?.pointLights);
     case 'fogVolume':
