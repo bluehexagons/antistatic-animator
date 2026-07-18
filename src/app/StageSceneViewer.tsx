@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CameraState } from '../animator/context/AnimatorContext';
-import type { StageDocument, StageSelection, Vec2, Vec3 } from '../stage/types';
+import { evaluateStageAnimation } from '../stage/animation';
+import type { StageAnimation, StageDocument, StageSelection, Vec2, Vec3 } from '../stage/types';
 
 export interface StageSceneViewerProps {
   stage: StageDocument;
@@ -10,10 +11,24 @@ export interface StageSceneViewerProps {
   onCameraChange: (camera: Partial<CameraState>) => void;
   onChange: () => void;
   showGrid: boolean;
+  previewAnimation?: StageAnimation;
+  previewFrame?: number;
+  onBeginEdit?: () => void;
 }
 
 const selected = (selection: StageSelection, kind: StageSelection['kind'], id: string) =>
   selection.kind === kind && selection.id === id;
+
+type DragHandle =
+  | 'move'
+  | 'collision-from'
+  | 'collision-to'
+  | 'fog-radius'
+  | 'emitter-size'
+  | 'light-range'
+  | 'anchor-position'
+  | 'entrance-position'
+  | 'spawn-position';
 
 export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
   stage,
@@ -23,10 +38,17 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
   onCameraChange,
   onChange,
   showGrid,
+  previewAnimation,
+  previewFrame = 0,
+  onBeginEdit,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
+  const preview = useMemo(
+    () => evaluateStageAnimation(stage, previewAnimation, previewFrame),
+    [stage, previewAnimation, previewFrame]
+  );
   const dragRef = useRef<{
     mode: 'none' | 'pan' | 'object';
     startX: number;
@@ -34,6 +56,8 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
     camera: CameraState;
     selection?: StageSelection;
     positions?: Vec2[] | Vec3[];
+    handle?: DragHandle;
+    values?: number[];
   }>({ mode: 'none', startX: 0, startY: 0, camera });
 
   useEffect(() => {
@@ -51,13 +75,13 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
   const originX = size.w * (0.5 + camera.x * 0.5);
   const originY = size.h * (0.5 + camera.y * 0.5);
   const toX = useCallback((x: number) => originX + x * camera.scale, [originX, camera.scale]);
-  const toY = useCallback((y: number) => originY + y * camera.scale, [originY, camera.scale]);
+  const toY = useCallback((y: number) => originY - y * camera.scale, [originY, camera.scale]);
   const worldAt = useCallback(
     (clientX: number, clientY: number) => {
       const bounds = svgRef.current!.getBoundingClientRect();
       return {
         x: (clientX - bounds.left - originX) / camera.scale,
-        y: (clientY - bounds.top - originY) / camera.scale,
+        y: -(clientY - bounds.top - originY) / camera.scale,
       };
     },
     [originX, originY, camera.scale]
@@ -65,6 +89,9 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
 
   const snapshotPositions = (target: StageSelection): Vec2[] | Vec3[] => {
     switch (target.kind) {
+      case 'stage': {
+        return [];
+      }
       case 'collision': {
         const item = stage.scene.collision?.find((value) => value.id === target.id);
         return item ? [[...item.from], [...item.to]] : [];
@@ -94,15 +121,38 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
     target: StageSelection,
     positions: Vec2[] | Vec3[],
     dx: number,
-    dy: number
+    dy: number,
+    handle: DragHandle,
+    values: number[]
   ) => {
     const move3 = (position: Vec3): Vec3 => [position[0] + dx, position[1] + dy, position[2]];
     switch (target.kind) {
+      case 'stage': {
+        const [index, x, y] = values;
+        const items =
+          handle === 'anchor-position'
+            ? stage.anchors
+            : handle === 'entrance-position'
+              ? stage.entrances
+              : handle === 'spawn-position'
+                ? stage.spawns
+                : undefined;
+        const item = items?.[index];
+        if (item) {
+          item.x = x + dx;
+          item.y = y + dy;
+        }
+        break;
+      }
       case 'collision': {
         const item = stage.scene.collision?.find((value) => value.id === target.id);
         if (item && positions.length === 2) {
-          item.from = [(positions[0] as Vec2)[0] + dx, (positions[0] as Vec2)[1] + dy];
-          item.to = [(positions[1] as Vec2)[0] + dx, (positions[1] as Vec2)[1] + dy];
+          if (handle !== 'collision-to') {
+            item.from = [(positions[0] as Vec2)[0] + dx, (positions[0] as Vec2)[1] + dy];
+          }
+          if (handle !== 'collision-from') {
+            item.to = [(positions[1] as Vec2)[0] + dx, (positions[1] as Vec2)[1] + dy];
+          }
         }
         break;
       }
@@ -113,24 +163,35 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       }
       case 'pointLight': {
         const item = stage.scene.effects?.pointLights?.find((value) => value.id === target.id);
-        if (item && positions[0]) item.position = move3(positions[0] as Vec3);
+        if (item && handle === 'light-range') item.range = Math.max(0, values[0] + dx / 0.12);
+        else if (item && positions[0]) item.position = move3(positions[0] as Vec3);
         break;
       }
       case 'fogVolume': {
         const item = stage.scene.effects?.fogVolumes?.find((value) => value.id === target.id);
-        if (item && positions[0]) item.position = move3(positions[0] as Vec3);
+        if (item && handle === 'fog-radius') item.radius = Math.max(0, values[0] + dx);
+        else if (item && positions[0]) item.position = move3(positions[0] as Vec3);
         break;
       }
       case 'particleEmitter': {
         const item = stage.scene.effects?.particleEmitters?.find((value) => value.id === target.id);
-        if (item && positions[0]) item.position = move3(positions[0] as Vec3);
+        if (item && handle === 'emitter-size') {
+          item.size = [Math.max(0, values[0] + dx), Math.max(0, values[1] + dy), values[2]];
+        } else if (item && positions[0]) item.position = move3(positions[0] as Vec3);
         break;
       }
     }
   };
 
-  const beginObjectDrag = (event: React.PointerEvent, target: StageSelection) => {
+  const beginObjectDrag = (
+    event: React.PointerEvent,
+    target: StageSelection,
+    handle: DragHandle = 'move',
+    values: number[] = []
+  ) => {
+    if (event.button !== 0) return;
     event.stopPropagation();
+    onBeginEdit?.();
     onSelect(target);
     const start = worldAt(event.clientX, event.clientY);
     dragRef.current = {
@@ -140,6 +201,8 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       camera,
       selection: target,
       positions: snapshotPositions(target),
+      handle,
+      values,
     };
     svgRef.current?.setPointerCapture(event.pointerId);
   };
@@ -170,7 +233,9 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
         drag.selection,
         drag.positions,
         current.x - drag.startX,
-        current.y - drag.startY
+        current.y - drag.startY,
+        drag.handle ?? 'move',
+        drag.values ?? []
       );
       onChange();
     }
@@ -228,14 +293,14 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             x={toX(stage.blastLeft!)}
             y={toY(stage.blastTop!)}
             width={(stage.blastRight! - stage.blastLeft!) * camera.scale}
-            height={(stage.blastBottom! - stage.blastTop!) * camera.scale}
+            height={(stage.blastTop! - stage.blastBottom!) * camera.scale}
             fill="none"
             stroke="rgba(240,100,100,.5)"
             strokeDasharray="8 5"
           />
         )}
         {(stage.scene.models ?? []).map((model) => {
-          const position = model.position ?? [0, 0, 0];
+          const position = preview.models.get(model.id) ?? model.position ?? [0, 0, 0];
           const dimensions = model.size ?? model.scale ?? [30, 30, 30];
           const active = selected(selection, 'model', model.id);
           return (
@@ -245,7 +310,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             >
               <rect
                 x={toX(position[0] - Math.abs(dimensions[0]) / 2)}
-                y={toY(position[1] - Math.abs(dimensions[1]) / 2)}
+                y={toY(position[1] + Math.abs(dimensions[1]) / 2)}
                 width={Math.max(8, Math.abs(dimensions[0]) * camera.scale)}
                 height={Math.max(8, Math.abs(dimensions[1]) * camera.scale)}
                 fill={active ? 'rgba(106,169,255,.3)' : 'rgba(106,169,255,.1)'}
@@ -258,6 +323,9 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           );
         })}
         {(stage.scene.collision ?? []).map((collision) => {
+          const previewCollision = preview.collision.get(collision.id);
+          const from = previewCollision?.from ?? collision.from;
+          const to = previewCollision?.to ?? collision.to;
           const active = selected(selection, 'collision', collision.id);
           return (
             <g
@@ -267,24 +335,35 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               }
             >
               <line
-                x1={toX(collision.from[0])}
-                y1={toY(collision.from[1])}
-                x2={toX(collision.to[0])}
-                y2={toY(collision.to[1])}
+                x1={toX(from[0])}
+                y1={toY(from[1])}
+                x2={toX(to[0])}
+                y2={toY(to[1])}
                 stroke={active ? '#ffcc66' : '#e6eaf2'}
                 strokeWidth={active ? 5 : 3}
+                onPointerDown={(event) =>
+                  beginObjectDrag(event, { kind: 'collision', id: collision.id })
+                }
               />
               <circle
-                cx={toX(collision.from[0])}
-                cy={toY(collision.from[1])}
+                cx={toX(from[0])}
+                cy={toY(from[1])}
                 r={active ? 6 : 4}
                 fill="#ffcc66"
+                className="stageResizeHandle"
+                onPointerDown={(event) =>
+                  beginObjectDrag(event, { kind: 'collision', id: collision.id }, 'collision-from')
+                }
               />
               <circle
-                cx={toX(collision.to[0])}
-                cy={toY(collision.to[1])}
+                cx={toX(to[0])}
+                cy={toY(to[1])}
                 r={active ? 6 : 4}
                 fill="#ffcc66"
+                className="stageResizeHandle"
+                onPointerDown={(event) =>
+                  beginObjectDrag(event, { kind: 'collision', id: collision.id }, 'collision-to')
+                }
               />
             </g>
           );
@@ -292,19 +371,34 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
         {(stage.scene.effects?.fogVolumes ?? []).map((volume) => {
           const position = volume.position ?? [0, 0, 0];
           const active = selected(selection, 'fogVolume', volume.id);
+          const radius = volume.radius ?? 50;
           return (
-            <circle
-              key={volume.id}
-              cx={toX(position[0])}
-              cy={toY(position[1])}
-              r={Math.max(6, (volume.radius ?? 50) * camera.scale)}
-              fill={active ? 'rgba(150,180,220,.2)' : 'rgba(150,180,220,.08)'}
-              stroke={active ? '#a8c8ff' : 'rgba(168,200,255,.45)'}
-              pointerEvents="stroke"
-              onPointerDown={(event) =>
-                beginObjectDrag(event, { kind: 'fogVolume', id: volume.id })
-              }
-            />
+            <g key={volume.id}>
+              <circle
+                cx={toX(position[0])}
+                cy={toY(position[1])}
+                r={Math.max(6, radius * camera.scale)}
+                fill={active ? 'rgba(150,180,220,.2)' : 'rgba(150,180,220,.08)'}
+                stroke={active ? '#a8c8ff' : 'rgba(168,200,255,.45)'}
+                pointerEvents="stroke"
+                onPointerDown={(event) =>
+                  beginObjectDrag(event, { kind: 'fogVolume', id: volume.id })
+                }
+              />
+              {active && (
+                <circle
+                  cx={toX(position[0] + radius)}
+                  cy={toY(position[1])}
+                  r={6}
+                  className="stageResizeHandle"
+                  onPointerDown={(event) =>
+                    beginObjectDrag(event, { kind: 'fogVolume', id: volume.id }, 'fog-radius', [
+                      radius,
+                    ])
+                  }
+                />
+              )}
+            </g>
           );
         })}
         {(stage.scene.effects?.particleEmitters ?? []).map((emitter) => {
@@ -318,29 +412,52 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             onPointerDown: (event: React.PointerEvent) =>
               beginObjectDrag(event, { kind: 'particleEmitter', id: emitter.id }),
           };
-          return emitter.shape === 'ellipsoid' ? (
-            <ellipse
-              key={emitter.id}
-              cx={toX(position[0])}
-              cy={toY(position[1])}
-              rx={Math.max(6, dimensions[0] * camera.scale)}
-              ry={Math.max(6, dimensions[1] * camera.scale)}
-              {...common}
-            />
-          ) : (
-            <rect
-              key={emitter.id}
-              x={toX(position[0] - dimensions[0])}
-              y={toY(position[1] - dimensions[1])}
-              width={Math.max(8, dimensions[0] * 2 * camera.scale)}
-              height={Math.max(8, dimensions[1] * 2 * camera.scale)}
-              {...common}
-            />
+          return (
+            <g key={emitter.id}>
+              {emitter.shape === 'ellipsoid' ? (
+                <ellipse
+                  cx={toX(position[0])}
+                  cy={toY(position[1])}
+                  rx={Math.max(6, dimensions[0] * camera.scale)}
+                  ry={Math.max(6, dimensions[1] * camera.scale)}
+                  {...common}
+                />
+              ) : (
+                <rect
+                  x={toX(position[0] - dimensions[0])}
+                  y={toY(position[1] + dimensions[1])}
+                  width={Math.max(8, dimensions[0] * 2 * camera.scale)}
+                  height={Math.max(8, dimensions[1] * 2 * camera.scale)}
+                  {...common}
+                />
+              )}
+              {active && (
+                <rect
+                  x={toX(position[0] + dimensions[0]) - 5}
+                  y={toY(position[1] + dimensions[1]) - 5}
+                  width={10}
+                  height={10}
+                  className="stageResizeHandle"
+                  onPointerDown={(event) =>
+                    beginObjectDrag(
+                      event,
+                      { kind: 'particleEmitter', id: emitter.id },
+                      'emitter-size',
+                      [...dimensions]
+                    )
+                  }
+                />
+              )}
+            </g>
           );
         })}
         {(stage.scene.effects?.pointLights ?? []).map((light) => {
           const position = light.position ?? [0, 0, 0];
           const active = selected(selection, 'pointLight', light.id);
+          const displayRadius = Math.max(
+            10,
+            Math.min(80, (light.range ?? 100) * camera.scale * 0.12)
+          );
           return (
             <g
               key={light.id}
@@ -351,12 +468,25 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               <circle
                 cx={toX(position[0])}
                 cy={toY(position[1])}
-                r={Math.max(10, Math.min(80, (light.range ?? 100) * camera.scale * 0.12))}
+                r={displayRadius}
                 fill={active ? 'rgba(255,220,100,.2)' : 'rgba(255,220,100,.07)'}
                 stroke={active ? '#ffdc64' : 'rgba(255,220,100,.45)'}
                 pointerEvents="stroke"
               />
               <circle cx={toX(position[0])} cy={toY(position[1])} r={5} fill="#ffdc64" />
+              {active && (
+                <circle
+                  cx={toX(position[0]) + displayRadius}
+                  cy={toY(position[1])}
+                  r={6}
+                  className="stageResizeHandle"
+                  onPointerDown={(event) =>
+                    beginObjectDrag(event, { kind: 'pointLight', id: light.id }, 'light-range', [
+                      light.range ?? 100,
+                    ])
+                  }
+                />
+              )}
             </g>
           );
         })}
@@ -366,8 +496,34 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             x={toX(anchor.x)}
             y={toY(anchor.y)}
             className="stageAnchorMarker"
+            pointerEvents="all"
+            onPointerDown={(event) =>
+              beginObjectDrag(event, { kind: 'stage' }, 'anchor-position', [
+                index,
+                anchor.x,
+                anchor.y,
+              ])
+            }
           >
             ◇
+          </text>
+        ))}
+        {stage.entrances.map((entrance, index) => (
+          <text
+            key={`entrance-${index}`}
+            x={toX(entrance.x)}
+            y={toY(entrance.y)}
+            className="stageEntranceMarker"
+            pointerEvents="all"
+            onPointerDown={(event) =>
+              beginObjectDrag(event, { kind: 'stage' }, 'entrance-position', [
+                index,
+                entrance.x,
+                entrance.y,
+              ])
+            }
+          >
+            {entrance.face ? '▷' : '◁'}
           </text>
         ))}
         {stage.spawns.map((spawn, index) => (
@@ -376,12 +532,18 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             x={toX(spawn.x)}
             y={toY(spawn.y)}
             className="stageSpawnMarker"
+            pointerEvents="all"
+            onPointerDown={(event) =>
+              beginObjectDrag(event, { kind: 'stage' }, 'spawn-position', [index, spawn.x, spawn.y])
+            }
           >
             {spawn.face ? '▶' : '◀'}
           </text>
         ))}
       </svg>
-      <div className="stageViewerLegend">collision · models · lights · fog · particles</div>
+      <div className="stageViewerLegend">
+        collision · models · lights · fog · particles · spawns
+      </div>
     </div>
   );
 };

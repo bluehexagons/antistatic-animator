@@ -418,10 +418,19 @@ body {
 
 .stageObjectLabel,
 .stageAnchorMarker,
+.stageEntranceMarker,
 .stageSpawnMarker {
   fill: var(--fg-dim);
   font: 10px var(--font-mono);
+}
+.stageObjectLabel {
   pointer-events: none;
+}
+.stageAnchorMarker,
+.stageEntranceMarker,
+.stageSpawnMarker {
+  cursor: move;
+  pointer-events: all;
 }
 .stageAnchorMarker {
   fill: #7ee0c3;
@@ -430,6 +439,16 @@ body {
 .stageSpawnMarker {
   fill: #ffb454;
   font-size: 14px;
+}
+.stageEntranceMarker {
+  fill: #d5a6ff;
+  font-size: 14px;
+}
+.stageResizeHandle {
+  fill: var(--accent);
+  stroke: var(--bg-0);
+  stroke-width: 2px;
+  cursor: nwse-resize;
 }
 .stageViewerLegend {
   position: absolute;
@@ -1130,6 +1149,62 @@ body {
 }
 .stageTimeline .timelineHeader {
   flex: 0 0 auto;
+}
+.stageScrubber {
+  min-width: 140px;
+  flex: 1 1 280px;
+  accent-color: var(--accent);
+}
+.stageFrameField {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fg-mute);
+  font: 10px var(--font-mono);
+}
+.stageFrameField input {
+  width: 62px;
+}
+.stagePointList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.stagePointRow {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+}
+.stagePointRow > span {
+  width: 22px;
+  color: var(--fg-mute);
+  font: 10px var(--font-mono);
+  align-self: center;
+}
+.stagePointRow label,
+.stageBoundsGrid label {
+  color: var(--fg-mute);
+  font: 9px var(--font-mono);
+}
+.stagePointRow label:not(.stagePointFace) {
+  flex: 1;
+  min-width: 0;
+}
+.stagePointFace {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-bottom: 4px;
+}
+.stageBoundsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.stageBoundsActions {
+  display: flex;
+  gap: 5px;
+  margin-top: 7px;
 }
 .stageTrackList {
   display: flex;

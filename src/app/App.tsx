@@ -70,6 +70,8 @@ const Shell: React.FC = () => {
   const [playing, setPlaying] = useState(false);
   const [tick, setTick] = useState(0);
   const [loopMode, setLoopMode] = useState<LoopMode>('loop');
+  const [stageFrame, setStageFrame] = useState(0);
+  const [stagePlaying, setStagePlaying] = useState(false);
 
   const clearOpenFile = useCallback(() => {
     setSelectedFile(null);
@@ -77,6 +79,8 @@ const Shell: React.FC = () => {
     setSaveDirty(false);
     setTick(0);
     setPlaying(false);
+    setStageFrame(0);
+    setStagePlaying(false);
     dispatch({ type: 'SET_CHARACTER', payload: null });
     dispatch({ type: 'SET_PARSED', payload: null });
     dispatch({ type: 'SET_ANIM_FILE', payload: '' });
@@ -235,6 +239,20 @@ const Shell: React.FC = () => {
     () => (state.stage ? validateStageDocument(state.stage) : []),
     [state.stage]
   );
+  const selectedStageAnimation = useMemo(
+    () =>
+      state.stageSelection.kind === 'animation'
+        ? state.stage?.scene.animations?.find(
+            (animation) => animation.id === state.stageSelection.id
+          )
+        : undefined,
+    [state.stage, state.stageSelection]
+  );
+
+  useEffect(() => {
+    setStageFrame(0);
+    setStagePlaying(false);
+  }, [state.stageFile, selectedStageAnimation?.id]);
 
   const handleAddStageItem = useCallback(
     (kind: Exclude<StageSelectionKind, 'stage'>) => {
@@ -564,6 +582,12 @@ const Shell: React.FC = () => {
               onCameraChange={updateCamera}
               onChange={onStageChange}
               showGrid={showGrid}
+              previewAnimation={selectedStageAnimation}
+              previewFrame={stageFrame}
+              onBeginEdit={() => {
+                setStageFrame(0);
+                setStagePlaying(false);
+              }}
             />
           </ErrorBoundary>
         ) : mode === 'character' && hasAnimation ? (
@@ -647,6 +671,10 @@ const Shell: React.FC = () => {
           <StageTimeline
             stage={state.stage!}
             selection={state.stageSelection}
+            frame={stageFrame}
+            playing={stagePlaying}
+            onFrameChange={setStageFrame}
+            onPlayingChange={setStagePlaying}
             onChange={onStageChange}
           />
         </ErrorBoundary>

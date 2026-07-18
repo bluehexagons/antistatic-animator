@@ -14,8 +14,8 @@
     "anchors": { "type": "array", "items": { "$ref": "#/$defs/cameraAnchor" } },
     "entrances": { "type": "array", "items": { "$ref": "#/$defs/stageSpawn" } },
     "spawns": { "type": "array", "items": { "$ref": "#/$defs/stageSpawn" } },
-    "scaleX": { "type": "number" },
-    "scaleY": { "type": "number" },
+    "scaleX": { "type": "number", "not": { "const": 0 } },
+    "scaleY": { "type": "number", "not": { "const": 0 } },
     "symmetric": { "type": "boolean" },
     "pivot": { "type": "number" },
     "reverbPreset": {
@@ -31,6 +31,12 @@
     "initHandler": false
   },
   "required": ["name", "order", "anchors", "entrances", "spawns", "scene"],
+  "dependentRequired": {
+    "blastLeft": ["blastTop", "blastBottom", "blastRight"],
+    "blastTop": ["blastLeft", "blastBottom", "blastRight"],
+    "blastBottom": ["blastLeft", "blastTop", "blastRight"],
+    "blastRight": ["blastLeft", "blastTop", "blastBottom"]
+  },
   "additionalProperties": false,
   "$defs": {
     "finiteNumber": { "type": "number" },
@@ -355,7 +361,7 @@
         "loop": { "type": "boolean" },
         "pingPong": { "type": "boolean" },
         "randomStart": { "type": "boolean" },
-        "speed": { "type": "number" },
+        "speed": { "type": "number", "not": { "const": 0 } },
         "duration": { "type": "number", "exclusiveMinimum": 0 },
         "tracks": {
           "type": "array",

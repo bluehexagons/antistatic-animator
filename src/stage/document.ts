@@ -41,6 +41,15 @@ const schemaIssue = (error: ErrorObject): StageIssue => ({
 
 const semanticIssues = (stage: StageDocument): StageIssue[] => {
   const issues: StageIssue[] = [];
+  const blastBounds = [stage.blastLeft, stage.blastTop, stage.blastBottom, stage.blastRight];
+  if (blastBounds.every((value) => value !== undefined)) {
+    if (stage.blastLeft! >= stage.blastRight!) {
+      issues.push({ path: '/blastLeft', message: 'must be less than blastRight' });
+    }
+    if (stage.blastBottom! >= stage.blastTop!) {
+      issues.push({ path: '/blastBottom', message: 'must be less than blastTop' });
+    }
+  }
   const collectIds = (kind: string, values: { id: string }[] | undefined) => {
     const ids = new Set<string>();
     for (const value of values ?? []) {
@@ -81,6 +90,18 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
         message: `unknown model "${emitter.target}"`,
       });
     }
+    for (const [property, value] of [
+      ['radius', emitter.radius],
+      ['lifetime', emitter.lifetime],
+      ['gravity', Array.isArray(emitter.gravity) ? emitter.gravity : undefined],
+    ] as const) {
+      if (value && value[0] > value[1]) {
+        issues.push({
+          path: `/scene/effects/particleEmitters/${emitter.id}/${property}`,
+          message: 'minimum must not exceed maximum',
+        });
+      }
+    }
   }
   for (const animation of stage.scene.animations ?? []) {
     const targets = new Set<string>();
@@ -99,6 +120,16 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
           path: `/scene/animations/${animation.id}/tracks`,
           message: `unknown ${track.target.kind} "${track.target.id}"`,
         });
+      }
+      const times = new Set<number>();
+      for (const keyframe of track.keyframes) {
+        if (times.has(keyframe.time)) {
+          issues.push({
+            path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
+            message: `duplicate keyframe time ${keyframe.time}`,
+          });
+        }
+        times.add(keyframe.time);
       }
     }
   }

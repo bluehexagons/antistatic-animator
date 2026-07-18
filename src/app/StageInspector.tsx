@@ -5,6 +5,8 @@ import type {
   StageCollisionFlag,
   StageDocument,
   StageSelection,
+  StageSpawn,
+  CameraAnchor,
   Vec2,
   Vec3,
   Vec4,
@@ -100,6 +102,144 @@ const CollisionFlags: React.FC<{ collision: StageCollision; onChange: () => void
   );
 };
 
+const StagePointList: React.FC<{
+  label: string;
+  items: StageSpawn[] | CameraAnchor[];
+  kind: 'spawn' | 'anchor';
+  onChange: () => void;
+}> = ({ label, items, kind, onChange }) => (
+  <Section title={label} count={items.length}>
+    <div className="stagePointList">
+      {items.map((item, index) => (
+        <div className="stagePointRow" key={index}>
+          <span>#{index + 1}</span>
+          {(['x', 'y'] as const).map((axis) => (
+            <label key={axis}>
+              {axis}
+              <input
+                type="number"
+                step="any"
+                value={item[axis]}
+                onChange={(event) => {
+                  item[axis] = Number(event.target.value) || 0;
+                  onChange();
+                }}
+              />
+            </label>
+          ))}
+          {kind === 'anchor' ? (
+            <label>
+              weight
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={(item as CameraAnchor).weight}
+                onChange={(event) => {
+                  (item as CameraAnchor).weight = Math.max(0, Number(event.target.value) || 0);
+                  onChange();
+                }}
+              />
+            </label>
+          ) : (
+            <label className="stagePointFace">
+              <input
+                type="checkbox"
+                checked={(item as StageSpawn).face}
+                onChange={(event) => {
+                  (item as StageSpawn).face = event.target.checked;
+                  onChange();
+                }}
+              />
+              face right
+            </label>
+          )}
+          <button
+            className="miniAction danger"
+            title={`Delete ${label.toLowerCase()} ${index + 1}`}
+            onClick={() => {
+              items.splice(index, 1);
+              onChange();
+            }}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        className="btn ghost"
+        onClick={() => {
+          if (kind === 'anchor') (items as CameraAnchor[]).push({ x: 0, y: 0, weight: 1 });
+          else (items as StageSpawn[]).push({ x: 0, y: 0, face: true });
+          onChange();
+        }}
+      >
+        + {label.toLowerCase().replace(/s$/, '')}
+      </button>
+    </div>
+  </Section>
+);
+
+const BlastBoundsEditor: React.FC<{ stage: StageDocument; onChange: () => void }> = ({
+  stage,
+  onChange,
+}) => {
+  const fields = [
+    ['left', 'blastLeft'],
+    ['top', 'blastTop'],
+    ['right', 'blastRight'],
+    ['bottom', 'blastBottom'],
+  ] as const;
+  return (
+    <Section title="Blast bounds">
+      <div className="stageBoundsGrid">
+        {fields.map(([label, key]) => (
+          <label key={key}>
+            {label}
+            <input
+              type="number"
+              step="any"
+              value={stage[key] ?? ''}
+              placeholder="unset"
+              onChange={(event) => {
+                if (event.target.value === '') delete stage[key];
+                else stage[key] = Number(event.target.value) || 0;
+                onChange();
+              }}
+            />
+          </label>
+        ))}
+      </div>
+      <div className="stageBoundsActions">
+        <button
+          className="btn ghost"
+          onClick={() => {
+            stage.blastLeft = -590;
+            stage.blastTop = 730;
+            stage.blastRight = 590;
+            stage.blastBottom = -425;
+            onChange();
+          }}
+        >
+          Use game defaults
+        </button>
+        <button
+          className="btn ghost"
+          onClick={() => {
+            delete stage.blastLeft;
+            delete stage.blastTop;
+            delete stage.blastRight;
+            delete stage.blastBottom;
+            onChange();
+          }}
+        >
+          Clear
+        </button>
+      </div>
+    </Section>
+  );
+};
+
 export const StageInspector: React.FC<StageInspectorProps> = ({
   stage,
   selection,
@@ -167,22 +307,35 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
           <Section title="Stage document">
             <PropertiesEditor
               obj={record}
-              hideKeys={['scene', 'lighting']}
-              suggestions={[
-                'kind',
+              hideKeys={[
+                'scene',
+                'lighting',
+                'anchors',
+                'entrances',
+                'spawns',
                 'blastLeft',
                 'blastTop',
                 'blastBottom',
                 'blastRight',
-                'scaleX',
-                'scaleY',
-                'symmetric',
-                'pivot',
-                'reverbPreset',
               ]}
+              suggestions={['kind', 'scaleX', 'scaleY', 'symmetric', 'pivot', 'reverbPreset']}
               onChange={changed}
             />
           </Section>
+          <BlastBoundsEditor stage={stage} onChange={changed} />
+          <StagePointList
+            label="Camera anchors"
+            items={stage.anchors}
+            kind="anchor"
+            onChange={changed}
+          />
+          <StagePointList
+            label="Entrances"
+            items={stage.entrances}
+            kind="spawn"
+            onChange={changed}
+          />
+          <StagePointList label="Spawns" items={stage.spawns} kind="spawn" onChange={changed} />
           <Section title="Lighting">
             <PropertiesEditor
               obj={lighting}
