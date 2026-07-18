@@ -26,6 +26,11 @@ type DragHandle =
   | 'fog-radius'
   | 'emitter-size'
   | 'light-range'
+  | 'model-size'
+  | 'blast-left'
+  | 'blast-top'
+  | 'blast-right'
+  | 'blast-bottom'
   | 'anchor-position'
   | 'entrance-position'
   | 'spawn-position';
@@ -129,6 +134,10 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
     switch (target.kind) {
       case 'stage': {
         const [index, x, y] = values;
+        if (handle === 'blast-left') stage.blastLeft = index + dx;
+        else if (handle === 'blast-top') stage.blastTop = index + dy;
+        else if (handle === 'blast-right') stage.blastRight = index + dx;
+        else if (handle === 'blast-bottom') stage.blastBottom = index + dy;
         const items =
           handle === 'anchor-position'
             ? stage.anchors
@@ -158,7 +167,9 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       }
       case 'model': {
         const item = stage.scene.models?.find((value) => value.id === target.id);
-        if (item && positions[0]) item.position = move3(positions[0] as Vec3);
+        if (item && handle === 'model-size') {
+          item.size = [Math.max(0, values[0] + dx * 2), Math.max(0, values[1] + dy * 2), values[2]];
+        } else if (item && positions[0]) item.position = move3(positions[0] as Vec3);
         break;
       }
       case 'pointLight': {
@@ -289,15 +300,58 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
         <line x1={0} y1={originY} x2={size.w} y2={originY} stroke="rgba(255,255,255,.16)" />
         <line x1={originX} y1={0} x2={originX} y2={size.h} stroke="rgba(255,255,255,.16)" />
         {blastComplete && (
-          <rect
-            x={toX(stage.blastLeft!)}
-            y={toY(stage.blastTop!)}
-            width={(stage.blastRight! - stage.blastLeft!) * camera.scale}
-            height={(stage.blastTop! - stage.blastBottom!) * camera.scale}
-            fill="none"
-            stroke="rgba(240,100,100,.5)"
-            strokeDasharray="8 5"
-          />
+          <g>
+            <rect
+              x={toX(stage.blastLeft!)}
+              y={toY(stage.blastTop!)}
+              width={(stage.blastRight! - stage.blastLeft!) * camera.scale}
+              height={(stage.blastTop! - stage.blastBottom!) * camera.scale}
+              fill="none"
+              stroke="rgba(240,100,100,.5)"
+              strokeDasharray="8 5"
+            />
+            {selection.kind === 'stage' && (
+              <>
+                {[
+                  {
+                    handle: 'blast-left' as const,
+                    x: stage.blastLeft!,
+                    y: (stage.blastTop! + stage.blastBottom!) / 2,
+                    value: stage.blastLeft!,
+                  },
+                  {
+                    handle: 'blast-top' as const,
+                    x: (stage.blastLeft! + stage.blastRight!) / 2,
+                    y: stage.blastTop!,
+                    value: stage.blastTop!,
+                  },
+                  {
+                    handle: 'blast-right' as const,
+                    x: stage.blastRight!,
+                    y: (stage.blastTop! + stage.blastBottom!) / 2,
+                    value: stage.blastRight!,
+                  },
+                  {
+                    handle: 'blast-bottom' as const,
+                    x: (stage.blastLeft! + stage.blastRight!) / 2,
+                    y: stage.blastBottom!,
+                    value: stage.blastBottom!,
+                  },
+                ].map((bound) => (
+                  <circle
+                    key={bound.handle}
+                    cx={toX(bound.x)}
+                    cy={toY(bound.y)}
+                    r={6}
+                    className="stageResizeHandle"
+                    onPointerDown={(event) =>
+                      beginObjectDrag(event, { kind: 'stage' }, bound.handle, [bound.value])
+                    }
+                  />
+                ))}
+              </>
+            )}
+          </g>
         )}
         {(stage.scene.models ?? []).map((model) => {
           const position = preview.models.get(model.id) ?? model.position ?? [0, 0, 0];
@@ -319,6 +373,22 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               <text x={toX(position[0]) + 5} y={toY(position[1]) - 6} className="stageObjectLabel">
                 {model.id}
               </text>
+              {active && model.size && (
+                <rect
+                  x={toX(position[0] + Math.abs(dimensions[0]) / 2) - 5}
+                  y={toY(position[1] + Math.abs(dimensions[1]) / 2) - 5}
+                  width={10}
+                  height={10}
+                  className="stageResizeHandle"
+                  onPointerDown={(event) =>
+                    beginObjectDrag(event, { kind: 'model', id: model.id }, 'model-size', [
+                      Math.abs(dimensions[0]),
+                      Math.abs(dimensions[1]),
+                      Math.abs(dimensions[2]),
+                    ])
+                  }
+                />
+              )}
             </g>
           );
         })}
