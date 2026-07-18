@@ -198,6 +198,28 @@ body {
   min-height: 0;
 }
 
+.editorModeTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 8px 10px 0;
+  gap: 4px;
+}
+.editorModeTabs button {
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--fg-mute);
+  border-radius: var(--radius);
+  padding: 6px;
+  cursor: pointer;
+  font: var(--font);
+  font-size: 11px;
+}
+.editorModeTabs button.active {
+  color: var(--fg);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .sidebarSection {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
@@ -219,6 +241,45 @@ body {
   color: var(--fg-mute);
   font-weight: 600;
   margin: 2px 0 4px;
+}
+.sidebarHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.miniAction {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  color: var(--fg);
+  cursor: pointer;
+  line-height: 1;
+}
+.miniAction:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.miniAction.danger:hover {
+  border-color: var(--hit);
+  color: var(--hit);
+}
+
+.stageObjectActions {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 5px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.stageObjectActions select {
+  min-width: 0;
+  background: var(--bg-2);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .list {
@@ -355,6 +416,33 @@ body {
   touch-action: none;
 }
 
+.stageObjectLabel,
+.stageAnchorMarker,
+.stageSpawnMarker {
+  fill: var(--fg-dim);
+  font: 10px var(--font-mono);
+  pointer-events: none;
+}
+.stageAnchorMarker {
+  fill: #7ee0c3;
+  font-size: 18px;
+}
+.stageSpawnMarker {
+  fill: #ffb454;
+  font-size: 14px;
+}
+.stageViewerLegend {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  color: var(--fg-mute);
+  background: rgba(20, 23, 28, 0.78);
+  padding: 3px 7px;
+  border-radius: var(--radius);
+  font: 10px var(--font-mono);
+  pointer-events: none;
+}
+
 .stageEmpty {
   position: absolute;
   inset: 0;
@@ -421,6 +509,58 @@ body {
 }
 .sectionHeader.collapsed .caret {
   transform: rotate(-90deg);
+}
+
+.stageIssue {
+  font-size: 11px;
+  color: var(--warn);
+  padding: 3px 0;
+  overflow-wrap: anywhere;
+}
+.stageIssue strong {
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+}
+.stageIssue.clean {
+  color: var(--good);
+}
+
+.stageVectorRow {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.stageVectorRow > label {
+  color: var(--fg-mute);
+  font: 10px var(--font-mono);
+}
+.stageVectorRow > div {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+}
+.stageVectorRow input,
+.stageKeyframe input {
+  min-width: 0;
+  width: 100%;
+  background: var(--bg-0);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 4px;
+  font: var(--font-mono);
+}
+
+.stageFlagGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 8px;
+  margin: 8px 0;
+  font-size: 10px;
+  color: var(--fg-dim);
 }
 .sectionHeader .sectionCount {
   margin-left: auto;
@@ -980,6 +1120,59 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.stageTimelineEmpty {
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-mute);
+  font-size: 12px;
+}
+.stageTimeline .timelineHeader {
+  flex: 0 0 auto;
+}
+.stageTrackList {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow: auto;
+  min-height: 0;
+}
+.stageTrack {
+  flex: 0 0 auto;
+  min-width: 330px;
+  padding: 7px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.stageTrackHeader {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.stageTrackHeader select {
+  flex: 1;
+  background: var(--bg-0);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: var(--font-mono);
+}
+.stageKeyframes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stageKeyframe {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+}
+.stageKeyframe label {
+  width: 58px;
+  color: var(--fg-mute);
+  font: 9px var(--font-mono);
 }
 
 .timelineHeader {

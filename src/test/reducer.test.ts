@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { appReducer, initialState } from '../animator/context/AnimatorContext';
 import type { Animation } from '../animator/types';
+import { createStageDocument } from '../stage/document';
 
 const anim = (): Animation => ({ keyframes: [{ duration: 1 }, { duration: 2 }, { duration: 3 }] });
 
@@ -65,5 +66,21 @@ describe('appReducer SET_ANIMATION', () => {
     const restored = { ...initialState, animationName: 'restored' };
     const next = appReducer(initialState, { type: 'REPLACE_STATE', payload: restored });
     expect(next).toBe(restored);
+  });
+});
+
+describe('appReducer stage document state', () => {
+  it('sets the stage document, file, and scene selection', () => {
+    const stage = createStageDocument('Fixture');
+    let next = appReducer(initialState, { type: 'SET_STAGE_FILE', payload: 'stages/fixture.json' });
+    next = appReducer(next, { type: 'SET_STAGE', payload: stage });
+    next = appReducer(next, {
+      type: 'SET_STAGE_SELECTION',
+      payload: { kind: 'collision', id: 'main-platform' },
+    });
+
+    expect(next.stage).toBe(stage);
+    expect(next.stageFile).toBe('stages/fixture.json');
+    expect(next.stageSelection).toEqual({ kind: 'collision', id: 'main-platform' });
   });
 });

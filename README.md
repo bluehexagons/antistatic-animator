@@ -1,6 +1,6 @@
 # Antistatic Animator
 
-Animation editor for fighting game character hitboxes and hurtboxes. Built with Electron + React.
+Animation and stage editor for Antistatic. Built with Electron + React.
 
 ## Quick Start
 
@@ -12,11 +12,14 @@ npm start
 
 1. Pick a source: open your game directory (Electron), pick a folder (browser
    File System Access), or drag-and-drop your `data` files onto the window
-2. Choose a character from the sidebar's file list
-3. Choose one of its animations from the sidebar's animation list
-4. Edit hurtbubbles by dragging on the stage or nudging with WASD / arrows
+2. Use the Characters tab to choose a character and animation, or use Stages
+   to open/create a stage scene
+3. Edit hurtbubbles by dragging on the stage or nudging with WASD / arrows
    (marquee-drag to multi-select); step keyframes with `,` / `.`; save with
    Ctrl/Cmd+S
+4. In stage mode, add collision, models, lights, fog, particles, and animations
+   from the scene list. Drag positioned objects in the viewport and edit exact
+   values in the inspector/timeline.
 
 ## Development
 
@@ -30,15 +33,18 @@ npm run lint         # Code quality checks
 
 ## Features
 
-- Visual stage editor for hurtbubbles (drag, marquee multi-select, group
+- Visual character editor for hurtbubbles (drag, marquee multi-select, group
   nudge) and hitbubbles (full schema: damage/knockback/flags/follow/smear)
+- Scene-schema-v2 stage authoring with draggable collision, model/effect
+  previews, structured inspection, stable-ID renaming, validation, and
+  position-animation tracks
 - Knockback + smear gizmos, hurtbubble state colouring, z-depth tint
 - Onion-skin, bone-name labels, and a shield overlay
 - Interpolated playback with loop / ping-pong, scrubbing, keyframe copy/paste,
   and a flip-X mirror tool
 - Per-keyframe / per-animation property editing for every engine field,
   including array/object values, with schema-aware dropdowns and lint
-- JSONC-preserving save (keeps comments and formatting)
+- JSONC-preserving character and stage saves (keeps comments and formatting)
 - Console API (`window.Tools`) for batch operations
 
 ## Architecture

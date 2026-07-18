@@ -10,6 +10,7 @@
 
 import React, { createContext, useReducer, useRef, useCallback, useState, ReactNode } from 'react';
 import type { EntityData, Animation, AnimationMap } from '../types';
+import type { StageDocument, StageSelection } from '../../stage/types';
 import { getLocalStorageItem } from '../../runtime/local-storage';
 
 const MAX_HISTORY = 50;
@@ -29,6 +30,9 @@ export interface AppState {
   animation: Animation | null;
   /** Map key of the open animation (the JSON data itself carries no name). */
   animationName: string;
+  stage: StageDocument | null;
+  stageFile: string;
+  stageSelection: StageSelection;
   keyframe: number;
   selectedBubble: number;
   camera: CameraState;
@@ -36,13 +40,21 @@ export interface AppState {
 }
 
 /** Actions that mutate user data and should be tracked for undo. */
-const UNDO_TRACKED: ReadonlySet<string> = new Set(['SET_ANIMATION', 'SET_CHARACTER', 'SET_PARSED']);
+const UNDO_TRACKED: ReadonlySet<string> = new Set([
+  'SET_ANIMATION',
+  'SET_CHARACTER',
+  'SET_PARSED',
+  'SET_STAGE',
+]);
 
 export type AppAction =
   | { type: 'SET_APP_DIR'; payload: string }
   | { type: 'SET_CHARACTER'; payload: EntityData | null }
   | { type: 'SET_PARSED'; payload: AnimationMap | null }
   | { type: 'SET_ANIM_FILE'; payload: string }
+  | { type: 'SET_STAGE'; payload: StageDocument | null }
+  | { type: 'SET_STAGE_FILE'; payload: string }
+  | { type: 'SET_STAGE_SELECTION'; payload: StageSelection }
   // `name` present (or `animation === null`) marks a fresh selection: reset
   // the keyframe/selection. Omitting `name` is an in-place re-render after an
   // edit and preserves them.
@@ -79,6 +91,9 @@ const initialState: AppState = {
   animFile: '',
   animation: null,
   animationName: '',
+  stage: null,
+  stageFile: '',
+  stageSelection: { kind: 'stage' },
   keyframe: 0,
   selectedBubble: -1,
   camera: {
@@ -107,6 +122,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       // the snapshot captures the full state. If you add a tracked action
       // that does NOT use REPLACE_STATE, verify animFile is handled.
       return { ...state, animFile: action.payload };
+
+    case 'SET_STAGE':
+      return { ...state, stage: action.payload };
+
+    case 'SET_STAGE_FILE':
+      return { ...state, stageFile: action.payload };
+
+    case 'SET_STAGE_SELECTION':
+      return { ...state, stageSelection: action.payload };
 
     case 'SET_ANIMATION': {
       const { animation, name, updateParsed } = action.payload;
@@ -177,6 +201,7 @@ const deepCloneState = (s: AppState, animName: string): AppState => {
     parsed: s.parsed ? { ...s.parsed } : null,
     animation: s.animation ? structuredClone(s.animation) : null,
     character: s.character ? structuredClone(s.character) : null,
+    stage: s.stage ? structuredClone(s.stage) : null,
   };
   // Alias the parsed entry so both state and the map point to the same
   // deep-cloned animation — the snapshot is never mutated so sharing is safe.

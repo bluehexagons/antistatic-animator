@@ -3,6 +3,7 @@ import {
   animationFileCandidates,
   findAnimationFile,
   isCharacterDataFile,
+  isStageDataFile,
   stripDataExtension,
 } from '../app/file-names';
 
@@ -14,6 +15,13 @@ describe('app file-name helpers', () => {
     expect(isCharacterDataFile('carbon_anim.json')).toBe(false);
     expect(isCharacterDataFile('carbon_anim.jsonc')).toBe(false);
     expect(isCharacterDataFile('notes.txt')).toBe(false);
+    expect(isCharacterDataFile('stages/ruins.json')).toBe(false);
+  });
+
+  it('recognizes namespaced stage files', () => {
+    expect(isStageDataFile('stages/ruins.json')).toBe(true);
+    expect(isStageDataFile('stages/visualtest.jsonc')).toBe(true);
+    expect(isStageDataFile('ruins.json')).toBe(false);
   });
 
   it('strips only the final data extension', () => {

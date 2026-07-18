@@ -30,7 +30,9 @@ export class UploadStorage implements StorageBackend {
     const accepted = files.filter((f) => DATA_FILE_RE.test(f.name));
     for (const f of accepted) {
       const text = await f.text();
-      this.files.set(f.name, text);
+      const relativePath = (f as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
+      const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(relativePath);
+      this.files.set(stageFile ? `stages/${f.name}` : f.name, text);
     }
     this.dirLabel = label || (accepted[0] ? guessDirLabel(accepted) : '');
     return this.files.size;
@@ -66,7 +68,7 @@ function triggerDownload(name: string, content: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = name;
+  a.download = name.replace(/^stages\//, '');
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -118,6 +120,9 @@ async function walkEntry(entry: FileSystemEntry, out: File[]): Promise<void> {
     const f = await new Promise<File>((resolve, reject) => {
       (entry as FileSystemFileEntry).file(resolve, reject);
     });
+    if (!(f as File & { webkitRelativePath?: string }).webkitRelativePath) {
+      Object.defineProperty(f, 'webkitRelativePath', { value: entry.fullPath.replace(/^\//, '') });
+    }
     out.push(f);
     return;
   }

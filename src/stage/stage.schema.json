@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bluehexagons.com/antistatic/stage.schema.json",
+  "title": "Antistatic stage",
+  "type": "object",
+  "properties": {
+    "name": { "$ref": "#/$defs/id" },
+    "order": { "type": "number" },
+    "kind": { "enum": ["", "neutral", "counterpick", "misc"] },
+    "blastLeft": { "type": "number" },
+    "blastTop": { "type": "number" },
+    "blastBottom": { "type": "number" },
+    "blastRight": { "type": "number" },
+    "anchors": { "type": "array", "items": { "$ref": "#/$defs/cameraAnchor" } },
+    "entrances": { "type": "array", "items": { "$ref": "#/$defs/stageSpawn" } },
+    "spawns": { "type": "array", "items": { "$ref": "#/$defs/stageSpawn" } },
+    "scaleX": { "type": "number" },
+    "scaleY": { "type": "number" },
+    "symmetric": { "type": "boolean" },
+    "pivot": { "type": "number" },
+    "reverbPreset": {
+      "enum": ["none", "largeRoom", "hangar", "cave", "generic", "plain", "outdoor"]
+    },
+    "lighting": { "$ref": "#/$defs/lighting" },
+    "scene": { "$ref": "#/$defs/scene" },
+    "prefab": false,
+    "elements": false,
+    "animations": false,
+    "collisionModel": false,
+    "handler": false,
+    "initHandler": false
+  },
+  "required": ["name", "order", "anchors", "entrances", "spawns", "scene"],
+  "additionalProperties": false,
+  "$defs": {
+    "finiteNumber": { "type": "number" },
+    "vec2": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finiteNumber" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "vec3": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finiteNumber" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "vec4": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finiteNumber" },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "range": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finiteNumber" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "id": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "cameraAnchor": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "weight": { "type": "number", "minimum": 0 }
+      },
+      "required": ["x", "y", "weight"],
+      "additionalProperties": false
+    },
+    "stageSpawn": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "face": { "type": "boolean" }
+      },
+      "required": ["x", "y", "face"],
+      "additionalProperties": false
+    },
+    "rotation": {
+      "oneOf": [
+        { "$ref": "#/$defs/vec4" },
+        {
+          "type": "object",
+          "properties": {
+            "pitch": { "$ref": "#/$defs/finiteNumber" },
+            "yaw": { "$ref": "#/$defs/finiteNumber" },
+            "roll": { "$ref": "#/$defs/finiteNumber" }
+          },
+          "minProperties": 1,
+          "additionalProperties": false
+        }
+      ]
+    },
+    "primitive": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["box", "sphere", "torus"] },
+        "segments": { "type": "integer", "minimum": 1 },
+        "rings": { "type": "integer", "minimum": 1 },
+        "tubeRadius": { "type": "number", "minimum": 0 }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "material": {
+      "type": "object",
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "metallic": { "type": "number", "minimum": 0, "maximum": 1 },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ambientOcclusion": { "type": "number", "minimum": 0 },
+        "clearcoat": { "type": "number", "minimum": 0, "maximum": 1 },
+        "clearcoatRoughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "specularIor": { "type": "number", "exclusiveMinimum": 0 },
+        "emissive": { "$ref": "#/$defs/vec3" },
+        "emissiveStrength": { "type": "number", "minimum": 0 },
+        "recolor": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "rgba": { "$ref": "#/$defs/vec4" }
+          },
+          "required": ["name", "rgba"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["file", "name"],
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "primitive": { "$ref": "#/$defs/primitive" },
+        "castsShadows": { "type": "boolean" },
+        "scale": { "$ref": "#/$defs/vec3" },
+        "size": { "$ref": "#/$defs/vec3" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "rotation": { "$ref": "#/$defs/rotation" },
+        "angularVelocity": { "$ref": "#/$defs/vec3" },
+        "material": { "$ref": "#/$defs/material" }
+      },
+      "required": ["id"],
+      "oneOf": [{ "required": ["name"] }, { "required": ["primitive"] }],
+      "additionalProperties": false
+    },
+    "collision": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "from": { "$ref": "#/$defs/vec2" },
+        "to": { "$ref": "#/$defs/vec2" },
+        "flags": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "left",
+              "right",
+              "top",
+              "bottom",
+              "solid",
+              "blastZone",
+              "leftGrabbable",
+              "rightGrabbable",
+              "symmetric",
+              "asymmetric",
+              "grounded",
+              "skip"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "model": { "$ref": "#/$defs/id" },
+        "properties": { "type": "object" }
+      },
+      "required": ["id", "from", "to", "flags"],
+      "additionalProperties": false
+    },
+    "collisionModel": {
+      "type": "object",
+      "properties": {
+        "depth": { "type": "number", "exclusiveMinimum": 0 },
+        "thickness": { "type": "number", "exclusiveMinimum": 0 },
+        "z": { "type": "number" },
+        "castsShadows": { "type": "boolean" },
+        "material": { "$ref": "#/$defs/material" }
+      },
+      "additionalProperties": false
+    },
+    "pointLight": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "color": { "$ref": "#/$defs/vec3" },
+        "intensity": { "type": "number", "minimum": 0 },
+        "range": { "type": "number", "exclusiveMinimum": 0 },
+        "sourceRadius": { "type": "number", "exclusiveMinimum": 0 },
+        "castsShadows": { "type": "boolean" }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "fogVolume": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "radius": { "type": "number", "exclusiveMinimum": 0 },
+        "density": { "type": "number", "minimum": 0 },
+        "color": { "$ref": "#/$defs/vec3" }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "reflectionProbe": {
+      "type": "object",
+      "properties": {
+        "positiveX": { "$ref": "#/$defs/vec3" },
+        "negativeX": { "$ref": "#/$defs/vec3" },
+        "positiveY": { "$ref": "#/$defs/vec3" },
+        "negativeY": { "$ref": "#/$defs/vec3" },
+        "positiveZ": { "$ref": "#/$defs/vec3" },
+        "negativeZ": { "$ref": "#/$defs/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "atmosphere": {
+      "type": "object",
+      "properties": {
+        "color": { "$ref": "#/$defs/vec3" },
+        "density": { "type": "number", "minimum": 0 },
+        "height": { "type": "number" },
+        "heightFalloff": { "type": "number", "minimum": 0 },
+        "smokeDensity": { "type": "number", "minimum": 0 },
+        "smokeScale": { "type": "number", "exclusiveMinimum": 0 },
+        "smokeSpeed": { "type": "number" },
+        "smokeDirection": { "$ref": "#/$defs/vec3" },
+        "wind": { "$ref": "#/$defs/vec3" },
+        "sunScattering": { "type": "number", "minimum": 0 },
+        "pointLightScattering": { "type": "number", "minimum": 0 },
+        "anisotropy": { "type": "number", "minimum": -0.9, "maximum": 0.9 }
+      },
+      "additionalProperties": false
+    },
+    "colorGrading": {
+      "type": "object",
+      "properties": {
+        "tint": { "$ref": "#/$defs/vec3" },
+        "saturation": { "type": "number", "minimum": 0 },
+        "contrast": { "type": "number", "minimum": 0 },
+        "exposure": { "type": "number", "minimum": -8, "maximum": 8 },
+        "vignette": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "lighting": {
+      "type": "object",
+      "properties": {
+        "sunDirection": { "$ref": "#/$defs/vec3" },
+        "sunColor": { "$ref": "#/$defs/vec3" },
+        "sunIntensity": { "type": "number", "minimum": 0 },
+        "ambientColor": { "$ref": "#/$defs/vec3" },
+        "backgroundColor": { "$ref": "#/$defs/vec3" },
+        "reflectionProbe": { "$ref": "#/$defs/reflectionProbe" },
+        "environmentMap": { "type": "string" },
+        "environmentRotation": { "type": "number" },
+        "fogNear": { "type": "number" },
+        "fogFar": { "type": "number" },
+        "atmosphere": { "$ref": "#/$defs/atmosphere" },
+        "colorGrading": { "$ref": "#/$defs/colorGrading" }
+      },
+      "additionalProperties": false
+    },
+    "particleEmitter": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "shape": { "enum": ["box", "ellipsoid"] },
+        "target": { "$ref": "#/$defs/id" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "size": { "$ref": "#/$defs/vec3" },
+        "color": { "$ref": "#/$defs/vec4" },
+        "colorEnd": { "$ref": "#/$defs/vec4" },
+        "rate": { "type": "number", "minimum": 0 },
+        "velocity": { "$ref": "#/$defs/vec3" },
+        "velocityJitter": { "$ref": "#/$defs/vec3" },
+        "radius": { "$ref": "#/$defs/range" },
+        "lifetime": { "$ref": "#/$defs/range" },
+        "gravity": {
+          "oneOf": [{ "$ref": "#/$defs/finiteNumber" }, { "$ref": "#/$defs/range" }]
+        },
+        "geometry": { "type": "boolean" },
+        "lightProbability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "glowStrength": { "type": "number", "minimum": 0 },
+        "shading": { "enum": ["lit", "emissive"] },
+        "flicker": { "type": "number", "minimum": 0, "maximum": 1 },
+        "opacityFadeIn": { "type": "number", "minimum": 0, "maximum": 1 },
+        "opacityFadeOut": { "type": "number", "minimum": 0, "maximum": 1 },
+        "scaleStart": { "type": "number", "minimum": 0 },
+        "scaleEnd": { "type": "number", "minimum": 0 },
+        "windInfluence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "inheritWind": { "type": "boolean" },
+        "nearFade": { "type": "number", "minimum": 0 }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "animationKeyframe": {
+      "type": "object",
+      "properties": {
+        "time": { "type": "number", "minimum": 0 },
+        "position": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/finiteNumber" },
+          "minItems": 2,
+          "maxItems": 3
+        }
+      },
+      "required": ["time", "position"],
+      "additionalProperties": false
+    },
+    "animationTrack": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "object",
+          "properties": {
+            "kind": { "enum": ["collision", "model"] },
+            "id": { "$ref": "#/$defs/id" }
+          },
+          "required": ["kind", "id"],
+          "additionalProperties": false
+        },
+        "keyframes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/animationKeyframe" },
+          "minItems": 1
+        }
+      },
+      "required": ["target", "keyframes"],
+      "additionalProperties": false
+    },
+    "animation": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "autoplay": { "type": "boolean" },
+        "loop": { "type": "boolean" },
+        "pingPong": { "type": "boolean" },
+        "randomStart": { "type": "boolean" },
+        "speed": { "type": "number" },
+        "duration": { "type": "number", "exclusiveMinimum": 0 },
+        "tracks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/animationTrack" },
+          "minItems": 1
+        }
+      },
+      "required": ["id", "tracks"],
+      "additionalProperties": false
+    },
+    "scene": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "models": { "type": "array", "items": { "$ref": "#/$defs/model" } },
+        "collision": { "type": "array", "items": { "$ref": "#/$defs/collision" } },
+        "collisionModel": { "$ref": "#/$defs/collisionModel" },
+        "animations": { "type": "array", "items": { "$ref": "#/$defs/animation" } },
+        "effects": {
+          "type": "object",
+          "properties": {
+            "pointLights": { "type": "array", "items": { "$ref": "#/$defs/pointLight" } },
+            "fogVolumes": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/fogVolume" },
+              "maxItems": 4
+            },
+            "particleEmitters": { "type": "array", "items": { "$ref": "#/$defs/particleEmitter" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["schemaVersion"],
+      "additionalProperties": false
+    }
+  }
+}

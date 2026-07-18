@@ -17,13 +17,18 @@ const installNodeAPI = (exists: boolean) => {
     value: {
       fs: {
         existsSync: vi.fn(() => exists),
-        readdirSync: vi.fn(() => ['carbon.json', 'carbon_anim.json', 'notes.txt']),
+        readdirSync: vi.fn((directory: string) =>
+          directory.includes('assets/stages')
+            ? ['ruins.json', 'notes.txt']
+            : ['carbon.json', 'carbon_anim.json', 'notes.txt']
+        ),
         readFileSync: vi.fn(),
         writeFileSync: vi.fn(),
         watch: vi.fn(),
       },
       path: {
         resolve: (...parts: string[]) => parts.join('/').replace(/\/+/g, '/'),
+        basename: (value: string) => value.split('/').pop() ?? value,
       },
       process: {
         cwd: () => '/game',
@@ -54,6 +59,28 @@ describe('ElectronStorage', () => {
     installNodeAPI(true);
     const storage = new ElectronStorage('/game');
 
-    await expect(storage.list()).resolves.toEqual(['carbon.json', 'carbon_anim.json']);
+    await expect(storage.list()).resolves.toEqual([
+      'carbon.json',
+      'carbon_anim.json',
+      'stages/ruins.json',
+    ]);
+  });
+
+  it('routes stage reads and writes to the stage asset directory', async () => {
+    installNodeAPI(true);
+    const storage = new ElectronStorage('/game');
+
+    await storage.read('stages/ruins.json');
+    expect(window.nodeAPI.fs.readFileSync).toHaveBeenCalledWith(
+      '/game/app/assets/stages/ruins.json',
+      'utf8'
+    );
+
+    await storage.write('stages/ruins.json', '{}');
+    expect(window.nodeAPI.fs.writeFileSync).toHaveBeenCalledWith(
+      '/game/app/assets/stages/ruins.json',
+      '{}',
+      { encoding: 'utf8' }
+    );
   });
 });

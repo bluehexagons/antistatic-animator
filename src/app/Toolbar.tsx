@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import type { EditorMode } from './Sidebar';
 
 export interface ToolbarProps {
   appName: string;
@@ -14,6 +15,7 @@ export interface ToolbarProps {
   onOpenSource: () => void;
   onSave: () => void;
   saveDirty: boolean;
+  editorMode: EditorMode;
 
   // undo / redo
   canUndo: boolean;
@@ -60,6 +62,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onOpenSource,
   onSave,
   saveDirty,
+  editorMode,
   canUndo,
   canRedo,
   onUndo,
@@ -105,52 +108,56 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           ⊞
         </button>
-        <button
-          className="iconBtn"
-          title="Toggle ground"
-          aria-pressed={showGround}
-          onClick={onToggleGround}
-          style={toggleStyle(showGround)}
-        >
-          ⎯
-        </button>
-        <button
-          className="iconBtn"
-          title="Toggle hitboxes"
-          aria-pressed={showHitboxes}
-          onClick={onToggleHitboxes}
-          style={toggleStyle(showHitboxes, 'var(--hit)')}
-        >
-          ◉
-        </button>
-        <button
-          className="iconBtn"
-          title="Toggle onion-skin (previous / next keyframes)"
-          aria-pressed={showOnion}
-          onClick={onToggleOnion}
-          style={toggleStyle(showOnion)}
-        >
-          ◍
-        </button>
-        <button
-          className="iconBtn"
-          title="Toggle bone-name labels"
-          aria-pressed={showLabels}
-          onClick={onToggleLabels}
-          style={toggleStyle(showLabels)}
-        >
-          {/* U+FE0E forces monochrome (text) rendering to match the icon set. */}
-          {'🏷︎'}
-        </button>
-        <button
-          className="iconBtn"
-          title="Toggle shield overlay"
-          aria-pressed={showShield}
-          onClick={onToggleShield}
-          style={toggleStyle(showShield, '#6aa9ff')}
-        >
-          {'🛡︎'}
-        </button>
+        {editorMode === 'character' && (
+          <>
+            <button
+              className="iconBtn"
+              title="Toggle ground"
+              aria-pressed={showGround}
+              onClick={onToggleGround}
+              style={toggleStyle(showGround)}
+            >
+              ⎯
+            </button>
+            <button
+              className="iconBtn"
+              title="Toggle hitboxes"
+              aria-pressed={showHitboxes}
+              onClick={onToggleHitboxes}
+              style={toggleStyle(showHitboxes, 'var(--hit)')}
+            >
+              ◉
+            </button>
+            <button
+              className="iconBtn"
+              title="Toggle onion-skin (previous / next keyframes)"
+              aria-pressed={showOnion}
+              onClick={onToggleOnion}
+              style={toggleStyle(showOnion)}
+            >
+              ◍
+            </button>
+            <button
+              className="iconBtn"
+              title="Toggle bone-name labels"
+              aria-pressed={showLabels}
+              onClick={onToggleLabels}
+              style={toggleStyle(showLabels)}
+            >
+              {/* U+FE0E forces monochrome (text) rendering to match the icon set. */}
+              {'🏷︎'}
+            </button>
+            <button
+              className="iconBtn"
+              title="Toggle shield overlay"
+              aria-pressed={showShield}
+              onClick={onToggleShield}
+              style={toggleStyle(showShield, '#6aa9ff')}
+            >
+              {'🛡︎'}
+            </button>
+          </>
+        )}
         <button className="iconBtn" title="Reset camera" onClick={onResetCamera}>
           ⌂
         </button>

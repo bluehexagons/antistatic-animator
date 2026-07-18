@@ -6,7 +6,7 @@
 
 import React, { useMemo, useState } from 'react';
 import type { Animation, EntityData } from '../animator/types';
-import { PropertiesEditor } from './PropertiesEditor';
+import { PropertiesEditor, type Obj } from './PropertiesEditor';
 import { BubbleEditor } from './BubbleEditor';
 import { HitbubbleEditor } from './HitbubbleEditor';
 import { ModelTransformEditor } from './ModelTransformEditor';
@@ -144,7 +144,7 @@ export const Inspector: React.FC<InspectorProps> = ({
         )}
       </Section>
       <Section title="Animation" count={`${animation.keyframes.length} kf`}>
-        <PropertiesEditor obj={animation} onChange={onAnimationChange} />
+        <PropertiesEditor obj={animation as unknown as Obj} onChange={onAnimationChange} />
       </Section>
       <Section title="Stats">
         <Stat label="duration" value={`${stats.total}f`} />
@@ -155,7 +155,7 @@ export const Inspector: React.FC<InspectorProps> = ({
       {kf ? (
         <>
           <Section title={`Keyframe #${keyframe}`}>
-            <PropertiesEditor obj={kf} isKeyframe onChange={onAnimationChange} />
+            <PropertiesEditor obj={kf as unknown as Obj} isKeyframe onChange={onAnimationChange} />
           </Section>
           <Section
             title="Model Transforms"

@@ -6,6 +6,8 @@
 import type { StorageBackend } from './types';
 
 const CHAR_SUBDIR = 'app/characters/data';
+const STAGE_SUBDIR = 'app/assets/stages';
+export const STAGE_FILE_PREFIX = 'stages/';
 const DATA_FILE_RE = /\.jsonc?$/i;
 
 export class ElectronStorage implements StorageBackend {
@@ -13,6 +15,7 @@ export class ElectronStorage implements StorageBackend {
   readonly canSave = true;
   private rootDir = '';
   private charDir = '';
+  private stageDir = '';
   private unwatches = new Map<string, () => void>();
 
   constructor(initialDir?: string) {
@@ -22,7 +25,7 @@ export class ElectronStorage implements StorageBackend {
   }
 
   get ready() {
-    return this.hasCharacterDataDir();
+    return this.hasDataDir(this.charDir) || this.hasDataDir(this.stageDir);
   }
 
   get label() {
@@ -33,12 +36,13 @@ export class ElectronStorage implements StorageBackend {
     const path = window.nodeAPI.path;
     this.rootDir = dir;
     this.charDir = path.resolve(dir, CHAR_SUBDIR);
+    this.stageDir = path.resolve(dir, STAGE_SUBDIR);
   }
 
-  private hasCharacterDataDir(): boolean {
-    if (!this.charDir) return false;
+  private hasDataDir(dir: string): boolean {
+    if (!dir) return false;
     try {
-      return window.nodeAPI.fs.existsSync(this.charDir);
+      return window.nodeAPI.fs.existsSync(dir);
     } catch {
       return false;
     }
@@ -46,7 +50,7 @@ export class ElectronStorage implements StorageBackend {
 
   async pickDirectory(): Promise<boolean> {
     const result = await window.electronAPI.showOpenDialog({
-      title: 'Select Antistatic installation directory',
+      title: 'Select Antistatic installation or repository directory',
       defaultPath: this.rootDir || undefined,
       properties: ['openDirectory'],
     });
@@ -59,26 +63,44 @@ export class ElectronStorage implements StorageBackend {
 
   async list(): Promise<string[]> {
     if (!this.ready) return [];
-    return (window.nodeAPI.fs.readdirSync(this.charDir) as string[]).filter((name) =>
-      DATA_FILE_RE.test(name)
-    );
+    const files: string[] = [];
+    if (this.hasDataDir(this.charDir)) {
+      files.push(
+        ...(window.nodeAPI.fs.readdirSync(this.charDir) as string[]).filter((name) =>
+          DATA_FILE_RE.test(name)
+        )
+      );
+    }
+    if (this.hasDataDir(this.stageDir)) {
+      files.push(
+        ...(window.nodeAPI.fs.readdirSync(this.stageDir) as string[])
+          .filter((name) => DATA_FILE_RE.test(name))
+          .map((name) => `${STAGE_FILE_PREFIX}${name}`)
+      );
+    }
+    return files;
+  }
+
+  private resolveFile(name: string): string {
+    const path = window.nodeAPI.path;
+    if (name.startsWith(STAGE_FILE_PREFIX)) {
+      return path.resolve(this.stageDir, path.basename(name));
+    }
+    return path.resolve(this.charDir, path.basename(name));
   }
 
   async read(name: string): Promise<string> {
-    const path = window.nodeAPI.path;
-    return window.nodeAPI.fs.readFileSync(path.resolve(this.charDir, name), 'utf8') as string;
+    return window.nodeAPI.fs.readFileSync(this.resolveFile(name), 'utf8') as string;
   }
 
   async write(name: string, content: string): Promise<void> {
-    const path = window.nodeAPI.path;
-    window.nodeAPI.fs.writeFileSync(path.resolve(this.charDir, name), content, {
+    window.nodeAPI.fs.writeFileSync(this.resolveFile(name), content, {
       encoding: 'utf8',
     });
   }
 
   watch(name: string, listener: () => void): () => void {
-    const path = window.nodeAPI.path;
-    const full = path.resolve(this.charDir, name);
+    const full = this.resolveFile(name);
     try {
       const cleanup = window.nodeAPI.fs.watch(full, () => listener());
       this.unwatches.set(name, cleanup);

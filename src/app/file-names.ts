@@ -1,9 +1,12 @@
 import { DATA_FILE_RE } from '../utils';
 
 const ANIMATION_FILE_RE = /_anim\.jsonc?$/i;
+const STAGE_FILE_RE = /^stages\/[^/]+\.jsonc?$/i;
 
 export const isCharacterDataFile = (name: string): boolean =>
-  DATA_FILE_RE.test(name) && !ANIMATION_FILE_RE.test(name);
+  DATA_FILE_RE.test(name) && !ANIMATION_FILE_RE.test(name) && !STAGE_FILE_RE.test(name);
+
+export const isStageDataFile = (name: string): boolean => STAGE_FILE_RE.test(name);
 
 export const stripDataExtension = (name: string): string => name.replace(DATA_FILE_RE, '');
 

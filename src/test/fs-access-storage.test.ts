@@ -102,4 +102,39 @@ describe('FsAccessStorage', () => {
     await storage.pickRoot();
     expect(storage.label).toBe('data');
   });
+
+  it('discovers character and stage files from an Antistatic repository root', async () => {
+    const characters = mockDirHandle(['carbon.json', 'carbon_anim.json']);
+    const stages = mockDirHandle(['ruins.json']);
+    const directory = (name: string, children: Record<string, FsDirHandle>): FsDirHandle => ({
+      kind: 'directory',
+      name,
+      values: () =>
+        (async function* () {
+          for (const child of Object.values(children)) yield child;
+        })(),
+      getDirectoryHandle: vi.fn(async (child: string) => {
+        if (!children[child]) throw new Error('not found');
+        return children[child];
+      }),
+      getFileHandle: vi.fn().mockRejectedValue(new Error('not a file directory')),
+    });
+    const root = directory('antistatic', {
+      app: directory('app', {
+        characters: directory('characters', { data: characters }),
+        assets: directory('assets', { stages }),
+      }),
+    });
+    window.showDirectoryPicker = vi.fn(async () => root);
+    const storage = new FsAccessStorage();
+
+    await storage.pickRoot();
+    await expect(storage.list()).resolves.toEqual([
+      'carbon.json',
+      'carbon_anim.json',
+      'stages/ruins.json',
+    ]);
+    await storage.read('stages/ruins.json');
+    expect(stages.getFileHandle).toHaveBeenCalledWith('ruins.json');
+  });
 });

@@ -25,10 +25,24 @@ import { Sidebar } from './Sidebar';
 import { Inspector } from './Inspector';
 import { Timeline, type LoopMode } from './Timeline';
 import { StageViewer } from './StageViewer';
+import { StageSceneViewer } from './StageSceneViewer';
+import { StageInspector } from './StageInspector';
+import { StageTimeline } from './StageTimeline';
 import { SourcePicker } from './SourcePicker';
 import { DropZone } from './DropZone';
 import { useLibrary, useLatest } from './hooks';
-import { findAnimationFile, isCharacterDataFile } from './file-names';
+import { findAnimationFile, isCharacterDataFile, isStageDataFile } from './file-names';
+import type { EditorMode } from './Sidebar';
+import {
+  addStageSceneItem,
+  createStageDocument,
+  parseStageDocument,
+  removeStageSceneItem,
+  renderStageFile,
+  stageSceneItems,
+  validateStageDocument,
+} from '../stage/document';
+import type { StageSelectionKind } from '../stage/types';
 
 const VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
 const ELECTRON_SOURCE_KEY = 'antistatic-dir';
@@ -46,6 +60,7 @@ const Shell: React.FC = () => {
   const [showShield, setShowShield] = useState(false);
   const [saveDirty, setSaveDirty] = useState(false);
   const [showPicker, setShowPicker] = useState(!library.ready);
+  const [mode, setMode] = useState<EditorMode>('character');
 
   // Active selection (derived from animator context)
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -66,6 +81,9 @@ const Shell: React.FC = () => {
     dispatch({ type: 'SET_PARSED', payload: null });
     dispatch({ type: 'SET_ANIM_FILE', payload: '' });
     dispatch({ type: 'SET_ANIMATION', payload: { animation: null } });
+    dispatch({ type: 'SET_STAGE', payload: null });
+    dispatch({ type: 'SET_STAGE_FILE', payload: '' });
+    dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
   }, [dispatch]);
 
   // Bootstrap: try to restore the previous Electron directory.
@@ -101,6 +119,16 @@ const Shell: React.FC = () => {
       .sort();
   }, [library.size, library.label]); // re-evaluated when library changes via useLibrary
 
+  const stageFiles = useMemo(
+    () =>
+      library
+        .files()
+        .map((file) => file.name)
+        .filter(isStageDataFile)
+        .sort(),
+    [library.size, library.label]
+  );
+
   // Animation map list for the current file.
   const animationKeyframeCounts = useMemo(() => {
     if (!state.parsed) return {};
@@ -114,6 +142,7 @@ const Shell: React.FC = () => {
   const handleSelectFile = useCallback(
     (file: string) => {
       clearOpenFile();
+      setMode('character');
       setSelectedFile(file);
       const content = library.get(file);
       if (!content) return;
@@ -138,6 +167,25 @@ const Shell: React.FC = () => {
       } else {
         dispatch({ type: 'SET_PARSED', payload: null });
       }
+    },
+    [clearOpenFile, dispatch]
+  );
+
+  const handleSelectStageFile = useCallback(
+    (file: string) => {
+      clearOpenFile();
+      setMode('stage');
+      const content = library.get(file);
+      if (!content) return;
+      const parsed = parseStageDocument(content);
+      if (!parsed.document) {
+        alert(`Unable to parse stage:\n${parsed.issues.map((issue) => issue.message).join('\n')}`);
+        return;
+      }
+      dispatch({ type: 'SET_STAGE_FILE', payload: file });
+      dispatch({ type: 'SET_STAGE', payload: parsed.document });
+      dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
+      dispatch({ type: 'SET_CAMERA', payload: { x: 0, y: 0, scale: 0.75 } });
     },
     [clearOpenFile, dispatch]
   );
@@ -174,6 +222,58 @@ const Shell: React.FC = () => {
     setSaveDirty(true);
   }, [state.animation, dispatch]);
 
+  const onStageChange = useCallback(() => {
+    if (state.stage) dispatch({ type: 'SET_STAGE', payload: structuredClone(state.stage) });
+    setSaveDirty(true);
+  }, [state.stage, dispatch]);
+
+  const stageItems = useMemo(
+    () => (state.stage ? stageSceneItems(state.stage) : []),
+    [state.stage]
+  );
+  const stageIssues = useMemo(
+    () => (state.stage ? validateStageDocument(state.stage) : []),
+    [state.stage]
+  );
+
+  const handleAddStageItem = useCallback(
+    (kind: Exclude<StageSelectionKind, 'stage'>) => {
+      if (!state.stage) return;
+      const selection = addStageSceneItem(state.stage, kind);
+      dispatch({ type: 'SET_STAGE_SELECTION', payload: selection });
+      onStageChange();
+    },
+    [state.stage, dispatch, onStageChange]
+  );
+
+  const handleDeleteStageItem = useCallback(() => {
+    if (!state.stage || !removeStageSceneItem(state.stage, state.stageSelection)) return;
+    dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
+    onStageChange();
+  }, [state.stage, state.stageSelection, dispatch, onStageChange]);
+
+  const handleCreateStage = useCallback(async () => {
+    const name = prompt('Stage name', 'New Stage')?.trim();
+    if (!name) return;
+    const suggested = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'stage'}.json`;
+    const fileName = prompt('Stage file name', suggested)?.trim();
+    if (!fileName) return;
+    const safeFileName = fileName
+      .replace(/^stages\//, '')
+      .replace(/\.jsonc?$/i, '')
+      .replace(/[^a-zA-Z0-9_-]+/g, '-');
+    const path = `stages/${safeFileName || 'stage'}.json`;
+    if (library.has(path) && !confirm(`${path} already exists. Replace it?`)) return;
+    const document = createStageDocument(name);
+    await library.save(path, renderStageFile(undefined, document));
+    clearOpenFile();
+    setMode('stage');
+    dispatch({ type: 'SET_STAGE_FILE', payload: path });
+    dispatch({ type: 'SET_STAGE', payload: document });
+    dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
+    setSaveDirty(false);
+  }, [clearOpenFile, dispatch]);
+
   const onSelectBubble = useCallback(
     (i: number) => dispatch({ type: 'SET_SELECTED_BUBBLE', payload: i }),
     [dispatch]
@@ -201,17 +301,30 @@ const Shell: React.FC = () => {
   );
 
   const handleSave = useCallback(async () => {
-    if (!state.animFile || !state.parsed) return;
     try {
-      await saveFile(state.animFile, state.parsed);
+      if (mode === 'stage') {
+        if (!state.stageFile || !state.stage) return;
+        const issues = validateStageDocument(state.stage);
+        if (issues.length > 0) {
+          throw new Error(
+            `Stage has ${issues.length} schema or reference issue${issues.length === 1 ? '' : 's'}`
+          );
+        }
+        await library.save(
+          state.stageFile,
+          renderStageFile(library.get(state.stageFile), state.stage)
+        );
+      } else {
+        if (!state.animFile || !state.parsed) return;
+        await saveFile(state.animFile, state.parsed);
+        clearBaselines();
+      }
       setSaveDirty(false);
-      // Everything on disk is now the baseline; clear session-modified marks.
-      clearBaselines();
     } catch (err) {
       console.error('save failed', err);
       alert(`Save failed: ${(err as Error).message ?? err}`);
     }
-  }, [state.animFile, state.parsed]);
+  }, [mode, state.animFile, state.parsed, state.stageFile, state.stage]);
 
   const openSource = useCallback(async () => {
     setShowPicker(true);
@@ -271,8 +384,8 @@ const Shell: React.FC = () => {
   );
 
   const resetCamera = useCallback(() => {
-    updateCamera({ x: 0, y: 0.1, scale: 2 });
-  }, [updateCamera]);
+    updateCamera(mode === 'stage' ? { x: 0, y: 0, scale: 0.75 } : { x: 0, y: 0.1, scale: 2 });
+  }, [mode, updateCamera]);
 
   // Expose editing state for console power-users (dev-only; use window.Tools
   // for scripting in production).
@@ -334,7 +447,7 @@ const Shell: React.FC = () => {
       }
       // Keyframe stepping on , / . (video-style) — arrows are reserved for
       // nudging the selected hurtbubble(s).
-      const kfs = s.animation?.keyframes;
+      const kfs = mode === 'character' ? s.animation?.keyframes : undefined;
       if (kfs && (e.key === ',' || e.key === '.') && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const next = s.keyframe + (e.key === '.' ? 1 : -1);
         if (next >= 0 && next < kfs.length) {
@@ -346,10 +459,11 @@ const Shell: React.FC = () => {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [mode]);
 
   // Empty / loading states
   const hasAnimation = !!state.animation && !!state.character;
+  const hasStage = !!state.stage && !!state.stageFile;
 
   return (
     <div className="shell">
@@ -361,6 +475,7 @@ const Shell: React.FC = () => {
         ready={library.ready}
         canSave={library.canSave}
         saveDirty={saveDirty}
+        editorMode={mode}
         onOpenSource={openSource}
         onSave={handleSave}
         showGrid={showGrid}
@@ -383,6 +498,8 @@ const Shell: React.FC = () => {
       />
 
       <Sidebar
+        mode={mode}
+        onModeChange={setMode}
         files={files}
         selectedFile={selectedFile}
         onSelectFile={handleSelectFile}
@@ -390,25 +507,66 @@ const Shell: React.FC = () => {
         selectedAnimation={state.animationName || null}
         onSelectAnimation={handleSelectAnimation}
         animationKeyframeCounts={animationKeyframeCounts}
+        stageFiles={stageFiles}
+        selectedStageFile={state.stageFile || null}
+        onSelectStageFile={handleSelectStageFile}
+        onCreateStage={() => void handleCreateStage()}
+        stageItems={stageItems}
+        selectedStageItem={state.stageSelection}
+        onSelectStageItem={(selection) =>
+          dispatch({ type: 'SET_STAGE_SELECTION', payload: selection })
+        }
+        onAddStageItem={handleAddStageItem}
+        onDeleteStageItem={handleDeleteStageItem}
       />
 
       <main className="stage">
         <div className="stageHeader">
           <div className="crumbs">
-            <span>{selectedFile ?? 'No character'}</span>
+            <span>
+              {mode === 'stage'
+                ? state.stageFile.replace(/^stages\//, '') || 'No stage'
+                : (selectedFile ?? 'No character')}
+            </span>
             <span className="sep">›</span>
-            <strong>{state.animationName || '—'}</strong>
+            <strong>
+              {mode === 'stage'
+                ? (state.stageSelection.id ?? state.stageSelection.kind)
+                : state.animationName || '—'}
+            </strong>
           </div>
           <div className="stageStats">
             <span>
               <strong>{state.camera.scale.toFixed(1)}×</strong> zoom
             </span>
-            <span>
-              <strong>{state.selectedBubble >= 0 ? `#${state.selectedBubble}` : '—'}</strong> bubble
-            </span>
+            {mode === 'character' && (
+              <span>
+                <strong>{state.selectedBubble >= 0 ? `#${state.selectedBubble}` : '—'}</strong>{' '}
+                bubble
+              </span>
+            )}
+            {mode === 'stage' && (
+              <span>
+                <strong>{stageIssues.length}</strong> issues
+              </span>
+            )}
           </div>
         </div>
-        {hasAnimation ? (
+        {mode === 'stage' && hasStage ? (
+          <ErrorBoundary label="Stage scene">
+            <StageSceneViewer
+              stage={state.stage!}
+              selection={state.stageSelection}
+              camera={state.camera}
+              onSelect={(selection) =>
+                dispatch({ type: 'SET_STAGE_SELECTION', payload: selection })
+              }
+              onCameraChange={updateCamera}
+              onChange={onStageChange}
+              showGrid={showGrid}
+            />
+          </ErrorBoundary>
+        ) : mode === 'character' && hasAnimation ? (
           <ErrorBoundary label="Stage">
             <StageViewer
               character={state.character!}
@@ -432,17 +590,35 @@ const Shell: React.FC = () => {
           </ErrorBoundary>
         ) : (
           <div className="stageEmpty">
-            <h2>{library.ready ? 'Pick an animation to start' : 'No source loaded'}</h2>
+            <h2>
+              {library.ready
+                ? `Pick ${mode === 'stage' ? 'a stage' : 'an animation'} to start`
+                : 'No source loaded'}
+            </h2>
             <p>
               {library.ready
-                ? 'Choose a character on the left, then select one of its animations to begin editing.'
+                ? mode === 'stage'
+                  ? 'Choose a stage on the left, or create a new scene document.'
+                  : 'Choose a character on the left, then select one of its animations to begin editing.'
                 : 'Use the source button up top to open a game directory, pick a folder, or drag files into the window.'}
             </p>
           </div>
         )}
       </main>
 
-      {hasAnimation && state.character && state.animation ? (
+      {mode === 'stage' && hasStage ? (
+        <ErrorBoundary label="Stage inspector">
+          <StageInspector
+            stage={state.stage!}
+            selection={state.stageSelection}
+            issues={stageIssues}
+            onSelectionChange={(selection) =>
+              dispatch({ type: 'SET_STAGE_SELECTION', payload: selection })
+            }
+            onChange={onStageChange}
+          />
+        </ErrorBoundary>
+      ) : mode === 'character' && hasAnimation && state.character && state.animation ? (
         <ErrorBoundary label="Inspector">
           <Inspector
             character={state.character}
@@ -460,13 +636,21 @@ const Shell: React.FC = () => {
           <div className="section">
             <div className="sectionHeader">Inspector</div>
             <div className="sectionBody" style={{ color: 'var(--fg-mute)', fontSize: 12 }}>
-              Select an animation to view its properties.
+              Select {mode === 'stage' ? 'a stage' : 'an animation'} to view its properties.
             </div>
           </div>
         </aside>
       )}
 
-      {hasAnimation && state.character && state.animation ? (
+      {mode === 'stage' && hasStage ? (
+        <ErrorBoundary label="Stage timeline">
+          <StageTimeline
+            stage={state.stage!}
+            selection={state.stageSelection}
+            onChange={onStageChange}
+          />
+        </ErrorBoundary>
+      ) : mode === 'character' && hasAnimation && state.character && state.animation ? (
         <ErrorBoundary label="Timeline">
           <Timeline
             character={state.character}
@@ -488,7 +672,9 @@ const Shell: React.FC = () => {
           style={{ alignItems: 'center', justifyContent: 'center', color: 'var(--fg-mute)' }}
         >
           <div style={{ padding: 20, fontSize: 12 }}>
-            Timeline appears once an animation is open.
+            {mode === 'stage'
+              ? 'Stage animation tracks appear here.'
+              : 'Timeline appears once an animation is open.'}
           </div>
         </div>
       )}

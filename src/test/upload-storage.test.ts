@@ -14,4 +14,16 @@ describe('UploadStorage', () => {
     await expect(storage.list()).resolves.toEqual(['carbon.json', 'carbon_anim.jsonc']);
     await expect(storage.read('notes.txt')).rejects.toThrow(/file not loaded/);
   });
+
+  it('namespaces stage files uploaded from a repository folder', async () => {
+    const stage = new File(['{}'], 'ruins.json');
+    Object.defineProperty(stage, 'webkitRelativePath', {
+      value: 'antistatic/app/assets/stages/ruins.json',
+    });
+    const storage = new UploadStorage();
+
+    await storage.loadFiles([stage]);
+    await expect(storage.list()).resolves.toEqual(['stages/ruins.json']);
+    await expect(storage.read('stages/ruins.json')).resolves.toBe('{}');
+  });
 });
