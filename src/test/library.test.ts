@@ -100,6 +100,26 @@ describe('Library', () => {
     expect(lib.get('test.json')).toBe('{}');
   });
 
+  it('does not cache content when the backend write fails', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => []),
+      read: vi.fn(),
+      write: vi.fn(async () => {
+        throw new Error('write error');
+      }),
+    };
+    lib.setBackend(backend);
+
+    await expect(lib.save('test.json', '{"x":1}')).rejects.toThrow('write error');
+    expect(lib.has('test.json')).toBe(false);
+  });
+
   it('notifies subscribers on backend/save/refresh changes', async () => {
     const Library = await getLibrary();
     const lib = new Library();

@@ -4,7 +4,7 @@
 
 import { objHas } from '../../utils';
 import { hbmap } from '../../animator/rendering/bubble-finder';
-import type { EntityData, Hitbubble } from '../../animator/types';
+import type { Animation, EntityData, Hitbubble } from '../../animator/types';
 
 /**
  * Build a capsule polygon from two circle centres and a shared radius.
@@ -54,21 +54,25 @@ export function resolveHitbubble(
   smearAnchorPresent: boolean;
 } {
   let x = hb.x ?? 0;
-  let y = hb.y ?? 0;
+  // Hitbubble authored Y is inverted by Hitbubble's runtime constructor.
+  let y = -(hb.y ?? 0);
   let anchorX = 0;
   let anchorY = 0;
   let hasAnchor = false;
-  let smearX = hb.smear?.x ?? 0;
-  let smearY = hb.smear?.y ?? 0;
+  const smear = hb.smear === true ? { follow: hb.follow, x: hb.x, y: hb.y } : hb.smear;
+  let smearX = smear?.x ?? hb.x ?? 0;
+  let smearY = -(smear?.y ?? hb.y ?? 0);
   let hasSmear = !!hb.smear;
   let smearAnchorX = 0;
   let smearAnchorY = 0;
   let smearAnchorPresent = false;
+  const map = hbmap(character.hurtbubbles);
+  const followIndex = (follow: string | number | undefined) =>
+    typeof follow === 'number' ? follow : follow === undefined ? undefined : map.get(follow);
 
   if (hurtbubbles && objHas(hb, 'follow')) {
-    const map = hbmap(character.hurtbubbles);
-    const idx = map.get(hb.follow!);
-    if (idx !== undefined) {
+    const idx = followIndex(hb.follow);
+    if (idx !== undefined && idx !== 0) {
       const b = character.hurtbubbles[Math.abs(idx) - 1];
       const base = 4 * (idx > 0 ? b.i1 : b.i2);
       anchorX = hurtbubbles[base] ?? 0;
@@ -79,11 +83,9 @@ export function resolveHitbubble(
     }
   }
   if (hurtbubbles && hasSmear) {
-    const smear = hb.smear!;
-    if (smear.follow) {
-      const map = hbmap(character.hurtbubbles);
-      const idx = map.get(smear.follow);
-      if (idx !== undefined) {
+    if (smear?.follow) {
+      const idx = followIndex(smear.follow);
+      if (idx !== undefined && idx !== 0) {
         const b = character.hurtbubbles[Math.abs(idx) - 1];
         const base = 4 * (idx > 0 ? b.i1 : b.i2);
         smearAnchorX = hurtbubbles[base] ?? 0;
@@ -111,6 +113,60 @@ export function resolveHitbubble(
     hasSmear,
     smearAnchorPresent,
   };
+}
+
+/**
+ * Resolve the editor-visible hitbubble list without mutating authored data.
+ * The game expands continuations, `smear: true`, and `next` hitbubbles while
+ * loading an animation; previews need those same forms to be useful.
+ */
+export function hitbubblesForKeyframe(animation: Animation, keyframe: number): Hitbubble[] {
+  const current = animation.keyframes[keyframe];
+  if (!current || keyframe >= animation.keyframes.length - 1) return [];
+
+  let source: Hitbubble[] | undefined;
+  if (Array.isArray(current.hitbubbles)) {
+    source = current.hitbubbles;
+  } else if (current.hitbubbles === true) {
+    for (let i = keyframe - 1; i >= 0; i--) {
+      if (Array.isArray(animation.keyframes[i]?.hitbubbles)) {
+        source = animation.keyframes[i].hitbubbles as Hitbubble[];
+        break;
+      }
+    }
+  }
+
+  const result = source ? source.map((hb) => ({ ...hb })) : [];
+  if (current.hitbubbles === true && source) {
+    const previousDuration = animation.keyframes
+      .slice(0, keyframe)
+      .reverse()
+      .find((item) => Array.isArray(item.hitbubbles))?.duration;
+    const duration = current.duration ?? 0;
+    for (const hb of result) {
+      const sourceDuration = previousDuration || duration || 1;
+      hb.start = (duration * (hb.start || 0)) / sourceDuration;
+      hb.end = (duration * (hb.end || sourceDuration)) / sourceDuration;
+      hb.smear = { follow: hb.follow, x: hb.x, y: hb.y };
+    }
+  }
+  if (current.hitbubbles !== true && keyframe > 0) {
+    const previous = animation.keyframes[keyframe - 1]?.hitbubbles;
+    if (Array.isArray(previous)) {
+      for (const hb of previous) {
+        if (!hb.next) continue;
+        const generated: Hitbubble = {
+          ...hb,
+          start: 0,
+          end: 1,
+          smear: { follow: hb.follow, x: hb.x, y: hb.y },
+        };
+        delete (generated as Record<string, unknown>).next;
+        result.push(generated);
+      }
+    }
+  }
+  return result;
 }
 
 /**

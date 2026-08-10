@@ -9,7 +9,6 @@
  * during authoring while the user is in the editor.
  */
 
-import { Ease } from '../easing';
 import { objHas, followCandidates } from '../utils';
 import {
   AnimationTypeNames,
@@ -30,7 +29,7 @@ export interface LintIssue {
   keyframe: number;
 }
 
-const knownTweens = new Set([...TweenNames, ...Object.getOwnPropertyNames(Ease)]);
+const knownTweens = new Set(TweenNames);
 const knownTypes = new Set<string>(AnimationTypeNames);
 
 const expectedHurtbubbleCount = (character: EntityData): number => {

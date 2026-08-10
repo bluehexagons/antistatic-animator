@@ -250,7 +250,7 @@ export const Ease = {
     if (time <= 0.5) {
       return start(time * 2) * 0.5;
     } else {
-      return 0.5 + end((time - 0.5) * 2);
+      return 0.5 + end((time - 0.5) * 2) * 0.5;
     }
   },
 };

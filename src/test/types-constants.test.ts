@@ -29,7 +29,7 @@ describe('Constants', () => {
     it('should map property names to types', () => {
       expect(defaultTypes.duration).toBe('number');
       expect(defaultTypes.tween).toBe('string');
-      expect(defaultTypes.interpolate).toBe('bool');
+      expect(defaultTypes.interpolate).toBe('boolean');
     });
 
     it('should have valid type values', () => {

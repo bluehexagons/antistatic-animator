@@ -56,6 +56,11 @@ export const evaluateStageAnimation = (
       from,
       to: [from[0] + offset[0], from[1] + offset[1]],
     });
+    if (collision.model) {
+      // Antistatic keeps a collision's visual model attached to the segment
+      // while it moves, rather than requiring a second model track.
+      preview.models.set(collision.model, [from[0] + offset[0] * 0.5, from[1] + 2, 0]);
+    }
   }
   return preview;
 };

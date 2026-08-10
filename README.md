@@ -32,6 +32,7 @@ npm run build        # Build all
 npm start            # Run Electron app
 npm run type-check   # TypeScript validation
 npm run lint         # Code quality checks
+npm run test:run     # Run the Vitest suite
 ```
 
 Set `ANTISTATIC_ANIMATOR_DEVTOOLS=1` when launching Electron to install React
@@ -47,11 +48,12 @@ installation.
   position-animation tracks
 - Knockback + smear gizmos, hurtbubble state colouring, z-depth tint
 - Onion-skin, bone-name labels, and a shield overlay
-- Interpolated playback with loop / ping-pong, scrubbing, keyframe copy/paste,
-  and a flip-X mirror tool
+- Engine-compatible terminal-frame playback, omitted-pose interpolation,
+  loop / ping-pong, scrubbing, keyframe copy/paste, and a flip-X mirror tool
 - Per-keyframe / per-animation property editing for every engine field,
   including array/object values, with schema-aware dropdowns and lint
-- JSONC-preserving character and stage saves (keeps comments and formatting)
+- JSONC-preserving animation and stage saves (keeps untouched comments and
+  formatting; character metadata is read-only)
 - Console API (`window.Tools`) for batch operations
 
 ## Architecture
@@ -59,13 +61,19 @@ installation.
 - **React** for UI components and state management
 - **SVG** for the stage and timeline-thumbnail rendering
 - **TypeScript** for type safety
-- **Electron** (with a browser/File System Access fallback) for file access
+- **Electron** (with browser/File System Access and upload fallbacks) for file access
+
+The character and stage viewports are 2D authoring proxies. They preview engine
+coordinates, hitbox windows, continuations, smears, and stage animation tracks,
+but do not render Antistatic's 3D meshes, materials, lighting, particles, or
+audio assets. See [`docs/codebase-sync.md`](docs/codebase-sync.md) for the
+current parity audit and known gaps.
 
 ## Contributing
 
 - Use conventional commits (`feat:`, `fix:`, `refactor:`, etc.)
 - Run `npm run lint` before committing
-- Pre-commit hooks auto-format code with Prettier
+- Pre-commit hooks run Oxlint and Oxfmt on staged source files
 
 ## Releases
 

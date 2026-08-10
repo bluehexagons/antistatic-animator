@@ -284,6 +284,7 @@ export const AnimatorProvider: React.FC<AnimatorProviderProps> = ({ children }) 
     if (prev) {
       futureRef.current.push(deepCloneState(state, state.animationName));
       baseDispatch({ type: 'REPLACE_STATE', payload: prev });
+      snapshotStale.current = true;
     }
     setVersion((v) => v + 1);
   }, [state]);
@@ -294,6 +295,7 @@ export const AnimatorProvider: React.FC<AnimatorProviderProps> = ({ children }) 
     if (next) {
       historyRef.current.push(deepCloneState(state, state.animationName));
       baseDispatch({ type: 'REPLACE_STATE', payload: next });
+      snapshotStale.current = true;
     }
     setVersion((v) => v + 1);
   }, [state]);

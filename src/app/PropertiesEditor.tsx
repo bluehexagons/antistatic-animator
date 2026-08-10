@@ -193,6 +193,8 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
 
 type AddType = 'bool' | 'number' | 'string' | 'array' | 'object';
 
+const addTypeFor = (value: string): AddType => (value === 'boolean' ? 'bool' : (value as AddType));
+
 interface AddPropertyProps {
   isKeyframe: boolean;
   existing: Set<string>;
@@ -206,7 +208,7 @@ const AddProperty: React.FC<AddPropertyProps> = ({ existing, onAdd, suggestions 
 
   const handleNameChange = (v: string) => {
     setName(v);
-    if (defaultTypes[v]) setType(defaultTypes[v] as AddType);
+    if (defaultTypes[v]) setType(addTypeFor(defaultTypes[v]));
   };
 
   const submit = () => {

@@ -18,14 +18,21 @@ Everything below operates on the same JSONC files the game loads. No
 schema changes on the game side; the animator just learns to author
 more of what's already there.
 
-## Status (2026-07)
+## Status (2026-08)
 
-Batches A–G are implemented (G2/G3 added 2026-07). Remaining deliberate gaps:
+Batches A–G are implemented as authoring UI, and the runtime-parity pass now
+covers terminal-frame timing, omitted poses, hitbox windows, continuations, and
+common smear forms. Remaining deliberate gaps are documented below and in
+[`codebase-sync.md`](codebase-sync.md):
 
 - **F3** (camera-rotation gizmo) — skipped; no functional 3D camera yet,
   so it would only add inert UI.
 - **G1** (audio preview) — skipped; the storage layer reads text, not the
   binary `.ogg` assets it would need. Revisit if storage gains binary reads.
+
+Additional parity work remains intentionally outside the 2D editor: a real 3D
+viewport, engine handler execution, full stage lighting/material simulation,
+and stage autoplay/random-start simulation.
 
 ## Batches
 
@@ -47,9 +54,8 @@ fields; making attacks today means alt-tabbing to a text editor.
 - A2. **Knockback gizmo** on selected hitbubble. Arrow at `angle` with
       length ∝ `knockback + growth · k`. Sakurai checkbox renders the
       45°/0° forked indicator.
-- A3. **Smear rendering.** Hitbubble `smear: {follow,x,y}` is currently
-      invisible. Draw a faded copy at the smear position and a polygon
-      trail between source and current to show the swept area.
+- A3. **Smear rendering.** Hitbubble `smear: {follow,x,y}` and the common
+       `smear: true` form draw a faded copy and trail from the resolved anchor.
 - A4. **`follow` picker** — dropdown of valid bubble names from the
       character (`headbubble`, named bones, etc.) instead of free-text.
 
@@ -89,19 +95,20 @@ worth preserving.
       original document text is unavailable.
 - C2. **Format preservation for hurtbubble arrays** (one per line,
       four values per line) regardless of code path.
-- C3. **Dirty-tracking per animation** — show which animations in the
-      sidebar have unsaved edits.
+- C3. **Dirty-tracking per animation** — partial: keyframe/session diff
+       indicators and a global save marker are implemented; sidebar-level
+       per-animation dirty badges remain to be added.
 
 ### Batch D — Playback fidelity ✅
 
-The timeline plays in keyframe-discrete steps. The game tweens between
-poses when `interpolate: true` is set, using the per-keyframe `tween`
-easing function. Without tweened preview the animator can't actually
-see what the player will see.
+The timeline plays in keyframe-discrete steps. The game prepares a motion from
+the current authored pose to the next authored pose, including omitted
+keyframes, using the per-keyframe `tween` easing function. Without that preview
+the animator cannot show what the player will see.
 
-- D1. **Interpolated playback.** During play, if the current keyframe
-      has `interpolate: true`, lerp the hurtbubble pose toward the
-      next keyframe using the `tween` curve from `src/easing.ts`.
+- D1. **Interpolated playback.** Playback follows the engine's prepared pose
+       chains, terminal keyframe, runtime sample offset, and `tween` curve from
+       `src/easing.ts`.
 - D2. **Scrubbable playhead.** Click/drag the timeline to scrub
       through the animation at sub-keyframe resolution.
 - D3. **Loop / ping-pong controls.** Common authoring need: play the
@@ -142,7 +149,8 @@ shipping a 3D viewport yet.
 
 - G1. **Audio preview.** When playback reaches a keyframe with
       `audio:` set, play the matching .ogg from the loaded source.
-- G2. **Copy/paste keyframes** to clipboard for cross-animation reuse.
+- G2. **Copy/paste keyframes** through the app's reusable clipboard slot for
+       cross-animation reuse (not the operating-system clipboard).
 - G3. **Diff highlight** — mark keyframes modified during the session.
 
 ## Order of work

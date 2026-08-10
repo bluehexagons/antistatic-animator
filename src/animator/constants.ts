@@ -2,7 +2,6 @@
  * Constants and configuration for the animator
  */
 
-import { Ease } from '../easing';
 import { AnimationTypeNames, HandlerEvents, KnownHandlerNames, TweenNames } from './schema';
 import type { Multichoices } from './types';
 
@@ -12,7 +11,7 @@ import type { Multichoices } from './types';
 export const multichoice: { [s: string]: Multichoices } = {
   tween: {
     default: 'linear',
-    choices: [...new Set([...TweenNames, ...Object.getOwnPropertyNames(Ease)])].sort(),
+    choices: [...TweenNames],
   },
   type: {
     default: 'movement',
@@ -30,7 +29,7 @@ export const valueSuggestions: { [s: string]: string[] } = Object.fromEntries(
 export const defaultTypes: { [s: string]: string } = {
   tween: 'string',
   duration: 'number',
-  interpolate: 'bool',
+  interpolate: 'boolean',
   audio: 'string',
   cancellable: 'string',
   type: 'string',

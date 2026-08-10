@@ -51,8 +51,9 @@ export const Timeline: React.FC<TimelineProps> = ({
   onLoopModeChange,
 }) => {
   const hasKeyframes = animation.keyframes.length > 0;
+  const lastPlayableKeyframe = Math.max(0, animation.keyframes.length - 2);
   const total = useMemo(
-    () => animation.keyframes.reduce((s, k) => s + (k.duration ?? 0), 0),
+    () => animation.keyframes.slice(0, -1).reduce((s, k) => s + (k.duration ?? 0), 0),
     [animation]
   );
 
@@ -87,7 +88,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   }, [keyframe]);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || animation.keyframes.length < 2) return;
     let raf = 0;
     let last = performance.now();
     const fps = 60;
@@ -98,16 +99,31 @@ export const Timeline: React.FC<TimelineProps> = ({
       let kf = keyframeRef.current;
       let safe = 0;
       while (animation.keyframes[kf] && safe++ < 256) {
+        if (kf > lastPlayableKeyframe) {
+          if (loopMode === 'loop') {
+            kf = 0;
+            nt = 0;
+          } else if (loopMode === 'ping-pong' && lastPlayableKeyframe > 0) {
+            dirRef.current = -1;
+            kf = lastPlayableKeyframe;
+            nt = (animation.keyframes[kf].duration ?? 1) - 0.0001;
+          } else {
+            onPlayingChange(false);
+            kf = animation.keyframes.length - 1;
+            nt = 0;
+          }
+          break;
+        }
         const dur = animation.keyframes[kf].duration ?? 1;
         if (dirRef.current > 0) {
           if (nt < dur) break;
           nt -= dur;
           kf = kf + 1;
-          if (kf >= animation.keyframes.length) {
+          if (kf > lastPlayableKeyframe) {
             if (loopMode === 'loop') kf = 0;
             else if (loopMode === 'ping-pong') {
               dirRef.current = -1;
-              kf = animation.keyframes.length - 1;
+              kf = lastPlayableKeyframe;
               nt = (animation.keyframes[kf].duration ?? 1) - 0.0001;
             } else {
               onPlayingChange(false);
@@ -125,7 +141,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               kf = 0;
               nt = 0;
             } else if (loopMode === 'loop') {
-              kf = animation.keyframes.length - 1;
+              kf = lastPlayableKeyframe;
               nt = (animation.keyframes[kf].duration ?? 1) - 0.0001;
             } else {
               onPlayingChange(false);
@@ -148,13 +164,23 @@ export const Timeline: React.FC<TimelineProps> = ({
     };
     raf = requestAnimationFrame(tickStep);
     return () => cancelAnimationFrame(raf);
-  }, [playing, animation.keyframes, loopMode, onPlayingChange, onKeyframeSelect, onTickChange]);
+  }, [
+    playing,
+    animation.keyframes,
+    lastPlayableKeyframe,
+    loopMode,
+    onPlayingChange,
+    onKeyframeSelect,
+    onTickChange,
+  ]);
 
   const cumulativeFrame = useMemo(() => {
     let f = 0;
-    for (let i = 0; i < keyframe; i++) f += animation.keyframes[i].duration ?? 0;
+    for (let i = 0; i < Math.min(keyframe, lastPlayableKeyframe + 1); i++) {
+      f += animation.keyframes[i].duration ?? 0;
+    }
     return Math.floor(f + tick);
-  }, [keyframe, tick, animation.keyframes]);
+  }, [keyframe, tick, animation.keyframes, lastPlayableKeyframe]);
 
   const step = (delta: number) => {
     const i = keyframe + delta;
@@ -263,9 +289,16 @@ export const Timeline: React.FC<TimelineProps> = ({
             ⏮
           </button>
           <button
-            onClick={() => onPlayingChange(!playing)}
+            onClick={() => {
+              if (!playing && keyframe >= animation.keyframes.length - 1) {
+                dirRef.current = 1;
+                onKeyframeSelect(0);
+                onTickChange(0);
+              }
+              onPlayingChange(!playing);
+            }}
             className={playing ? 'playing' : ''}
-            disabled={!hasKeyframes}
+            disabled={!hasKeyframes || animation.keyframes.length < 2}
             title={playing ? 'Pause' : 'Play'}
           >
             {playing ? '⏸' : '▶'}

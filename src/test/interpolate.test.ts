@@ -15,28 +15,28 @@ const animationWithInterpolate = (interpolate: boolean, tween?: string): Animati
 });
 
 describe('interpolatedPose', () => {
-  it('returns the keyframe pose when interpolate is unset', () => {
+  it('matches engine interpolation when interpolate is unset', () => {
     const anim = animationWithInterpolate(false);
-    const pose = interpolatedPose(anim, 0, 5);
-    expect(pose).toBe(anim.keyframes[0].hurtbubbles);
+    const pose = interpolatedPose(anim, 0, 5)!;
+    expect(pose[0]).toBeCloseTo(10 * (6 / 11));
   });
 
-  it('returns the keyframe pose when tick is 0', () => {
+  it('uses the engine first-sample offset at tick 0', () => {
     const anim = animationWithInterpolate(true);
-    const pose = interpolatedPose(anim, 0, 0);
-    expect(pose).toBe(anim.keyframes[0].hurtbubbles);
+    const pose = interpolatedPose(anim, 0, 0)!;
+    expect(pose[0]).toBeCloseTo(10 / 11);
   });
 
   it('lerps x/y/r at the midpoint with linear easing', () => {
     const anim = animationWithInterpolate(true);
     const pose = interpolatedPose(anim, 0, 5)!;
-    expect(pose[0]).toBeCloseTo(5);
-    expect(pose[1]).toBeCloseTo(10);
-    expect(pose[2]).toBeCloseTo(3);
+    expect(pose[0]).toBeCloseTo(10 * (6 / 11));
+    expect(pose[1]).toBeCloseTo(20 * (6 / 11));
+    expect(pose[2]).toBeCloseTo(1 + 4 * (6 / 11));
     expect(pose[3]).toBe(1); // state stays discrete
-    expect(pose[4]).toBeCloseTo(10);
-    expect(pose[5]).toBeCloseTo(15);
-    expect(pose[6]).toBeCloseTo(3.5);
+    expect(pose[4]).toBeCloseTo(20 * (6 / 11));
+    expect(pose[5]).toBeCloseTo(30 * (6 / 11));
+    expect(pose[6]).toBeCloseTo(1 + 5 * (6 / 11));
   });
 
   it('respects the next keyframe pose at tick == duration', () => {
@@ -67,5 +67,29 @@ describe('interpolatedPose', () => {
     const pose = interpolatedPose(anim, 0, 5);
     expect(pose).toBe(anim.keyframes[0].hurtbubbles);
     expect(pose?.length).toBe(4);
+  });
+
+  it('holds omitted poses and uses the terminal keyframe as the destination', () => {
+    const anim: Animation = {
+      keyframes: [
+        { duration: 2, hurtbubbles: [0, 0, 1, 1] },
+        { duration: 3 },
+        { duration: 1, hurtbubbles: [10, 0, 1, 1] },
+      ],
+    };
+    expect(interpolatedPose(anim, 1, 0)?.[0]).toBeCloseTo(5);
+    expect(interpolatedPose(anim, 2, 0)).toBe(anim.keyframes[2].hurtbubbles);
+  });
+
+  it('uses the previous runtime pose for an interpolated keyframe', () => {
+    const anim: Animation = {
+      keyframes: [
+        { duration: 10, hurtbubbles: [0, 0, 1, 1] },
+        { duration: 10, interpolate: true, hurtbubbles: [10, 0, 1, 1] },
+        { duration: 1, hurtbubbles: [20, 0, 1, 1] },
+      ],
+    };
+    const previousEnd = 10 * (10 / 11);
+    expect(interpolatedPose(anim, 1, 0)?.[0]).toBeCloseTo(previousEnd + (20 - previousEnd) / 11);
   });
 });

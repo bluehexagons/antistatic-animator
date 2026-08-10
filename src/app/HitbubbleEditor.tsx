@@ -137,6 +137,15 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
     onChange();
   };
 
+  const smearObject = hb.smear && typeof hb.smear === 'object' ? hb.smear : null;
+  const setSmearField = (key: 'x' | 'y' | 'follow', value: string) => {
+    if (!smearObject) return;
+    if (!value) delete smearObject[key];
+    else if (key === 'follow') smearObject.follow = value;
+    else smearObject[key] = Number(value) || 0;
+    onChange();
+  };
+
   // Read flags from any authored form (number bitmask, string, or string[]).
   const flags = flagsToNames(hb.flags);
   const setFlag = (name: string, on: boolean) => {
@@ -243,7 +252,61 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
             onChange={(e) => setAudio(e.target.value)}
           />
         </label>
+        <label className="hbToggle" title="Show the runtime smear anchor">
+          <input
+            type="checkbox"
+            checked={!!hb.smear}
+            onChange={(e) => {
+              if (e.target.checked) hb.smear = true;
+              else delete hb.smear;
+              onChange();
+            }}
+          />
+          <span>smear</span>
+        </label>
+        {hb.smear === true && (
+          <button
+            className="btn ghost"
+            onClick={() => {
+              hb.smear = { follow: hb.follow, x: hb.x, y: hb.y };
+              onChange();
+            }}
+            title="Edit the smear anchor and offsets"
+          >
+            edit offset
+          </button>
+        )}
       </div>
+      {smearObject && (
+        <div className="hbCardRow">
+          <label className="hbField" title="Smear follow anchor">
+            <span>smear follow</span>
+            <input
+              list={`hb-follow-${index}`}
+              value={smearObject.follow ?? ''}
+              onChange={(e) => setSmearField('follow', e.target.value)}
+            />
+          </label>
+          <label className="hbField" title="Smear X offset">
+            <span>smear x</span>
+            <input
+              type="number"
+              step="any"
+              value={smearObject.x ?? ''}
+              onChange={(e) => setSmearField('x', e.target.value)}
+            />
+          </label>
+          <label className="hbField" title="Smear Y offset">
+            <span>smear y</span>
+            <input
+              type="number"
+              step="any"
+              value={smearObject.y ?? ''}
+              onChange={(e) => setSmearField('y', e.target.value)}
+            />
+          </label>
+        </div>
+      )}
       <div className="hbFlags">
         {HitbubbleFlags.map((f) => (
           <label key={f.name} className="hbFlag" title={f.desc}>

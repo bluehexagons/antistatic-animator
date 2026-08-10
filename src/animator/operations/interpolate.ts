@@ -1,26 +1,37 @@
-/**
- * Pose interpolation between adjacent keyframes.
- *
- * Mirrors the engine's per-keyframe `interpolate: true` + `tween: '<easing>'`
- * authoring: a smooth pose blend from this keyframe's pose toward the next
- * keyframe's pose, parameterised by tick / duration.
- */
+/** Runtime-compatible pose preparation and preview helpers. */
 
 import { easeFn } from '../../easing';
 import type { Animation } from '../types';
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** Resolve the authored pose after the engine fills `hurtbubbles: true` gaps. */
+export const resolvedPose = (animation: Animation, keyframe: number): number[] | null => {
+  for (let i = keyframe; i >= 0; i--) {
+    const pose = animation.keyframes[i]?.hurtbubbles;
+    if (Array.isArray(pose)) return pose;
+  }
+  return null;
+};
+
+const nextPoseIndex = (animation: Animation, keyframe: number): number => {
+  for (let i = keyframe + 1; i < animation.keyframes.length; i++) {
+    if (Array.isArray(animation.keyframes[i]?.hurtbubbles)) return i;
+  }
+  return -1;
+};
+
+const sourcePoseIndex = (animation: Animation, keyframe: number): number => {
+  for (let i = keyframe; i >= 0; i--) {
+    if (Array.isArray(animation.keyframes[i]?.hurtbubbles)) return i;
+  }
+  return -1;
+};
+
 /**
- * Compute the displayed hurtbubble pose for the current animation state.
- * Returns the keyframe's own hurtbubbles when:
- *   - `interpolate` is not set on the current keyframe
- *   - there is no next keyframe to blend toward
- *   - tick is 0
- *
- * Otherwise returns a freshly allocated array with each (x, y, r) lerped
- * by the configured ease curve. The `state` column is preserved from the
- * source keyframe — discrete fields don't tween.
+ * Compute the displayed pose using the engine's terminal-frame and omitted
+ * keyframe rules. The final keyframe is a destination pose and contributes no
+ * playable duration; intermediate keyframes without a pose extend the motion.
  */
 export const interpolatedPose = (
   animation: Animation,
@@ -28,30 +39,46 @@ export const interpolatedPose = (
   tick: number
 ): number[] | null => {
   const kf = animation.keyframes[keyframe];
-  if (!kf) return null;
-  const hb = kf.hurtbubbles;
-  if (!Array.isArray(hb)) return null;
+  const source = sourcePoseIndex(animation, keyframe);
+  const authoredFrom = resolvedPose(animation, source === -1 ? keyframe : source);
+  if (!kf || !authoredFrom || keyframe >= animation.keyframes.length - 1) return authoredFrom;
 
-  if (!(kf as { interpolate?: boolean }).interpolate || tick <= 0) {
-    return hb;
-  }
-  const next = animation.keyframes[keyframe + 1];
-  if (!next || !Array.isArray(next.hurtbubbles)) {
-    return hb;
-  }
-  const dur = kf.duration ?? 1;
-  const t = Math.max(0, Math.min(1, tick / dur));
+  // `interpolate: true` starts from the previous runtime pose, which can be
+  // fractionally short of the authored destination because the engine samples
+  // with `(frame + 1) / (duration + 1)`.
+  const from =
+    kf.interpolate === true && keyframe > 0
+      ? (interpolatedPose(
+          animation,
+          keyframe - 1,
+          Math.max(0, (animation.keyframes[keyframe - 1].duration ?? 1) - 1)
+        ) ?? authoredFrom)
+      : authoredFrom;
+
+  const next = nextPoseIndex(animation, source === -1 ? keyframe : source);
+  if (next === -1) return from;
+  const motionDuration = animation.keyframes
+    .slice(source, next)
+    .reduce((sum, item) => sum + (item.duration ?? 0), 0);
+  if (motionDuration <= 0) return from;
+
+  const elapsed =
+    animation.keyframes
+      .slice(source, keyframe)
+      .reduce((sum, item) => sum + (item.duration ?? 0), 0) + Math.max(0, tick);
+  const t = Math.max(0, Math.min(1, (elapsed + 1) / (motionDuration + 1)));
   const ease = easeFn((kf as { tween?: string }).tween);
   const u = ease(t);
 
-  const a = hb;
-  const b = next.hurtbubbles;
+  const b = animation.keyframes[next].hurtbubbles;
+  if (!Array.isArray(b)) return from;
+  const a = from;
   if (a.length !== b.length) {
     console.warn(
       `interpolatedPose: keyframe ${keyframe} hurtbubble count (${a.length}) ` +
-        `differs from next keyframe (${b.length}); skipping interpolation`
+        `differs from target keyframe (${b.length}); skipping interpolation`
     );
-    return hb;
+    return from;
   }
   const len = a.length;
   const out: number[] = [];

@@ -48,6 +48,14 @@ describe('lintAnimation', () => {
     expect(issues.some((i) => /Unknown animation type/.test(i.message))).toBe(true);
   });
 
+  it('does not treat easing helper functions as tween names', () => {
+    const issues = lintAnimation(
+      sampleCharacter(),
+      animationWith({ keyframes: [{ duration: 5, tween: 'inOut' }] })
+    );
+    expect(issues.some((i) => /Unknown tween/.test(i.message))).toBe(true);
+  });
+
   it('flags hitbubbles: true with no predecessor', () => {
     const issues = lintAnimation(
       sampleCharacter(),

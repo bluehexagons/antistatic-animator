@@ -296,8 +296,10 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
       <Section title="Issues" count={issues.length || 'clean'}>
         {issues.length === 0 ? (
           <div className="stageIssue clean">Stage matches scene schema v2.</div>
+        ) : selectedIssues.length === 0 ? (
+          <div className="stageIssue clean">No issues for the selected object.</div>
         ) : (
-          issues.map((issue, index) => (
+          selectedIssues.map((issue, index) => (
             <div className="stageIssue" key={`${issue.path}:${index}`}>
               <strong>{issue.path}</strong> {issue.message}
             </div>

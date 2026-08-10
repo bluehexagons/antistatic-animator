@@ -23,13 +23,14 @@ Except for `../antistatic`, the sister repos are MIT and/or Apache licensed.
 - `npm run build`: build Electron main, preload, and renderer bundles.
 - `npm start`: run Electron from the current `dist/` output.
 - `npm run type-check`: run TypeScript validation without emitting files.
-- `npm run lint`: run ESLint over `src/**/*.{ts,tsx}`.
+- `npm run lint`: run Oxlint over `src/` with warnings denied.
 - `npm run test:run`: run the Vitest suite once.
+- `npm run format:check`: verify Oxfmt formatting.
 - `npm run dist`: package the Electron app with `@electron/packager`.
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript and React function components. Keep domain operations in `src/animator/operations/` and UI behavior in `src/app/` unless shared by design. Follow existing file naming: components use `PascalCase.tsx`, hooks use `hooks.ts`, and tests mirror feature names such as `keyframe-ops.test.ts`. Formatting is handled by Prettier; linting uses ESLint with `@typescript-eslint`. Prefix intentionally unused parameters with `_`. Avoid `any`; it warns and should have a clear reason.
+Use TypeScript and React function components. Keep domain operations in `src/animator/operations/` and UI behavior in `src/app/` unless shared by design. Follow existing file naming: components use `PascalCase.tsx`, hooks use `hooks.ts`, and tests mirror feature names such as `keyframe-ops.test.ts`. Formatting and linting use Oxfmt and Oxlint. Prefix intentionally unused parameters with `_`. Avoid `any`; it warns and should have a clear reason.
 
 ## Testing Guidelines
 

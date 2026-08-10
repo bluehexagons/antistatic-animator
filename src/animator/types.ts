@@ -44,7 +44,7 @@ export type Hitbubble = {
   x?: number;
   y?: number;
   radius?: number;
-  follow?: string;
+  follow?: string | number;
   type?: string;
   damage?: number;
   knockback?: number;
@@ -54,8 +54,8 @@ export type Hitbubble = {
   strong?: boolean;
   /** Flags can be a bitmask, a name string, or an array of name strings. */
   flags?: string[] | number | string;
-  /** Smear trail anchor and offset. */
-  smear?: { x?: number; y?: number; follow?: string };
+  /** Smear trail anchor and offset. `true` follows the hitbubble itself. */
+  smear?: true | { x?: number; y?: number; follow?: string | number };
   /** Audio cue — plain name string or object with pitch/volume. */
   audio?: string | { name?: string; pitch?: number; volume?: number };
   x2?: number;

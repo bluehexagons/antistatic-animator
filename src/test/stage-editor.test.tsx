@@ -24,6 +24,8 @@ describe('stage animation preview', () => {
   it('interpolates tracks and preserves collision segment dimensions', () => {
     const stage = createStageDocument('Fixture');
     addStageSceneItem(stage, 'model');
+    addStageSceneItem(stage, 'model');
+    stage.scene.collision![0].model = 'model-0';
     const animation = {
       id: 'moving',
       tracks: [
@@ -35,7 +37,7 @@ describe('stage animation preview', () => {
           ],
         },
         {
-          target: { kind: 'model' as const, id: 'model-0' },
+          target: { kind: 'model' as const, id: 'model-1' },
           keyframes: [
             { time: 0, position: [0, 0, 0] as [number, number, number] },
             { time: 10, position: [20, 40, 60] as [number, number, number] },
@@ -47,7 +49,8 @@ describe('stage animation preview', () => {
     expect(stageAnimationDuration(animation)).toBe(11);
     expect(sampleStagePosition(animation.tracks[1].keyframes, 5)).toEqual([10, 20, 30]);
     const preview = evaluateStageAnimation(stage, animation, 5);
-    expect(preview.models.get('model-0')).toEqual([10, 20, 30]);
+    expect(preview.models.get('model-1')).toEqual([10, 20, 30]);
+    expect(preview.models.get('model-0')).toEqual([100, 52, 0]);
     expect(preview.collision.get('main-platform')).toEqual({
       from: [-100, 50],
       to: [300, 50],

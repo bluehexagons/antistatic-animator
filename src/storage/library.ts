@@ -81,10 +81,12 @@ export class Library {
 
   /** Update local cache; persistence depends on the backend. */
   async save(name: string, content: string): Promise<void> {
-    this.cache.set(name, content);
     if (this.backend?.canSave) {
       await this.backend.write(name, content);
     }
+    // Only update the cache after persistence succeeds. A failed write must
+    // not make a later save treat stale in-memory content as disk-authoritative.
+    this.cache.set(name, content);
     this.emit();
   }
 

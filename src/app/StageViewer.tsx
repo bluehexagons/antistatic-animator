@@ -28,7 +28,12 @@ import {
   interpolatedModelTransformFrame,
   modelTransformDefaults,
 } from '../animator/operations/model-transform-timeline';
-import { getCapsulePoints, resolveHitbubble, zTint } from './stage/stage-utils';
+import {
+  getCapsulePoints,
+  hitbubblesForKeyframe,
+  resolveHitbubble,
+  zTint,
+} from './stage/stage-utils';
 import { KnockbackGizmo } from './stage/KnockbackGizmo';
 
 export interface StageViewerProps {
@@ -152,13 +157,7 @@ export const StageViewer: React.FC<StageViewerProps> = ({
 
   const hitbubbles = useMemo<Hitbubble[] | null>(() => {
     if (!kf || !objHas(kf, 'hitbubbles')) return null;
-    let cur = kf;
-    let i = keyframe;
-    while (cur?.hitbubbles === true) {
-      i--;
-      cur = animation.keyframes[i];
-    }
-    return Array.isArray(cur?.hitbubbles) ? cur.hitbubbles : null;
+    return hitbubblesForKeyframe(animation, keyframe);
   }, [kf, keyframe, animation.keyframes]);
 
   // Group nudge: arrows/WASD move every group member. Only active for multi-
@@ -529,7 +528,9 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       const cx = (pose[i1] + pose[i2]) * 0.5;
       const cy = (pose[i1 + 1] + pose[i2 + 1]) * 0.5;
       const vx = cx + activeModelTransforms[offset];
-      const vy = cy + activeModelTransforms[offset + 1];
+      // Model transform frames use the engine's flipped Y space; pose data
+      // remains in authored space for editing.
+      const vy = cy - activeModelTransforms[offset + 1];
       const radius = Math.max(pose[i1 + 2] ?? 4, 4);
       const axisLength = radius * 0.9;
       const radians = ((activeModelTransforms[offset + 2] ?? 0) * Math.PI) / 180;
@@ -707,75 +708,97 @@ export const StageViewer: React.FC<StageViewerProps> = ({
   const renderHitbubbles = () => {
     if (!showHitboxes || !hitbubbles) return null;
     const pose = displayPose ?? hurtbubbles;
-    return hitbubbles.map((hb, i) => {
-      const resolved = resolveHitbubble(hb, character, pose);
-      const cx = toSvgX(resolved.x);
-      const cy = toSvgY(resolved.y);
-      const r = (hb.radius ?? 0) * camera.scale;
-      const color = HitbubbleColors[hb.type as string] ?? HitbubbleColors.none;
-      const selected = i === selectedHitbubble;
-      const opacity = selected ? 0.5 : 0.32;
+    return hitbubbles
+      .map((hb, index) => ({ hb, index }))
+      .filter(({ hb }) => {
+        const start = hb.start ?? 0;
+        const end = hb.end || (kf?.duration ?? 0);
+        return tick >= start && tick < end;
+      })
+      .map(({ hb, index: i }) => {
+        const resolved = resolveHitbubble(hb, character, pose);
+        const cx = toSvgX(resolved.x);
+        const cy = toSvgY(resolved.y);
+        const r = (hb.radius ?? 0) * camera.scale;
+        const audioName =
+          typeof hb.audio === 'string'
+            ? hb.audio
+            : hb.audio && typeof hb.audio === 'object'
+              ? hb.audio.name
+              : undefined;
+        const colorName =
+          typeof hb.color === 'string'
+            ? hb.color
+            : typeof hb.effect === 'string'
+              ? hb.effect
+              : audioName;
+        const color =
+          HitbubbleColors[colorName ?? ''] ??
+          HitbubbleColors[hb.type as string] ??
+          HitbubbleColors.default;
+        const selected = i === selectedHitbubble;
+        const opacity = selected ? 0.5 : 0.32;
 
-      return (
-        <g key={`hit-${i}`} style={{ cursor: 'pointer' }}>
-          {/* Smear trail */}
-          {resolved.hasSmear && (
-            <g>
+        return (
+          <g key={`hit-${i}`} style={{ cursor: 'pointer' }}>
+            {/* Smear trail */}
+            {resolved.hasSmear && (
+              <g>
+                <line
+                  x1={toSvgX(resolved.smearX)}
+                  y1={toSvgY(resolved.smearY)}
+                  x2={cx}
+                  y2={cy}
+                  stroke={color}
+                  strokeWidth="1.2"
+                  strokeDasharray="4 3"
+                  opacity="0.5"
+                />
+                <circle
+                  cx={toSvgX(resolved.smearX)}
+                  cy={toSvgY(resolved.smearY)}
+                  r={r}
+                  fill={color}
+                  opacity="0.10"
+                  stroke={color}
+                  strokeWidth="0.5"
+                  strokeDasharray="2 3"
+                />
+              </g>
+            )}
+            {resolved.hasAnchor && (
               <line
-                x1={toSvgX(resolved.smearX)}
-                y1={toSvgY(resolved.smearY)}
-                x2={cx}
-                y2={cy}
+                x1={cx}
+                y1={cy}
+                x2={toSvgX(resolved.anchorX)}
+                y2={toSvgY(resolved.anchorY)}
                 stroke={color}
-                strokeWidth="1.2"
-                strokeDasharray="4 3"
-                opacity="0.5"
+                strokeWidth="0.9"
+                strokeDasharray="3 2"
+                opacity="0.7"
               />
-              <circle
-                cx={toSvgX(resolved.smearX)}
-                cy={toSvgY(resolved.smearY)}
-                r={r}
-                fill={color}
-                opacity="0.10"
-                stroke={color}
-                strokeWidth="0.5"
-                strokeDasharray="2 3"
-              />
-            </g>
-          )}
-          {resolved.hasAnchor && (
-            <line
-              x1={cx}
-              y1={cy}
-              x2={toSvgX(resolved.anchorX)}
-              y2={toSvgY(resolved.anchorY)}
+            )}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill={color}
+              fillOpacity={opacity}
               stroke={color}
-              strokeWidth="0.9"
-              strokeDasharray="3 2"
-              opacity="0.7"
+              strokeWidth={selected ? 2 : 1}
             />
-          )}
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill={color}
-            fillOpacity={opacity}
-            stroke={color}
-            strokeWidth={selected ? 2 : 1}
-          />
-          {/* Knockback gizmo */}
-          {(typeof hb.knockback === 'number' || typeof hb.angle === 'number') && (
-            <KnockbackGizmo cx={cx} cy={cy} r={r} hb={hb} color={color} selected={selected} />
-          )}
-          {selected && (
-            <text x={cx + r + 6} y={cy + 3} fill={color} fontFamily="monospace" fontSize="10">
-              #{i} {(hb.damage ?? 0).toString()}%
-            </text>
-          )}
-        </g>
-      );
-    });
+            {/* Knockback gizmo */}
+            {(typeof hb.knockback === 'number' || typeof hb.angle === 'number') && (
+              <KnockbackGizmo cx={cx} cy={cy} r={r} hb={hb} color={color} selected={selected} />
+            )}
+            {selected && (
+              <text x={cx + r + 6} y={cy + 3} fill={color} fontFamily="monospace" fontSize="10">
+                #{i} {(hb.damage ?? 0).toString()}%
+              </text>
+            )}
+          </g>
+        );
+      });
   };
 
   // --- Selected hurtbubble overlay -----------------------------

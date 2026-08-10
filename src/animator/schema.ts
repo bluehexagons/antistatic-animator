@@ -79,18 +79,26 @@ export const HitbubbleFlags = [
 /** Default knockback colors (mirrors DefaultColors in bubbles.ts).
  *  Used for the gizmo/visualization tint. */
 export const HitbubbleColors: Record<string, string> = {
-  none: '#f06464',
-  ground: '#f06464',
-  aerial: '#ff8a4a',
-  special: '#b06aff',
-  projectile: '#5ad48f',
-  grab: '#5ad48f',
-  throw: '#5ad48f',
+  // The engine starts with DefaultColors.default and only overrides the
+  // named grab/throw/electric effects. Keep type colors as useful editor
+  // hints without implying that the runtime has a separate palette for each.
+  default: '#0fe68c',
+  highhit: '#13d973',
+  lowhit: '#0dd980',
+  wham: '#00ff80',
+  none: '#0fe68c',
+  ground: '#0fe68c',
+  aerial: '#0fe68c',
+  special: '#0fe68c',
+  projectile: '#0fe68c',
+  phasing: '#0fe68c',
+  grab: '#4dff80',
+  throw: '#80ff80',
   shield: '#6aa9ff',
-  wind: '#cdd2dc',
-  counter: '#ffe066',
-  reflector: '#80b6ff',
-  electric: '#ffe066',
+  wind: '#0fe68c',
+  counter: '#0fe68c',
+  reflector: '#0fe68c',
+  electric: '#26ff80',
 };
 
 /** Handler event slots — `animation.ts:542` (`handlerEvents`).
@@ -132,6 +140,17 @@ export const KnownHandlerNames: Record<HandlerEvent, string[]> = {
     'air',
     'tumble',
     'helpless',
+    'respawn',
+    'stunned',
+    'ledgegrab',
+    'skid',
+    'airjumpHandler',
+    'brake',
+    'stop',
+    'remove',
+    'setAnimation',
+    'pivot',
+    'airborne',
   ],
   start: ['startWalk', 'startRun', 'startJump', 'startGrab', 'startAir'],
   end: ['endWalk', 'endShield', 'endGrab', 'endAir'],

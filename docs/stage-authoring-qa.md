@@ -23,6 +23,8 @@ Open the Antistatic repository as the source and select **Stages**.
   issue. This covers positive `scaleY`; Ruins covers negative `scaleY`.
 - Select `animation-0` on **Eroded** and **Crossing**. Scrub, play, pause, loop,
   and ping-pong preview while confirming the segment keeps its dimensions.
+- For a collision with a linked `model`, preview its animation and confirm the
+  visual model follows the segment center instead of remaining stationary.
 - Drag collision segments and endpoints. Resize models, fog, particle volumes,
   point-light range, and blast bounds. Pan with middle/right drag and zoom with
   the wheel.
@@ -34,6 +36,12 @@ Open the Antistatic repository as the source and select **Stages**.
   Restore it, save, reopen, and confirm JSONC comments and values round-trip.
 - Create a new stage and add every available scene-object type plus an animation
   track. Save it and run `npm run check:stages` in the game repository.
+
+For character parity, open an attack with `smear: true`, a partial `start` /
+`end` hitbox window, and a `hitbubbles: true` continuation. Confirm the preview
+does not show the hitbox outside its active window and that the smear remains
+anchored to the named bubble. The final animation keyframe should be visible as
+the terminal pose but should not add to the playable frame count.
 
 Finish with the game-side checklist at `../antistatic/docs/qa/stage-authoring.md`
 to verify runtime collision, effects, and visual parity.

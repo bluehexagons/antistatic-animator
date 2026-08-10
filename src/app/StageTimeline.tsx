@@ -23,6 +23,9 @@ const initialPosition = (
   return [...(stage.scene.collision?.find((collision) => collision.id === id)?.from ?? [0, 0])];
 };
 
+const targetValue = (target: { kind: 'model' | 'collision'; id: string }) =>
+  JSON.stringify([target.kind, target.id]);
+
 export const StageTimeline: React.FC<StageTimelineProps> = ({
   stage,
   selection,
@@ -45,6 +48,12 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
   ];
   const duration = animation ? stageAnimationDuration(animation) : 1;
   const lastFrame = Math.max(0, duration - 1);
+  const hasAvailableTarget = targets.some(
+    (target) =>
+      !animation?.tracks.some(
+        (track) => track.target.kind === target.kind && track.target.id === target.id
+      )
+  );
   const frameRef = useRef(frame);
   const directionRef = useRef(1);
   frameRef.current = frame;
@@ -98,8 +107,20 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
   }
 
   const addTrack = () => {
-    const target = targets[0];
+    const target = targets.find(
+      (candidate) =>
+        !animation.tracks.some(
+          (track) => track.target.kind === candidate.kind && track.target.id === candidate.id
+        )
+    );
     if (!target) return;
+    if (
+      animation.tracks.some(
+        (track) => track.target.kind === target.kind && track.target.id === target.id
+      )
+    ) {
+      return;
+    }
     animation.tracks.push({
       target: { ...target },
       keyframes: [{ time: 0, position: initialPosition(stage, target.kind, target.id) }],
@@ -116,7 +137,9 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
             className="miniAction"
             title={playing ? 'Pause' : 'Play'}
             onClick={() => {
-              if (!playing && frame >= lastFrame) onFrameChange(0);
+              if (!playing && (frame >= lastFrame || frame <= 0)) {
+                onFrameChange((animation.speed ?? 1) < 0 ? lastFrame : 0);
+              }
               onPlayingChange(!playing);
             }}
           >
@@ -156,7 +179,7 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
         </label>
         <span className="grow" />
         <span className="stats">{animation.tracks.length} tracks</span>
-        <button className="btn" disabled={targets.length === 0} onClick={addTrack}>
+        <button className="btn" disabled={!hasAvailableTarget} onClick={addTrack}>
           Add track
         </button>
       </div>
@@ -170,9 +193,9 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
           <div className="stageTrack" key={`${track.target.kind}:${track.target.id}:${trackIndex}`}>
             <div className="stageTrackHeader">
               <select
-                value={`${track.target.kind}:${track.target.id}`}
+                value={targetValue(track.target)}
                 onChange={(event) => {
-                  const [kind, id] = event.target.value.split(':') as [
+                  const [kind, id] = JSON.parse(event.target.value) as [
                     'model' | 'collision',
                     string,
                   ];
@@ -186,7 +209,7 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
                 }}
               >
                 {targets.map((target) => (
-                  <option key={`${target.kind}:${target.id}`} value={`${target.kind}:${target.id}`}>
+                  <option key={targetValue(target)} value={targetValue(target)}>
                     {target.kind}: {target.id}
                   </option>
                 ))}
