@@ -109,7 +109,15 @@ export const buildAgentPlayArgs = (
 };
 
 export const buildAgentPlayEnvironment = (
-  options: Pick<AgentPlayOptions, 'headlessMenu' | 'stage'>,
+  options: Pick<
+    AgentPlayOptions,
+    | 'headlessMenu'
+    | 'stage'
+    | 'versusPlayers'
+    | 'versusCpus'
+    | 'versusCpuLevel'
+    | 'versusCpuCharacter'
+  >,
   baseEnvironment: NodeJS.ProcessEnv = process.env
 ): NodeJS.ProcessEnv => {
   const environment = { ...baseEnvironment };
@@ -117,6 +125,18 @@ export const buildAgentPlayEnvironment = (
   else delete environment.ANTISTATIC_HEADLESS_MENU;
   if (options.stage) environment.ANTISTATIC_HEADLESS_STAGE = options.stage;
   else delete environment.ANTISTATIC_HEADLESS_STAGE;
+  if (options.versusPlayers && options.versusPlayers.length > 0) {
+    environment.ANTISTATIC_HEADLESS_VERSUS_PLAYERS = options.versusPlayers.join(',');
+  } else delete environment.ANTISTATIC_HEADLESS_VERSUS_PLAYERS;
+  if (typeof options.versusCpus === 'number') {
+    environment.ANTISTATIC_HEADLESS_VERSUS_CPUS = String(options.versusCpus);
+  } else delete environment.ANTISTATIC_HEADLESS_VERSUS_CPUS;
+  if (typeof options.versusCpuLevel === 'number') {
+    environment.ANTISTATIC_HEADLESS_VERSUS_CPU_LEVEL = String(options.versusCpuLevel);
+  } else delete environment.ANTISTATIC_HEADLESS_VERSUS_CPU_LEVEL;
+  if (options.versusCpuCharacter) {
+    environment.ANTISTATIC_HEADLESS_VERSUS_CPU_CHARACTER = options.versusCpuCharacter;
+  } else delete environment.ANTISTATIC_HEADLESS_VERSUS_CPU_CHARACTER;
   return environment;
 };
 

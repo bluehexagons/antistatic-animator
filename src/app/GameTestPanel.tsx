@@ -20,6 +20,7 @@ export interface GameTestPanelProps {
   onStopGame: () => Promise<void>;
   onStartAgentPlay: (options: Omit<AgentPlayOptions, 'rootDir'>) => Promise<void>;
   onRequest: (request: AgentPlayRequest) => Promise<void>;
+  onCaptureBatch: (frames: number[]) => Promise<string | null>;
   onStopAgentPlay: () => Promise<void>;
   onClose: () => void;
 }
@@ -51,6 +52,7 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
   onStopGame,
   onStartAgentPlay,
   onRequest,
+  onCaptureBatch,
   onStopAgentPlay,
   onClose,
 }) => {
@@ -62,7 +64,17 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
   const [debugSetup, setDebugSetup] = useState(false);
   const [debugStage, setDebugStage] = useState('Ruins');
   const [debugCharacter, setDebugCharacter] = useState('Silicon');
+  const [versusSetup, setVersusSetup] = useState(false);
+  const [versusCharacter, setVersusCharacter] = useState('Silicon');
+  const [versusOpponent, setVersusOpponent] = useState('Carbon');
+  const [versusCpuLevel, setVersusCpuLevel] = useState(3);
+  const [autoStartBattle, setAutoStartBattle] = useState(true);
   const [customRequest, setCustomRequest] = useState('{"command":"observe"}');
+  const [targetFrame, setTargetFrame] = useState('60');
+  const [waitScene, setWaitScene] = useState('battle');
+  const [waitMaxFrames, setWaitMaxFrames] = useState('600');
+  const [captureFrames, setCaptureFrames] = useState('0,1,2,4,8,16');
+  const [captureStatus, setCaptureStatus] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const observation = response?.observation ?? ready?.observation;
   const summary = observationSummary(observation);
@@ -91,16 +103,60 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
     }
   };
 
+  const stepToFrame = () => {
+    const target = Number.parseInt(targetFrame, 10);
+    const current = observation?.frame ?? 0;
+    if (!Number.isSafeInteger(target) || target < current) {
+      setRequestError(`Target frame must be an integer at least ${current}.`);
+      return;
+    }
+    if (target === current) {
+      request({ command: 'observe' });
+      return;
+    }
+    request({ command: 'step', frames: target - current });
+  };
+
+  const waitForScene = () => {
+    const scene = waitScene.trim();
+    const maxFrames = Number.parseInt(waitMaxFrames, 10);
+    if (!scene || !Number.isSafeInteger(maxFrames) || maxFrames < 1) {
+      setRequestError('Enter a scene and a positive maximum frame count.');
+      return;
+    }
+    request({ command: 'wait', until: { scene }, maxFrames });
+  };
+
+  const captureSequence = () => {
+    const frames = [
+      ...new Set(captureFrames.split(',').map((value) => Number.parseInt(value.trim(), 10))),
+    ]
+      .filter((frame) => Number.isSafeInteger(frame) && frame >= 0)
+      .sort((a, b) => a - b);
+    if (frames.length === 0) {
+      setRequestError('Enter one or more non-negative capture frames.');
+      return;
+    }
+    setRequestError(null);
+    void onCaptureBatch(frames).then((path) => {
+      if (path) setCaptureStatus(`Last capture: ${path}`);
+    });
+  };
+
   const start = () => {
     void onStartAgentPlay({
-      startMode: debugSetup ? 'training' : startMode,
+      startMode: debugSetup ? 'training' : versusSetup ? 'versus' : startMode,
       compile,
       render,
       softwareGl,
       resolution,
       headlessMenu: debugSetup ? 'training-menu' : undefined,
       stage: debugSetup ? debugStage : undefined,
-      character: debugSetup ? debugCharacter : undefined,
+      character: debugSetup ? debugCharacter : versusSetup ? versusCharacter : undefined,
+      versusCpus: versusSetup ? 1 : undefined,
+      versusCpuLevel: versusSetup ? versusCpuLevel : undefined,
+      versusCpuCharacter: versusSetup ? versusOpponent : undefined,
+      autoStartBattle: versusSetup && autoStartBattle,
     });
   };
 
@@ -172,7 +228,7 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                     <select
                       value={startMode}
                       onChange={(e) => setStartMode(e.target.value as AntistaticStartMode)}
-                      disabled={debugSetup}
+                      disabled={debugSetup || versusSetup}
                     >
                       {startModes.map((mode) => (
                         <option key={mode} value={mode}>
@@ -192,6 +248,36 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                         <input
                           value={debugCharacter}
                           onChange={(e) => setDebugCharacter(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
+                  {versusSetup && (
+                    <>
+                      <label>
+                        Player
+                        <input
+                          value={versusCharacter}
+                          onChange={(e) => setVersusCharacter(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        CPU
+                        <input
+                          value={versusOpponent}
+                          onChange={(e) => setVersusOpponent(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        CPU level
+                        <input
+                          type="number"
+                          min={0}
+                          max={6}
+                          value={versusCpuLevel}
+                          onChange={(e) =>
+                            setVersusCpuLevel(Math.max(0, Math.min(6, Number(e.target.value) || 0)))
+                          }
                         />
                       </label>
                     </>
@@ -234,15 +320,45 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                     <input
                       type="checkbox"
                       checked={debugSetup}
-                      onChange={(e) => setDebugSetup(e.target.checked)}
+                      onChange={(e) => {
+                        setDebugSetup(e.target.checked);
+                        if (e.target.checked) setVersusSetup(false);
+                      }}
                     />{' '}
                     Debug setup
                   </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={versusSetup}
+                      onChange={(e) => {
+                        setVersusSetup(e.target.checked);
+                        if (e.target.checked) setDebugSetup(false);
+                      }}
+                    />{' '}
+                    CPU versus
+                  </label>
+                  {versusSetup && (
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={autoStartBattle}
+                        onChange={(e) => setAutoStartBattle(e.target.checked)}
+                      />{' '}
+                      Start battle
+                    </label>
+                  )}
                 </div>
                 {debugSetup && (
                   <div className="gamePanelPresetNote">
                     Starts training on the requested stage, attaches the character to port 0, and
                     opens the debug menu so the scene is ready for inspection.
+                  </div>
+                )}
+                {versusSetup && (
+                  <div className="gamePanelPresetNote">
+                    Seeds the selected player and CPU through Antistatic&apos;s versus flow. Start
+                    battle completes the normal character/stage transition before returning control.
                   </div>
                 )}
                 <button className="btn primary" disabled={!rootDir || busy} onClick={start}>
@@ -368,6 +484,59 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                     <strong>{String(value)}</strong>
                   </div>
                 ))}
+              </div>
+            )}
+            {active && (
+              <div className="gameNavigation">
+                <div className="gamePanelSectionTitle">Frame navigation</div>
+                <div className="gameInlineForm">
+                  <label>
+                    Step to frame
+                    <input
+                      type="number"
+                      min={observation?.frame ?? 0}
+                      value={targetFrame}
+                      onChange={(e) => setTargetFrame(e.target.value)}
+                    />
+                  </label>
+                  <button className="btn ghost" disabled={busy} onClick={stepToFrame}>
+                    Advance
+                  </button>
+                  <label>
+                    Wait for scene
+                    <input value={waitScene} onChange={(e) => setWaitScene(e.target.value)} />
+                  </label>
+                  <label>
+                    Max frames
+                    <input
+                      type="number"
+                      min={1}
+                      value={waitMaxFrames}
+                      onChange={(e) => setWaitMaxFrames(e.target.value)}
+                    />
+                  </label>
+                  <button className="btn ghost" disabled={busy} onClick={waitForScene}>
+                    Wait
+                  </button>
+                </div>
+              </div>
+            )}
+            {active && screenshotsAvailable && (
+              <div className="gameNavigation gameCaptureSequence">
+                <div className="gamePanelSectionTitle">Capture sequence</div>
+                <div className="gameInlineForm">
+                  <label>
+                    Absolute frames from current
+                    <input
+                      value={captureFrames}
+                      onChange={(e) => setCaptureFrames(e.target.value)}
+                    />
+                  </label>
+                  <button className="btn ghost" disabled={busy} onClick={captureSequence}>
+                    Capture frames
+                  </button>
+                </div>
+                {captureStatus && <div className="gamePanelStatus">{captureStatus}</div>}
               </div>
             )}
             {active && (

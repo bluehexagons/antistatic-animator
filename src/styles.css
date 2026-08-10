@@ -1874,6 +1874,52 @@ button.btn.ghost:hover {
   line-height: 1.45;
 }
 
+.gameNavigation {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.gameInlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.gameInlineForm label {
+  display: flex;
+  flex: 1 1 110px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: var(--fg-dim);
+  font-size: 10px;
+}
+
+.gameInlineForm input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 7px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--fg);
+  font: var(--font-mono);
+  font-size: 11px;
+}
+
+.gameInlineForm input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.gameCaptureSequence {
+  margin-bottom: 2px;
+}
+
 .gameObservationGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

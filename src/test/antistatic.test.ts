@@ -60,13 +60,24 @@ describe('Antistatic launch helpers', () => {
   it('maps debug startup options to isolated headless environment values', () => {
     expect(
       buildAgentPlayEnvironment(
-        { headlessMenu: 'training-menu', stage: 'Debug' },
+        {
+          headlessMenu: 'training-menu',
+          stage: 'Debug',
+          versusPlayers: ['Silicon'],
+          versusCpus: 1,
+          versusCpuLevel: 4,
+          versusCpuCharacter: 'Carbon',
+        },
         { PATH: '/bin', ANTISTATIC_HEADLESS_STAGE: 'Ruins' }
       )
     ).toMatchObject({
       PATH: '/bin',
       ANTISTATIC_HEADLESS_MENU: 'training-menu',
       ANTISTATIC_HEADLESS_STAGE: 'Debug',
+      ANTISTATIC_HEADLESS_VERSUS_PLAYERS: 'Silicon',
+      ANTISTATIC_HEADLESS_VERSUS_CPUS: '1',
+      ANTISTATIC_HEADLESS_VERSUS_CPU_LEVEL: '4',
+      ANTISTATIC_HEADLESS_VERSUS_CPU_CHARACTER: 'Carbon',
     });
     expect(
       buildAgentPlayEnvironment({}, { ANTISTATIC_HEADLESS_MENU: 'training-menu' })

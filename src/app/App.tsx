@@ -602,6 +602,27 @@ const Shell: React.FC = () => {
           });
           setAgentResponse(response);
         }
+        if (options.autoStartBattle) {
+          const selection = await window.electronAPI.requestAntistaticAgentPlay({
+            command: 'input-timeline',
+            port: 0,
+            events: [
+              { frame: 0, input: { start: 1 } },
+              { frame: 65, input: {} },
+              { frame: 90, input: { start: 1 } },
+              { frame: 155, input: {} },
+            ],
+          });
+          setAgentResponse(selection);
+          if (!selection.ok)
+            throw new Error(selection.error?.message ?? 'Unable to enter the versus battle flow');
+          const battle = await window.electronAPI.requestAntistaticAgentPlay({
+            command: 'wait',
+            maxFrames: 600,
+            until: { scene: 'battle', playerCount: 2 },
+          });
+          setAgentResponse(battle);
+        }
       } catch (err) {
         setAgentReady(null);
         setGameError((err as Error).message ?? String(err));
@@ -621,6 +642,46 @@ const Shell: React.FC = () => {
       if (request.command === 'quit') setAgentReady(null);
     } catch (err) {
       setGameError((err as Error).message ?? String(err));
+    } finally {
+      setGameBusy(false);
+    }
+  }, []);
+
+  const handleCaptureBatch = useCallback(async (frames: number[]): Promise<string | null> => {
+    setGameBusy(true);
+    setGameError(null);
+    try {
+      let response = await window.electronAPI.requestAntistaticAgentPlay({ command: 'observe' });
+      setAgentResponse(response);
+      if (!response.ok) throw new Error(response.error?.message ?? 'Unable to observe the game');
+      let currentFrame = response.observation?.frame ?? 0;
+      let lastPath: string | null = null;
+      for (const frame of frames) {
+        if (frame < currentFrame) continue;
+        if (frame > currentFrame) {
+          response = await window.electronAPI.requestAntistaticAgentPlay({
+            command: 'step',
+            frames: frame - currentFrame,
+          });
+          setAgentResponse(response);
+          if (!response.ok)
+            throw new Error(response.error?.message ?? `Unable to reach frame ${frame}`);
+          currentFrame = response.observation?.frame ?? frame;
+        }
+        response = await window.electronAPI.requestAntistaticAgentPlay({
+          command: 'screenshot',
+          name: `animator-frame-${String(frame).padStart(6, '0')}`,
+        });
+        setAgentResponse(response);
+        if (!response.ok)
+          throw new Error(response.error?.message ?? `Unable to capture frame ${frame}`);
+        const result = response.result as { path?: unknown } | undefined;
+        if (typeof result?.path === 'string') lastPath = result.path;
+      }
+      return lastPath;
+    } catch (err) {
+      setGameError((err as Error).message ?? String(err));
+      return null;
     } finally {
       setGameBusy(false);
     }
@@ -1046,6 +1107,7 @@ const Shell: React.FC = () => {
           onStopGame={handleStopGame}
           onStartAgentPlay={handleStartAgentPlay}
           onRequest={handleAgentRequest}
+          onCaptureBatch={handleCaptureBatch}
           onStopAgentPlay={handleStopAgentPlay}
           onClose={() => setShowGameTools(false)}
         />

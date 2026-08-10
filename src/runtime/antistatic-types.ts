@@ -62,6 +62,16 @@ export interface AgentPlayOptions {
   stage?: string;
   /** Character attached to the first scripted controller after startup. */
   character?: string;
+  /** Player characters seeded by Antistatic's headless versus startup. */
+  versusPlayers?: string[];
+  /** Number of headless CPU opponents to seed in versus select. */
+  versusCpus?: number;
+  /** CPU difficulty for a headless versus preset. */
+  versusCpuLevel?: number;
+  /** CPU character for a headless versus preset. */
+  versusCpuCharacter?: string;
+  /** Complete the production versus flow after startup. */
+  autoStartBattle?: boolean;
 }
 
 export interface AntistaticLaunchResult {

@@ -55,6 +55,14 @@ ipcMain.handle('startAntistaticAgentPlay', (_event, options: unknown) => {
     headlessMenu: typeof value.headlessMenu === 'string' ? value.headlessMenu : undefined,
     stage: typeof value.stage === 'string' ? value.stage : undefined,
     character: typeof value.character === 'string' ? value.character : undefined,
+    versusPlayers: Array.isArray(value.versusPlayers)
+      ? value.versusPlayers.filter((entry): entry is string => typeof entry === 'string')
+      : undefined,
+    versusCpus: typeof value.versusCpus === 'number' ? value.versusCpus : undefined,
+    versusCpuLevel: typeof value.versusCpuLevel === 'number' ? value.versusCpuLevel : undefined,
+    versusCpuCharacter:
+      typeof value.versusCpuCharacter === 'string' ? value.versusCpuCharacter : undefined,
+    autoStartBattle: value.autoStartBattle === true,
   });
 });
 
