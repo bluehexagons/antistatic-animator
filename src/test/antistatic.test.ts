@@ -3,6 +3,7 @@ import { join, win32 } from 'node:path';
 import {
   antistaticExecutableCandidates,
   buildAgentPlayArgs,
+  buildAgentPlayEnvironment,
   resolveAntistaticExecutable,
 } from '../runtime/antistatic';
 
@@ -54,5 +55,21 @@ describe('Antistatic launch helpers', () => {
       '640x360',
       '--software-gl',
     ]);
+  });
+
+  it('maps debug startup options to isolated headless environment values', () => {
+    expect(
+      buildAgentPlayEnvironment(
+        { headlessMenu: 'training-menu', stage: 'Debug' },
+        { PATH: '/bin', ANTISTATIC_HEADLESS_STAGE: 'Ruins' }
+      )
+    ).toMatchObject({
+      PATH: '/bin',
+      ANTISTATIC_HEADLESS_MENU: 'training-menu',
+      ANTISTATIC_HEADLESS_STAGE: 'Debug',
+    });
+    expect(
+      buildAgentPlayEnvironment({}, { ANTISTATIC_HEADLESS_MENU: 'training-menu' })
+    ).not.toHaveProperty('ANTISTATIC_HEADLESS_MENU');
   });
 });

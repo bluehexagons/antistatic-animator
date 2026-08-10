@@ -52,6 +52,9 @@ ipcMain.handle('startAntistaticAgentPlay', (_event, options: unknown) => {
     softwareGl: value.softwareGl === true,
     resolution:
       typeof value.resolution === 'string' && value.resolution ? value.resolution : '1280x720',
+    headlessMenu: typeof value.headlessMenu === 'string' ? value.headlessMenu : undefined,
+    stage: typeof value.stage === 'string' ? value.stage : undefined,
+    character: typeof value.character === 'string' ? value.character : undefined,
   });
 });
 

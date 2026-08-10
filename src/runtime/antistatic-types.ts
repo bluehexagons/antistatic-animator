@@ -56,6 +56,12 @@ export interface AgentPlayOptions {
   render: boolean;
   softwareGl: boolean;
   resolution: string;
+  /** Optional headless startup screen, e.g. Antistatic's training-menu. */
+  headlessMenu?: string;
+  /** Stage passed to headless startup screens that support stage selection. */
+  stage?: string;
+  /** Character attached to the first scripted controller after startup. */
+  character?: string;
 }
 
 export interface AntistaticLaunchResult {

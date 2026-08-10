@@ -59,6 +59,9 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
   const [render, setRender] = useState(false);
   const [softwareGl, setSoftwareGl] = useState(false);
   const [resolution, setResolution] = useState('1280x720');
+  const [debugSetup, setDebugSetup] = useState(false);
+  const [debugStage, setDebugStage] = useState('Ruins');
+  const [debugCharacter, setDebugCharacter] = useState('Silicon');
   const [customRequest, setCustomRequest] = useState('{"command":"observe"}');
   const [requestError, setRequestError] = useState<string | null>(null);
   const observation = response?.observation ?? ready?.observation;
@@ -89,7 +92,16 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
   };
 
   const start = () => {
-    void onStartAgentPlay({ startMode, compile, render, softwareGl, resolution });
+    void onStartAgentPlay({
+      startMode: debugSetup ? 'training' : startMode,
+      compile,
+      render,
+      softwareGl,
+      resolution,
+      headlessMenu: debugSetup ? 'training-menu' : undefined,
+      stage: debugSetup ? debugStage : undefined,
+      character: debugSetup ? debugCharacter : undefined,
+    });
   };
 
   return (
@@ -160,6 +172,7 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                     <select
                       value={startMode}
                       onChange={(e) => setStartMode(e.target.value as AntistaticStartMode)}
+                      disabled={debugSetup}
                     >
                       {startModes.map((mode) => (
                         <option key={mode} value={mode}>
@@ -168,6 +181,21 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                       ))}
                     </select>
                   </label>
+                  {debugSetup && (
+                    <>
+                      <label>
+                        Debug stage
+                        <input value={debugStage} onChange={(e) => setDebugStage(e.target.value)} />
+                      </label>
+                      <label>
+                        Character
+                        <input
+                          value={debugCharacter}
+                          onChange={(e) => setDebugCharacter(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
                   <label>
                     Resolution
                     <input
@@ -202,7 +230,21 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                     />{' '}
                     Software GL
                   </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={debugSetup}
+                      onChange={(e) => setDebugSetup(e.target.checked)}
+                    />{' '}
+                    Debug setup
+                  </label>
                 </div>
+                {debugSetup && (
+                  <div className="gamePanelPresetNote">
+                    Starts training on the requested stage, attaches the character to port 0, and
+                    opens the debug menu so the scene is ready for inspection.
+                  </div>
+                )}
                 <button className="btn primary" disabled={!rootDir || busy} onClick={start}>
                   Start headless session
                 </button>
@@ -237,6 +279,70 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                 >
                   Step 60
                 </button>
+                {ready.startMode === 'training' && (
+                  <>
+                    <button
+                      className="btn ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        request({ command: 'act', port: 0, frames: 2, input: { start: 1 } })
+                      }
+                      title="Toggle the training debug menu"
+                    >
+                      Toggle menu
+                    </button>
+                    <button
+                      className="btn ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        request({ command: 'act', port: 0, frames: 2, input: { dright: 1 } })
+                      }
+                      title="Save the current training state"
+                    >
+                      Save state
+                    </button>
+                    <button
+                      className="btn ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        request({ command: 'act', port: 0, frames: 2, input: { dleft: 1 } })
+                      }
+                      title="Load the saved training state"
+                    >
+                      Load state
+                    </button>
+                    <button
+                      className="btn ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        request({
+                          command: 'act',
+                          port: 0,
+                          frames: 2,
+                          input: { shield1: 1, dright: 1 },
+                        })
+                      }
+                      title="Freeze or unfreeze training"
+                    >
+                      Freeze
+                    </button>
+                    <button
+                      className="btn ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        request({
+                          command: 'act',
+                          port: 0,
+                          frames: 2,
+                          input: { shield1: 1, ddown: 1 },
+                        })
+                      }
+                      title="Advance one frozen training frame"
+                    >
+                      Frame +
+                    </button>
+                  </>
+                )}
                 <button
                   className="btn ghost"
                   disabled={busy || !screenshotsAvailable}

@@ -108,6 +108,18 @@ export const buildAgentPlayArgs = (
   return args;
 };
 
+export const buildAgentPlayEnvironment = (
+  options: Pick<AgentPlayOptions, 'headlessMenu' | 'stage'>,
+  baseEnvironment: NodeJS.ProcessEnv = process.env
+): NodeJS.ProcessEnv => {
+  const environment = { ...baseEnvironment };
+  if (options.headlessMenu) environment.ANTISTATIC_HEADLESS_MENU = options.headlessMenu;
+  else delete environment.ANTISTATIC_HEADLESS_MENU;
+  if (options.stage) environment.ANTISTATIC_HEADLESS_STAGE = options.stage;
+  else delete environment.ANTISTATIC_HEADLESS_STAGE;
+  return environment;
+};
+
 const isRunning = (child: ChildProcess): boolean =>
   child.exitCode === null && child.signalCode === null;
 
@@ -216,7 +228,7 @@ class AgentPlaySession {
     const child = spawn(command, args, {
       cwd: resolve(options.rootDir),
       detached: process.platform !== 'win32',
-      env: process.env,
+      env: buildAgentPlayEnvironment(options),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     const session = new AgentPlaySession(child);

@@ -594,6 +594,14 @@ const Shell: React.FC = () => {
           rootDir: gameRoot,
         });
         setAgentReady(ready);
+        if (options.character) {
+          const response = await window.electronAPI.requestAntistaticAgentPlay({
+            command: 'add-controller',
+            port: 0,
+            character: options.character,
+          });
+          setAgentResponse(response);
+        }
       } catch (err) {
         setAgentReady(null);
         setGameError((err as Error).message ?? String(err));

@@ -1864,6 +1864,16 @@ button.btn.ghost:hover {
   accent-color: var(--accent);
 }
 
+.gamePanelPresetNote {
+  margin: -3px 0 13px;
+  padding: 8px 10px;
+  background: rgba(106, 169, 255, 0.07);
+  border-left: 2px solid var(--accent);
+  color: var(--fg-dim);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .gameObservationGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
