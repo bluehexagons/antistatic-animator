@@ -128,7 +128,18 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
             <div
               key={i}
               className={`bubbleRow bubbleRowState ${active ? 'active' : ''}`}
+              role="group"
+              tabIndex={0}
+              aria-current={active ? 'true' : undefined}
+              aria-label={`Select ${info?.name ?? `hurtbubble ${i}`}. Press Enter or Space to select.`}
               onMouseDown={() => onSelectBubble(i)}
+              onKeyDown={(event) => {
+                if (event.currentTarget !== event.target) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelectBubble(i);
+                }
+              }}
               style={state ? { borderLeft: `3px solid ${state.color}` } : undefined}
             >
               <span className="idx">{i}</span>
@@ -145,6 +156,7 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
                 <input
                   key={f}
                   type="number"
+                  aria-label={`${info?.name ?? `Hurtbubble ${i}`} ${['x', 'y', 'radius'][f]}`}
                   step="any"
                   value={Number.isFinite(hb[base + f]) ? hb[base + f] : 0}
                   onChange={(e) => setField(i, f, e.target.value)}
@@ -152,6 +164,7 @@ export const BubbleEditor: React.FC<BubbleEditorProps> = ({
                 />
               ))}
               <select
+                aria-label={`${info?.name ?? `Hurtbubble ${i}`} state`}
                 value={Number.isFinite(stateId) ? stateId : 1}
                 onChange={(e) => {
                   hb[base + 3] = parseInt(e.target.value, 10);

@@ -1044,11 +1044,14 @@ const Shell: React.FC = () => {
       {showPicker && library.ready && (
         <div
           className="sourcePicker"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="switch-source-title"
           style={{ background: 'rgba(20,23,28,0.85)' }}
           onClick={() => setShowPicker(false)}
         >
           <div className="sourceCard" onClick={(e) => e.stopPropagation()}>
-            <h1>Switch source</h1>
+            <h1 id="switch-source-title">Switch source</h1>
             <p>
               Currently loaded: <strong>{library.label}</strong>
             </p>

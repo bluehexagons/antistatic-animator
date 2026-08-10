@@ -16,9 +16,14 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({ onElectron, onFsAcce
   const caps = detectCapabilities();
 
   return (
-    <div className="sourcePicker">
+    <div
+      className="sourcePicker"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="source-picker-title"
+    >
       <div className="sourceCard">
-        <h1>Open a character project</h1>
+        <h1 id="source-picker-title">Open a character project</h1>
         <p>
           Antistatic Animator edits the character/animation JSONC files used by the game. Pick where
           your files live and we&apos;ll load them up.

@@ -285,10 +285,18 @@ export const Timeline: React.FC<TimelineProps> = ({
     <div className="timeline">
       <div className="timelineHeader">
         <div className="transport">
-          <button onClick={() => step(-1)} title="Previous keyframe ( , )" disabled={keyframe <= 0}>
+          <button
+            type="button"
+            aria-label="Previous keyframe"
+            onClick={() => step(-1)}
+            title="Previous keyframe ( , )"
+            disabled={keyframe <= 0}
+          >
             ⏮
           </button>
           <button
+            type="button"
+            aria-label={playing ? 'Pause animation' : 'Play animation'}
             onClick={() => {
               if (!playing && keyframe >= animation.keyframes.length - 1) {
                 dirRef.current = 1;
@@ -304,6 +312,8 @@ export const Timeline: React.FC<TimelineProps> = ({
             {playing ? '⏸' : '▶'}
           </button>
           <button
+            type="button"
+            aria-label="Next keyframe"
             onClick={() => step(1)}
             title="Next keyframe ( . )"
             disabled={keyframe >= animation.keyframes.length - 1}
@@ -313,6 +323,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
         <select
           className="loopSelect"
+          aria-label="Loop mode"
           value={loopMode}
           onChange={(e) => onLoopModeChange(e.target.value as LoopMode)}
           title="Loop mode"
@@ -333,6 +344,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
         <div className="grow" />
         <button
+          type="button"
           className="btn ghost"
           title="Copy the current keyframe to the clipboard (reusable across animations)"
           disabled={!animation.keyframes[keyframe]}
@@ -341,6 +353,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           ⧉ Copy
         </button>
         <button
+          type="button"
           className="btn ghost"
           title="Paste copied keyframe after the current one"
           disabled={!clipReady}
@@ -349,6 +362,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           ⎙ Paste
         </button>
         <button
+          type="button"
           className="btn ghost"
           title="Mirror the whole animation horizontally (flip-X). Reversible — click again to undo."
           onClick={() => {
@@ -359,6 +373,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           ⇄ Mirror
         </button>
         <button
+          type="button"
           className="btn ghost"
           title="Append a copy of the last keyframe"
           onClick={cloneLastAndAdd}
@@ -385,9 +400,21 @@ export const Timeline: React.FC<TimelineProps> = ({
               key={i}
               data-kf={i}
               className={`kfThumb ${active ? 'active' : ''} ${modified ? 'modified' : ''}`}
+              role="group"
+              tabIndex={0}
+              aria-current={active ? 'step' : undefined}
+              aria-label={`Keyframe ${i}${active ? ', selected' : ''}, duration ${kf.duration ?? 0} frames. Press Enter or Space to select.`}
               onClick={() => {
                 onKeyframeSelect(i);
                 onTickChange(0);
+              }}
+              onKeyDown={(event) => {
+                if (event.currentTarget !== event.target) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onKeyframeSelect(i);
+                  onTickChange(0);
+                }
               }}
               style={{ width }}
             >
@@ -416,19 +443,36 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
               {active && (
                 <div className="kfActions">
-                  <button onClick={(e) => (e.stopPropagation(), swap(i, 'left'))} title="Swap left">
+                  <button
+                    type="button"
+                    aria-label="Swap keyframe left"
+                    onClick={(e) => (e.stopPropagation(), swap(i, 'left'))}
+                    title="Swap left"
+                  >
                     ⇐
                   </button>
                   <button
+                    type="button"
+                    aria-label="Swap keyframe right"
                     onClick={(e) => (e.stopPropagation(), swap(i, 'right'))}
                     title="Swap right"
                   >
                     ⇒
                   </button>
-                  <button onClick={(e) => (e.stopPropagation(), cloneAt(i, 'right'))} title="Clone">
+                  <button
+                    type="button"
+                    aria-label="Clone keyframe"
+                    onClick={(e) => (e.stopPropagation(), cloneAt(i, 'right'))}
+                    title="Clone"
+                  >
                     ⎘
                   </button>
-                  <button onClick={(e) => (e.stopPropagation(), remove(i))} title="Delete">
+                  <button
+                    type="button"
+                    aria-label="Delete keyframe"
+                    onClick={(e) => (e.stopPropagation(), remove(i))}
+                    title="Delete"
+                  >
                     ✕
                   </button>
                 </div>
@@ -436,7 +480,13 @@ export const Timeline: React.FC<TimelineProps> = ({
             </div>
           );
         })}
-        <button className="kfAdd" title="Add new keyframe" onClick={cloneLastAndAdd}>
+        <button
+          type="button"
+          className="kfAdd"
+          title="Add new keyframe"
+          aria-label="Add new keyframe"
+          onClick={cloneLastAndAdd}
+        >
           +
         </button>
         {playhead !== null && <div className="timelinePlayhead" style={{ left: playhead }} />}

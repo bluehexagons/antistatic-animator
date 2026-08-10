@@ -134,7 +134,9 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
         <strong>{animation.id}</strong>
         <div className="transport">
           <button
+            type="button"
             className="miniAction"
+            aria-label={playing ? 'Pause stage animation' : 'Play stage animation'}
             title={playing ? 'Pause' : 'Play'}
             onClick={() => {
               if (!playing && (frame >= lastFrame || frame <= 0)) {
@@ -145,7 +147,13 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
           >
             {playing ? '❚❚' : '▶'}
           </button>
-          <button className="miniAction" title="First frame" onClick={() => onFrameChange(0)}>
+          <button
+            type="button"
+            className="miniAction"
+            aria-label="Go to first frame"
+            title="First frame"
+            onClick={() => onFrameChange(0)}
+          >
             |◀
           </button>
         </div>
@@ -193,6 +201,7 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
           <div className="stageTrack" key={`${track.target.kind}:${track.target.id}:${trackIndex}`}>
             <div className="stageTrackHeader">
               <select
+                aria-label={`Target for track ${trackIndex + 1}`}
                 value={targetValue(track.target)}
                 onChange={(event) => {
                   const [kind, id] = JSON.parse(event.target.value) as [
@@ -215,7 +224,9 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
                 ))}
               </select>
               <button
+                type="button"
                 className="miniAction danger"
+                aria-label={`Delete track ${trackIndex + 1}`}
                 onClick={() => {
                   animation.tracks.splice(trackIndex, 1);
                   onChange();
@@ -257,6 +268,8 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
                     </label>
                   ))}
                   <button
+                    type="button"
+                    aria-label={`Delete keyframe ${keyframeIndex + 1} from track ${trackIndex + 1}`}
                     className="miniAction danger"
                     disabled={track.keyframes.length === 1}
                     onClick={() => {
@@ -269,6 +282,7 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
                 </div>
               ))}
               <button
+                type="button"
                 className="btn ghost"
                 onClick={() => {
                   const position =

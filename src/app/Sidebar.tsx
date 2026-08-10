@@ -78,12 +78,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="sidebar">
       <div className="editorModeTabs">
         <button
+          type="button"
           className={mode === 'character' ? 'active' : ''}
+          aria-pressed={mode === 'character'}
           onClick={() => onModeChange('character')}
         >
           Characters
         </button>
-        <button className={mode === 'stage' ? 'active' : ''} onClick={() => onModeChange('stage')}>
+        <button
+          type="button"
+          className={mode === 'stage' ? 'active' : ''}
+          aria-pressed={mode === 'stage'}
+          onClick={() => onModeChange('stage')}
+        >
           Stages
         </button>
       </div>
@@ -94,13 +101,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {filteredFiles.length}/{activeFiles.length}
           </span>
           {mode === 'stage' && (
-            <button className="miniAction" onClick={onCreateStage} title="Create stage">
+            <button
+              type="button"
+              className="miniAction"
+              onClick={onCreateStage}
+              title="Create stage"
+              aria-label="Create stage"
+            >
               +
             </button>
           )}
         </div>
         <input
           className="filterInput"
+          aria-label={mode === 'stage' ? 'Filter stage files' : 'Filter characters'}
           placeholder="filter…"
           value={fileFilter}
           onChange={(e) => setFileFilter(e.target.value)}
@@ -129,6 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <input
           className="filterInput"
+          aria-label={mode === 'stage' ? 'Filter scene objects' : 'Filter animations'}
           placeholder="filter…"
           value={animFilter}
           onChange={(e) => setAnimFilter(e.target.value)}
@@ -179,6 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {mode === 'stage' && selectedStageFile && (
           <div className="stageObjectActions">
             <select
+              aria-label="New stage object type"
               value={addKind}
               onChange={(event) => setAddKind(event.target.value as typeof addKind)}
             >
@@ -189,10 +205,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <option value="particleEmitter">particle emitter</option>
               <option value="animation">animation</option>
             </select>
-            <button className="btn" onClick={() => onAddStageItem(addKind)}>
+            <button type="button" className="btn" onClick={() => onAddStageItem(addKind)}>
               Add
             </button>
             <button
+              type="button"
               className="btn ghost"
               disabled={selectedStageItem.kind === 'stage'}
               onClick={onDeleteStageItem}

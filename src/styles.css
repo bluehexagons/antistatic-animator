@@ -62,6 +62,16 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+button,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled):active,
+[role='button']:not([aria-disabled='true']):active {
+  transform: translateY(1px);
+}
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -188,12 +198,15 @@ body {
   transition:
     background 0.15s,
     border-color 0.15s,
-    color 0.15s;
+    color 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
 }
 .sourceChip:hover {
   background: var(--bg-3);
   border-color: var(--border-strong);
   color: var(--fg);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 .sourceChip .dot {
   width: 7px;
@@ -234,6 +247,11 @@ body {
   cursor: pointer;
   font: var(--font);
   font-size: 11px;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.12s;
 }
 .editorModeTabs button.active {
   color: var(--fg);
@@ -293,6 +311,16 @@ body {
   color: var(--fg);
   cursor: pointer;
   line-height: 1;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s;
+}
+.miniAction:hover:not(:disabled) {
+  background: var(--bg-4);
+  border-color: var(--border-strong);
+  color: var(--fg);
 }
 .miniAction:disabled {
   opacity: 0.35;
@@ -342,13 +370,17 @@ body {
   transition:
     background 0.12s,
     color 0.12s,
-    border-color 0.12s;
+    border-color 0.12s,
+    transform 0.12s;
   font-size: 12px;
   line-height: 1.2;
 }
 .listItem:hover {
   background: var(--bg-2);
   color: var(--fg);
+}
+.listItem:focus-visible {
+  border-color: var(--accent);
 }
 .listItem.active {
   background: var(--accent-soft);
@@ -518,6 +550,9 @@ body {
   stroke-width: 2px;
   cursor: nwse-resize;
 }
+.stageResizeHandle:hover {
+  fill: var(--accent-warm);
+}
 .stageViewerLegend {
   position: absolute;
   left: 10px;
@@ -593,6 +628,9 @@ body {
 }
 .sectionHeader:hover {
   color: var(--fg);
+}
+.sectionHeader:focus-visible {
+  background: var(--bg-3);
 }
 .sectionHeader .caret {
   margin-right: 6px;
@@ -725,6 +763,11 @@ body {
   justify-content: center;
   font-size: 14px;
   line-height: 1;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s;
 }
 .propRow button.propBtn:hover {
   background: var(--bg-3);
@@ -775,6 +818,10 @@ body {
 }
 .bubbleRow:hover {
   background: var(--bg-2);
+}
+.bubbleRow:focus-visible,
+.bubbleRow:focus-within {
+  border-color: var(--accent-glow);
 }
 .bubbleRow.active {
   background: var(--accent-soft);
@@ -897,6 +944,11 @@ body {
   font: var(--font-mono);
   font-size: 10px;
   cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s;
 }
 .miniButton:hover {
   color: var(--fg);
@@ -945,6 +997,9 @@ body {
   background: rgba(246, 200, 95, 0.05);
 }
 .modelTransformRow:hover {
+  background: var(--bg-2);
+}
+.modelTransformRow:focus-within {
   background: var(--bg-2);
 }
 .modelTransformRow .idx,
@@ -1069,6 +1124,10 @@ body {
 }
 .hbCard:hover {
   background: var(--bg-3);
+}
+.hbCard:focus-visible,
+.hbCard:focus-within {
+  border-color: var(--accent-glow);
 }
 .hbCard.active {
   background: var(--bg-3);
@@ -1373,6 +1432,11 @@ body {
   font-family: var(--font);
   padding: 0;
   line-height: 1;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s;
 }
 .transport button:hover {
   background: var(--bg-4);
@@ -1448,6 +1512,10 @@ body {
 }
 .kfThumb:hover {
   border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+.kfThumb:focus-visible {
+  border-color: var(--accent);
 }
 .kfThumb.active {
   border-color: var(--accent);
@@ -1546,6 +1614,11 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s;
 }
 .kfActions button:hover {
   background: var(--bg-3);
@@ -1566,6 +1639,10 @@ body {
   justify-content: center;
 }
 .kfAdd:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.kfAdd:focus-visible {
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -1693,7 +1770,10 @@ button.btn {
   cursor: pointer;
   transition:
     background 0.12s,
-    border-color 0.12s;
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s,
+    box-shadow 0.12s;
 }
 button.btn:hover {
   background: var(--bg-4);
@@ -1733,6 +1813,12 @@ button.btn.ghost:hover {
   justify-content: center;
   font-size: 14px;
   padding: 0;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.12s,
+    box-shadow 0.12s;
 }
 .iconBtn:hover {
   background: var(--bg-3);
@@ -1767,6 +1853,19 @@ button.btn.ghost:hover {
   text-align: center;
   box-shadow: var(--shadow);
 }
+.dropZone.active .dropCard {
+  animation: dropCardIn 0.2s ease-out both;
+}
+@keyframes dropCardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 .dropZone .dropCard h2 {
   margin: 0 0 8px;
   color: var(--fg);
@@ -1788,6 +1887,15 @@ button.btn.ghost:hover {
   justify-content: center;
   padding: 24px;
   background: radial-gradient(ellipse at center, var(--bg-1) 0%, var(--bg-0) 70%);
+  animation: sourcePickerIn 0.2s ease-out;
+}
+@keyframes sourcePickerIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .sourceCard {
   background: var(--bg-1);
@@ -1797,6 +1905,17 @@ button.btn.ghost:hover {
   width: 100%;
   max-width: 540px;
   box-shadow: var(--shadow);
+  animation: sourceCardIn 0.24s ease-out both;
+}
+@keyframes sourceCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .sourceCard h1 {
   font-size: 18px;
@@ -1825,11 +1944,18 @@ button.btn.ghost:hover {
   color: var(--fg);
   transition:
     background 0.12s,
-    border-color 0.12s;
+    border-color 0.12s,
+    box-shadow 0.12s,
+    transform 0.12s;
   font: var(--font);
 }
 .sourceOption:hover:not(:disabled) {
   background: var(--bg-3);
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+.sourceOption:focus-visible {
   border-color: var(--accent);
 }
 .sourceOption:disabled {

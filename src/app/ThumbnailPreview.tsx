@@ -48,7 +48,7 @@ export const ThumbnailPreview: React.FC<ThumbnailPreviewProps> = ({
 
   if (!view || !hb || !Array.isArray(hb)) {
     return (
-      <svg width="100%" height="100%" viewBox="0 0 100 60">
+      <svg width="100%" height="100%" viewBox="0 0 100 60" aria-hidden="true">
         <rect width="100" height="60" fill="transparent" />
         <text x="50" y="30" textAnchor="middle" fill="#6b7383" fontSize="8" fontFamily="monospace">
           empty
@@ -61,6 +61,7 @@ export const ThumbnailPreview: React.FC<ThumbnailPreviewProps> = ({
     <svg
       width="100%"
       height="100%"
+      aria-hidden="true"
       viewBox={`${view.minX} ${-view.minY - view.height} ${view.width} ${view.height}`}
       preserveAspectRatio="xMidYMid meet"
     >

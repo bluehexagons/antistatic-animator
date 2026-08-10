@@ -910,6 +910,8 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     <div ref={containerRef} className="stageCanvas">
       <svg
         ref={svgRef}
+        role="img"
+        aria-label="Animation stage editor"
         width={w}
         height={h}
         viewBox={`0 0 ${w} ${h}`}

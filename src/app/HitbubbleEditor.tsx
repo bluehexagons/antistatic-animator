@@ -165,12 +165,24 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
   return (
     <div
       className={`hbCard ${active ? 'active' : ''}`}
+      role="group"
+      tabIndex={0}
+      aria-current={active ? 'true' : undefined}
+      aria-label={`Select hitbubble ${index}. Press Enter or Space to select.`}
       onMouseDown={onSelect}
+      onKeyDown={(event) => {
+        if (event.currentTarget !== event.target) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
       style={{ borderLeft: `3px solid ${typeColor}` }}
     >
       <div className="hbCardHead">
         <span className="hbCardIdx">#{index}</span>
         <select
+          aria-label={`Hitbubble ${index} type`}
           value={(hb.type as string) ?? 'ground'}
           onChange={(e) => set('type', e.target.value)}
           title="Hitbubble type"
@@ -182,6 +194,7 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
           ))}
         </select>
         <input
+          aria-label={`Hitbubble ${index} follow bone`}
           list={`hb-follow-${index}`}
           placeholder="follow…"
           value={(hb.follow as string) ?? ''}
@@ -194,6 +207,8 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
           ))}
         </datalist>
         <button
+          type="button"
+          aria-label={`Remove hitbubble ${index}`}
           className="propBtn"
           onClick={(e) => {
             e.stopPropagation();
@@ -266,6 +281,7 @@ const HitbubbleRow: React.FC<HitbubbleRowProps> = ({
         </label>
         {hb.smear === true && (
           <button
+            type="button"
             className="btn ghost"
             onClick={() => {
               hb.smear = { follow: hb.follow, x: hb.x, y: hb.y };
@@ -400,12 +416,12 @@ export const HitbubbleEditor: React.FC<HitbubbleEditorProps> = ({
         </button>
         <div style={{ flex: 1 }} />
         {list.length === 0 && !isContinuation && (
-          <button className="btn" onClick={startList} title="Add first hitbubble">
+          <button type="button" className="btn" onClick={startList} title="Add first hitbubble">
             + add hitbox
           </button>
         )}
         {list.length > 0 && (
-          <button className="btn" onClick={addRow} title="Add another hitbubble">
+          <button type="button" className="btn" onClick={addRow} title="Add another hitbubble">
             +
           </button>
         )}

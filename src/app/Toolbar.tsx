@@ -119,8 +119,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       <div className="toolbarGroup">
         <button
+          type="button"
           className="iconBtn"
           title="Toggle grid"
+          aria-label="Toggle grid"
           aria-pressed={showGrid}
           onClick={onToggleGrid}
           style={toggleStyle(showGrid)}
@@ -130,8 +132,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {editorMode === 'character' && (
           <>
             <button
+              type="button"
               className="iconBtn"
               title="Toggle ground"
+              aria-label="Toggle ground"
               aria-pressed={showGround}
               onClick={onToggleGround}
               style={toggleStyle(showGround)}
@@ -139,8 +143,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ⎯
             </button>
             <button
+              type="button"
               className="iconBtn"
               title="Toggle hitboxes"
+              aria-label="Toggle hitboxes"
               aria-pressed={showHitboxes}
               onClick={onToggleHitboxes}
               style={toggleStyle(showHitboxes, 'var(--hit)')}
@@ -148,8 +154,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ◉
             </button>
             <button
+              type="button"
               className="iconBtn"
               title="Toggle onion-skin (previous / next keyframes)"
+              aria-label="Toggle onion-skin (previous / next keyframes)"
               aria-pressed={showOnion}
               onClick={onToggleOnion}
               style={toggleStyle(showOnion)}
@@ -157,8 +165,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ◍
             </button>
             <button
+              type="button"
               className="iconBtn"
               title="Toggle bone-name labels"
+              aria-label="Toggle bone-name labels"
               aria-pressed={showLabels}
               onClick={onToggleLabels}
               style={toggleStyle(showLabels)}
@@ -167,8 +177,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               {'🏷︎'}
             </button>
             <button
+              type="button"
               className="iconBtn"
               title="Toggle shield overlay"
+              aria-label="Toggle shield overlay"
               aria-pressed={showShield}
               onClick={onToggleShield}
               style={toggleStyle(showShield, 'var(--accent-warm)')}
@@ -177,16 +189,31 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </button>
           </>
         )}
-        <button className="iconBtn" title="Reset camera" onClick={onResetCamera}>
+        <button
+          type="button"
+          className="iconBtn"
+          title="Reset camera"
+          aria-label="Reset camera"
+          onClick={onResetCamera}
+        >
           ⌂
         </button>
         <span className="toolbarSep" />
-        <button className="iconBtn" title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={onUndo}>
+        <button
+          type="button"
+          className="iconBtn"
+          title="Undo (Ctrl+Z)"
+          aria-label="Undo"
+          disabled={!canUndo}
+          onClick={onUndo}
+        >
           ↩
         </button>
         <button
+          type="button"
           className="iconBtn"
           title="Redo (Ctrl+Shift+Z)"
+          aria-label="Redo"
           disabled={!canRedo}
           onClick={onRedo}
         >
@@ -197,6 +224,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       <div className="toolbarSpacer" />
 
       <button
+        type="button"
         className={`sourceChip ${ready ? '' : 'empty'}`}
         onClick={onOpenSource}
         title={sourceLabel}
@@ -217,6 +245,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       {gameAvailable && (
         <button
+          type="button"
           className={`btn ghost ${gameActive ? 'primary' : ''}`}
           onClick={onOpenGameTools}
           title="Launch Antistatic or open the headless testing console"
@@ -226,6 +255,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       )}
 
       <button
+        type="button"
         className={`btn ${saveDirty ? 'primary' : ''}`}
         disabled={!canSave || !ready || saveBlocked}
         onClick={onSave}
@@ -241,6 +271,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </button>
       {liveSyncAvailable && (
         <button
+          type="button"
           className={`btn ghost ${liveSync ? 'primary' : ''}`}
           aria-pressed={liveSync}
           onClick={onToggleLiveSync}
@@ -251,6 +282,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       )}
       {externalChange && (
         <button
+          type="button"
           className="btn ghost"
           onClick={onReloadSource}
           title="Reload the changed source file"

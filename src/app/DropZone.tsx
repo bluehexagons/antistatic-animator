@@ -50,7 +50,12 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFiles }) => {
   }, [onFiles]);
 
   return (
-    <div className={`dropZone ${active ? 'active' : ''}`}>
+    <div
+      className={`dropZone ${active ? 'active' : ''}`}
+      role="status"
+      aria-live="polite"
+      aria-hidden={!active}
+    >
       <div className="dropCard">
         <h2>Drop character files</h2>
         <p>JSONC files inside will be loaded into the editor.</p>

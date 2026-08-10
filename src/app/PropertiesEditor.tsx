@@ -6,7 +6,7 @@
  * the animation/keyframe JSON).
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useId, useMemo, useState } from 'react';
 import * as JSONC from 'jsonc-parser';
 import { objHas } from '../utils';
 import { multichoice, defaultTypes, excludeProps, valueSuggestions } from '../animator/constants';
@@ -42,6 +42,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
   hideKeys,
 }) => {
   const hidden = useMemo(() => new Set(hideKeys ?? []), [hideKeys]);
+  const editorId = useId();
   // Force re-render trigger for in-place mutations
   const [, bump] = useState(0);
   const tick = useCallback(() => {
@@ -75,11 +76,13 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
   };
 
   const renderValueInput = (k: string, v: Value) => {
+    const inputId = `${editorId}-${k.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
     const choices = multichoice[k];
     if (choices) {
       const current = typeof v === 'string' && v ? v : choices.default;
       return (
         <select
+          id={inputId}
           value={current}
           onChange={(e) => {
             const val = e.target.value;
@@ -100,11 +103,17 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
     switch (t) {
       case 'bool':
         return (
-          <input type="checkbox" checked={!!v} onChange={(e) => setKey(k, e.target.checked)} />
+          <input
+            id={inputId}
+            type="checkbox"
+            checked={!!v}
+            onChange={(e) => setKey(k, e.target.checked)}
+          />
         );
       case 'number':
         return (
           <input
+            id={inputId}
             type="number"
             value={Number.isFinite(v as number) ? (v as number) : 0}
             step="any"
@@ -118,6 +127,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
         // silently turn an object/array into a bare string.
         return (
           <input
+            id={inputId}
             key={`${k}:${JSON.stringify(v)}`}
             type="text"
             defaultValue={JSON.stringify(v)}
@@ -139,6 +149,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
         return (
           <>
             <input
+              id={inputId}
               key={`${k}:${String(v ?? '')}`}
               type="text"
               list={listId}
@@ -162,9 +173,12 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
     <div>
       {keys.map((k) => (
         <div key={k} className="propRow">
-          <label title={k}>{k}</label>
+          <label htmlFor={`${editorId}-${k.replace(/[^a-zA-Z0-9_-]/g, '-')}`} title={k}>
+            {k}
+          </label>
           {renderValueInput(k, obj[k])}
           <button
+            type="button"
             className="propBtn"
             onClick={() => removeKey(k)}
             title="Remove property"
@@ -228,6 +242,7 @@ const AddProperty: React.FC<AddPropertyProps> = ({ existing, onAdd, suggestions 
   return (
     <div className="propAdd">
       <input
+        aria-label="Property name"
         list={listId}
         placeholder="add property…"
         className="input"
@@ -242,14 +257,24 @@ const AddProperty: React.FC<AddPropertyProps> = ({ existing, onAdd, suggestions 
           <option key={s} value={s} />
         ))}
       </datalist>
-      <select value={type} onChange={(e) => setType(e.target.value as AddType)}>
+      <select
+        aria-label="Property type"
+        value={type}
+        onChange={(e) => setType(e.target.value as AddType)}
+      >
         <option value="bool">bool</option>
         <option value="number">number</option>
         <option value="string">string</option>
         <option value="array">array</option>
         <option value="object">object</option>
       </select>
-      <button className="propBtn" onClick={submit} title="Add property" aria-label="Add property">
+      <button
+        type="button"
+        className="propBtn"
+        onClick={submit}
+        title="Add property"
+        aria-label="Add property"
+      >
         +
       </button>
     </div>

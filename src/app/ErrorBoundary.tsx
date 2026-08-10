@@ -27,14 +27,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.error) {
       return (
-        <div className={`panelError ${this.props.label}`}>
+        <div className={`panelError ${this.props.label}`} role="alert">
           <div className="panelErrorInner">
             <span className="panelErrorIcon">⚠</span>
             <div>
               <strong>{this.props.label} crashed</strong>
               <p>{this.state.error.message}</p>
             </div>
-            <button className="btn" onClick={this.handleReset}>
+            <button type="button" className="btn" onClick={this.handleReset}>
               Reset panel
             </button>
           </div>

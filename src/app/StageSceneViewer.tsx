@@ -285,6 +285,8 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
     <div className="stageCanvas" ref={containerRef}>
       <svg
         ref={svgRef}
+        role="img"
+        aria-label="Stage scene editor"
         onContextMenu={(event) => event.preventDefault()}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
