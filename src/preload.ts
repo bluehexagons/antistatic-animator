@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import type {
+  AgentPlayOptions,
+  AgentPlayReady,
+  AgentPlayRequest,
+  AgentPlayResponse,
+  AntistaticLaunchResult,
+} from './runtime/antistatic-types';
 
 let atomicWriteSequence = 0;
 
@@ -24,6 +31,14 @@ const writeFileAtomic = (filename: fs.PathLike, content: string) => {
 contextBridge.exposeInMainWorld('electronAPI', {
   showOpenDialog: (config: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke('showOpenDialog', config),
+  launchAntistatic: (rootDir: string): Promise<AntistaticLaunchResult> =>
+    ipcRenderer.invoke('launchAntistatic', rootDir),
+  stopAntistatic: (): Promise<void> => ipcRenderer.invoke('stopAntistatic'),
+  startAntistaticAgentPlay: (options: AgentPlayOptions): Promise<AgentPlayReady> =>
+    ipcRenderer.invoke('startAntistaticAgentPlay', options),
+  requestAntistaticAgentPlay: (request: AgentPlayRequest): Promise<AgentPlayResponse> =>
+    ipcRenderer.invoke('requestAntistaticAgentPlay', request),
+  stopAntistaticAgentPlay: (): Promise<void> => ipcRenderer.invoke('stopAntistaticAgentPlay'),
 });
 
 // Expose Node.js APIs that are needed by the renderer

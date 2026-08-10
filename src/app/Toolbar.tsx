@@ -43,6 +43,10 @@ export interface ToolbarProps {
   showShield: boolean;
   onToggleShield: () => void;
   onResetCamera: () => void;
+
+  gameAvailable: boolean;
+  gameActive: boolean;
+  onOpenGameTools: () => void;
 }
 
 const labelForKind = (kind: string) => {
@@ -92,6 +96,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   showShield,
   onToggleShield,
   onResetCamera,
+  gameAvailable,
+  gameActive,
+  onOpenGameTools,
 }) => {
   const toggleStyle = (on: boolean, color = 'var(--accent)') => ({
     background: on ? 'var(--accent-soft)' : undefined,
@@ -207,6 +214,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {sourceLabel}
         </span>
       </button>
+
+      {gameAvailable && (
+        <button
+          className={`btn ghost ${gameActive ? 'primary' : ''}`}
+          onClick={onOpenGameTools}
+          title="Launch Antistatic or open the headless testing console"
+        >
+          {gameActive ? 'Game test *' : 'Game tools'}
+        </button>
+      )}
 
       <button
         className={`btn ${saveDirty ? 'primary' : ''}`}

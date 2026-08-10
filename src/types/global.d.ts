@@ -1,5 +1,12 @@
 import type { EntityData, Animation, AnimationMap } from '../animator/types';
 import type { createTools } from '../animator/api/tools';
+import type {
+  AgentPlayOptions,
+  AgentPlayReady,
+  AgentPlayRequest,
+  AgentPlayResponse,
+  AntistaticLaunchResult,
+} from '../runtime/antistatic-types';
 
 export {};
 
@@ -9,6 +16,11 @@ declare global {
       showOpenDialog: (
         config: Electron.OpenDialogOptions
       ) => Promise<Electron.OpenDialogReturnValue>;
+      launchAntistatic: (rootDir: string) => Promise<AntistaticLaunchResult>;
+      stopAntistatic: () => Promise<void>;
+      startAntistaticAgentPlay: (options: AgentPlayOptions) => Promise<AgentPlayReady>;
+      requestAntistaticAgentPlay: (request: AgentPlayRequest) => Promise<AgentPlayResponse>;
+      stopAntistaticAgentPlay: () => Promise<void>;
     };
     nodeAPI: {
       fs: {

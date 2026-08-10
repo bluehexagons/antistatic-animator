@@ -19,6 +19,13 @@ import { FsAccessStorage } from '../storage/fs-access';
 import { UploadStorage } from '../storage/upload';
 import { detectCapabilities } from '../storage/types';
 import { getLocalStorageItem, setLocalStorageItem } from '../runtime/local-storage';
+import type {
+  AgentPlayOptions,
+  AgentPlayReady,
+  AgentPlayRequest,
+  AgentPlayResponse,
+  AntistaticLaunchResult,
+} from '../runtime/antistatic-types';
 
 import { Toolbar } from './Toolbar';
 import { Sidebar } from './Sidebar';
@@ -30,6 +37,7 @@ import { StageInspector } from './StageInspector';
 import { StageTimeline } from './StageTimeline';
 import { SourcePicker } from './SourcePicker';
 import { DropZone } from './DropZone';
+import { GameTestPanel } from './GameTestPanel';
 import { useLibrary, useLatest } from './hooks';
 import { findAnimationFile, isCharacterDataFile, isStageDataFile } from './file-names';
 import type { EditorMode } from './Sidebar';
@@ -76,7 +84,16 @@ const Shell: React.FC = () => {
   const [stageFrame, setStageFrame] = useState(0);
   const [stagePlaying, setStagePlaying] = useState(false);
   const [stageFitRequest, setStageFitRequest] = useState(0);
+  const [showGameTools, setShowGameTools] = useState(false);
+  const [gamePath, setGamePath] = useState<string | null>(null);
+  const [agentReady, setAgentReady] = useState<AgentPlayReady | null>(null);
+  const [agentResponse, setAgentResponse] = useState<AgentPlayResponse | null>(null);
+  const [gameBusy, setGameBusy] = useState(false);
+  const [gameError, setGameError] = useState<string | null>(null);
   const editRevision = useRef(0);
+
+  const gameAvailable = detectCapabilities().hasElectron;
+  const gameRoot = library.kind === 'electron' && library.ready ? library.label : '';
 
   const clearOpenFile = useCallback(() => {
     editRevision.current++;
@@ -535,6 +552,85 @@ const Shell: React.FC = () => {
     else updateCamera({ x: 0, y: 0.1, scale: 2 });
   }, [mode, updateCamera]);
 
+  const handleLaunchGame = useCallback(async (): Promise<AntistaticLaunchResult | null> => {
+    if (!gameRoot || !gameAvailable) return null;
+    setGameBusy(true);
+    setGameError(null);
+    try {
+      const result = await window.electronAPI.launchAntistatic(gameRoot);
+      setGamePath(result.path);
+      return result;
+    } catch (err) {
+      const message = (err as Error).message ?? String(err);
+      setGameError(message);
+      alert(`Unable to launch Antistatic: ${message}`);
+      return null;
+    } finally {
+      setGameBusy(false);
+    }
+  }, [gameAvailable, gameRoot]);
+
+  const handleStopGame = useCallback(async () => {
+    setGameBusy(true);
+    try {
+      await window.electronAPI.stopAntistatic();
+      setGamePath(null);
+    } catch (err) {
+      setGameError((err as Error).message ?? String(err));
+    } finally {
+      setGameBusy(false);
+    }
+  }, []);
+
+  const handleStartAgentPlay = useCallback(
+    async (options: Omit<AgentPlayOptions, 'rootDir'>) => {
+      if (!gameRoot || !gameAvailable) return;
+      setGameBusy(true);
+      setGameError(null);
+      setAgentResponse(null);
+      try {
+        const ready = await window.electronAPI.startAntistaticAgentPlay({
+          ...options,
+          rootDir: gameRoot,
+        });
+        setAgentReady(ready);
+      } catch (err) {
+        setAgentReady(null);
+        setGameError((err as Error).message ?? String(err));
+      } finally {
+        setGameBusy(false);
+      }
+    },
+    [gameAvailable, gameRoot]
+  );
+
+  const handleAgentRequest = useCallback(async (request: AgentPlayRequest) => {
+    setGameBusy(true);
+    setGameError(null);
+    try {
+      const response = await window.electronAPI.requestAntistaticAgentPlay(request);
+      setAgentResponse(response);
+      if (request.command === 'quit') setAgentReady(null);
+    } catch (err) {
+      setGameError((err as Error).message ?? String(err));
+    } finally {
+      setGameBusy(false);
+    }
+  }, []);
+
+  const handleStopAgentPlay = useCallback(async () => {
+    setGameBusy(true);
+    try {
+      await window.electronAPI.stopAntistaticAgentPlay();
+      setAgentReady(null);
+      setAgentResponse(null);
+    } catch (err) {
+      setGameError((err as Error).message ?? String(err));
+    } finally {
+      setGameBusy(false);
+    }
+  }, []);
+
   // Expose editing state for console power-users (dev-only; use window.Tools
   // for scripting in production).
   useEffect(() => {
@@ -649,6 +745,9 @@ const Shell: React.FC = () => {
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
+        gameAvailable={gameAvailable}
+        gameActive={agentReady !== null || gamePath !== null}
+        onOpenGameTools={() => setShowGameTools(true)}
       />
 
       <Sidebar
@@ -925,6 +1024,23 @@ const Shell: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showGameTools && gameAvailable && (
+        <GameTestPanel
+          rootDir={gameRoot}
+          gamePath={gamePath}
+          ready={agentReady}
+          response={agentResponse}
+          busy={gameBusy}
+          error={gameError}
+          onLaunchGame={handleLaunchGame}
+          onStopGame={handleStopGame}
+          onStartAgentPlay={handleStartAgentPlay}
+          onRequest={handleAgentRequest}
+          onStopAgentPlay={handleStopAgentPlay}
+          onClose={() => setShowGameTools(false)}
+        />
       )}
     </div>
   );
