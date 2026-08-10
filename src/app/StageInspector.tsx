@@ -379,6 +379,7 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
             <div className="propRow">
               <label>id</label>
               <input
+                key={`${selection.kind}:${selection.id ?? ''}`}
                 type="text"
                 defaultValue={selection.id}
                 onBlur={(event) => {

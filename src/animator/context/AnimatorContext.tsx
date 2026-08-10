@@ -39,20 +39,12 @@ export interface AppState {
   initialized: boolean;
 }
 
-/** Actions that mutate user data and should be tracked for undo. */
-const UNDO_TRACKED: ReadonlySet<string> = new Set([
-  'SET_ANIMATION',
-  'SET_CHARACTER',
-  'SET_PARSED',
-  'SET_STAGE',
-]);
-
 export type AppAction =
   | { type: 'SET_APP_DIR'; payload: string }
   | { type: 'SET_CHARACTER'; payload: EntityData | null }
   | { type: 'SET_PARSED'; payload: AnimationMap | null }
   | { type: 'SET_ANIM_FILE'; payload: string }
-  | { type: 'SET_STAGE'; payload: StageDocument | null }
+  | { type: 'SET_STAGE'; payload: StageDocument | null; history?: boolean }
   | { type: 'SET_STAGE_FILE'; payload: string }
   | { type: 'SET_STAGE_SELECTION'; payload: StageSelection }
   // `name` present (or `animation === null`) marks a fresh selection: reset
@@ -74,6 +66,11 @@ export type AppAction =
   | { type: 'SET_INITIALIZED'; payload: boolean }
   | { type: 'REPLACE_STATE'; payload: AppState }
   | { type: 'RESET' };
+
+/** Only actual document edits belong in undo history; loading and navigation do not. */
+export const isUndoTracked = (action: AppAction): boolean =>
+  (action.type === 'SET_ANIMATION' && action.payload.updateParsed === true) ||
+  (action.type === 'SET_STAGE' && action.history === true);
 
 const getInitialAppDir = (): string => {
   const stored = getLocalStorageItem('antistatic-dir');
@@ -255,7 +252,7 @@ export const AnimatorProvider: React.FC<AnimatorProviderProps> = ({ children }) 
   // Rapid successive actions (e.g. keyframe scrubbing) are batched into a
   // single undo step via a debounce timer.
   const dispatch = useCallback((action: AppAction) => {
-    if (UNDO_TRACKED.has(action.type)) {
+    if (isUndoTracked(action)) {
       futureRef.current = [];
       // First action in a batch: snapshot the pre-edit state so undo reverts
       // the in-place mutation that triggered this dispatch.

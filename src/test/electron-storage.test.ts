@@ -4,6 +4,7 @@ import { ElectronStorage } from '../storage/electron';
 const originalNodeAPI = window.nodeAPI;
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   Object.defineProperty(window, 'nodeAPI', {
     configurable: true,
@@ -23,11 +24,12 @@ const installNodeAPI = (exists: boolean) => {
             : ['carbon.json', 'carbon_anim.json', 'notes.txt']
         ),
         readFileSync: vi.fn(),
-        writeFileSync: vi.fn(),
+        writeFileAtomic: vi.fn(),
         watch: vi.fn(),
       },
       path: {
         resolve: (...parts: string[]) => parts.join('/').replace(/\/+/g, '/'),
+        dirname: (value: string) => value.slice(0, value.lastIndexOf('/')),
         basename: (value: string) => value.split('/').pop() ?? value,
       },
       process: {
@@ -77,10 +79,44 @@ describe('ElectronStorage', () => {
     );
 
     await storage.write('stages/ruins.json', '{}');
-    expect(window.nodeAPI.fs.writeFileSync).toHaveBeenCalledWith(
+    expect(window.nodeAPI.fs.writeFileAtomic).toHaveBeenCalledWith(
       '/game/app/assets/stages/ruins.json',
-      '{}',
-      { encoding: 'utf8' }
+      '{}'
     );
+  });
+
+  it('watches the containing directory so atomic replacements remain observable', () => {
+    installNodeAPI(true);
+    vi.useFakeTimers();
+    const cleanup = vi.fn();
+    const watch = vi.mocked(window.nodeAPI.fs.watch);
+    watch.mockReturnValue(cleanup);
+    const storage = new ElectronStorage('/game');
+    const listener = vi.fn();
+
+    const stop = storage.watch('carbon_anim.json', listener);
+    expect(watch).toHaveBeenCalledWith(
+      '/game/app/characters/data',
+      expect.any(Function),
+      expect.any(Function)
+    );
+
+    const directoryListener = watch.mock.calls[0][1] as (
+      event: string,
+      name: string | null
+    ) => void;
+    directoryListener('rename', 'carbon_anim.json');
+    directoryListener('change', 'other.json');
+    directoryListener('rename', null);
+    expect(listener).toHaveBeenCalledTimes(2);
+
+    const onError = watch.mock.calls[0][2] as unknown as (error: Error) => void;
+    onError(new Error('watch failed'));
+    vi.advanceTimersByTime(100);
+    expect(watch).toHaveBeenCalledTimes(2);
+
+    stop();
+    expect(cleanup).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });

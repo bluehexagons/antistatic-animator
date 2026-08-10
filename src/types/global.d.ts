@@ -15,18 +15,20 @@ declare global {
         existsSync: typeof import('fs').existsSync;
         readdirSync: typeof import('fs').readdirSync;
         readFileSync: typeof import('fs').readFileSync;
-        writeFileSync: typeof import('fs').writeFileSync;
+        writeFileAtomic: (filename: import('fs').PathLike, content: string) => void;
         // Preload wraps fs.watch to return a cleanup function instead of FSWatcher
         // (FSWatcher is not serializable across the contextBridge).
         watch: {
           (
             filename: import('fs').PathLike,
-            listener?: import('fs').WatchListener<string>
+            listener?: import('fs').WatchListener<string>,
+            onError?: (error: Error) => void
           ): () => void;
           (
             filename: import('fs').PathLike,
             options: import('fs').WatchOptions | BufferEncoding,
-            listener?: import('fs').WatchListener<string>
+            listener?: import('fs').WatchListener<string>,
+            onError?: (error: Error) => void
           ): () => void;
         };
       };

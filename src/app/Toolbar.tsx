@@ -12,6 +12,7 @@ export interface ToolbarProps {
   sourceKind: string;
   ready: boolean;
   canSave: boolean;
+  saveBlocked: boolean;
   onOpenSource: () => void;
   onSave: () => void;
   saveDirty: boolean;
@@ -64,6 +65,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   sourceKind,
   ready,
   canSave,
+  saveBlocked,
   onOpenSource,
   onSave,
   saveDirty,
@@ -208,9 +210,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       <button
         className={`btn ${saveDirty ? 'primary' : ''}`}
-        disabled={!canSave || !ready}
+        disabled={!canSave || !ready || saveBlocked}
         onClick={onSave}
-        title={canSave ? 'Save current animation' : 'This source is read-only'}
+        title={
+          saveBlocked
+            ? 'Reload the externally changed source before saving'
+            : canSave
+              ? 'Save current animation'
+              : 'This source is read-only'
+        }
       >
         {saveDirty ? 'Save *' : 'Save'}
       </button>
@@ -219,7 +227,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           className={`btn ghost ${liveSync ? 'primary' : ''}`}
           aria-pressed={liveSync}
           onClick={onToggleLiveSync}
-          title="Automatically save edits for Antistatic's debug hot reload"
+          title="Automatically save edits for Antistatic's Live Reload option"
         >
           {liveSync ? 'Live on' : 'Live sync'}
         </button>

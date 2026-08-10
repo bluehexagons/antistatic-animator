@@ -118,6 +118,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
         // silently turn an object/array into a bare string.
         return (
           <input
+            key={`${k}:${JSON.stringify(v)}`}
             type="text"
             defaultValue={JSON.stringify(v)}
             onBlur={(e) => {
@@ -138,6 +139,7 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
         return (
           <>
             <input
+              key={`${k}:${String(v ?? '')}`}
               type="text"
               list={listId}
               defaultValue={typeof v === 'string' ? v : String(v ?? '')}

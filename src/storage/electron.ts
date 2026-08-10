@@ -16,7 +16,6 @@ export class ElectronStorage implements StorageBackend {
   private rootDir = '';
   private charDir = '';
   private stageDir = '';
-  private unwatches = new Map<string, () => void>();
 
   constructor(initialDir?: string) {
     if (initialDir) {
@@ -65,18 +64,26 @@ export class ElectronStorage implements StorageBackend {
     if (!this.ready) return [];
     const files: string[] = [];
     if (this.hasDataDir(this.charDir)) {
-      files.push(
-        ...(window.nodeAPI.fs.readdirSync(this.charDir) as string[]).filter((name) =>
-          DATA_FILE_RE.test(name)
-        )
-      );
+      try {
+        files.push(
+          ...(window.nodeAPI.fs.readdirSync(this.charDir) as string[]).filter((name) =>
+            DATA_FILE_RE.test(name)
+          )
+        );
+      } catch (err) {
+        console.warn('failed to list character data', err);
+      }
     }
     if (this.hasDataDir(this.stageDir)) {
-      files.push(
-        ...(window.nodeAPI.fs.readdirSync(this.stageDir) as string[])
-          .filter((name) => DATA_FILE_RE.test(name))
-          .map((name) => `${STAGE_FILE_PREFIX}${name}`)
-      );
+      try {
+        files.push(
+          ...(window.nodeAPI.fs.readdirSync(this.stageDir) as string[])
+            .filter((name) => DATA_FILE_RE.test(name))
+            .map((name) => `${STAGE_FILE_PREFIX}${name}`)
+        );
+      } catch (err) {
+        console.warn('failed to list stage data', err);
+      }
     }
     return files;
   }
@@ -94,22 +101,52 @@ export class ElectronStorage implements StorageBackend {
   }
 
   async write(name: string, content: string): Promise<void> {
-    window.nodeAPI.fs.writeFileSync(this.resolveFile(name), content, {
-      encoding: 'utf8',
-    });
+    // The preload performs the sibling-write/rename as one operation so the
+    // renderer never exposes a partially-written JSON document to the game.
+    window.nodeAPI.fs.writeFileAtomic(this.resolveFile(name), content);
   }
 
   watch(name: string, listener: () => void): () => void {
     const full = this.resolveFile(name);
-    try {
-      const cleanup = window.nodeAPI.fs.watch(full, () => listener());
-      this.unwatches.set(name, cleanup);
-      return () => {
-        cleanup();
-        this.unwatches.delete(name);
-      };
-    } catch {
-      return () => {};
-    }
+    const path = window.nodeAPI.path;
+    let stopped = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryCount = 0;
+    let cleanup = () => {};
+    const retry = () => {
+      if (stopped || retryTimer || retryCount >= 5) return;
+      const delay = 100 * 2 ** retryCount++;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        start();
+      }, delay);
+    };
+    const start = () => {
+      if (stopped) return;
+      try {
+        // Watch the directory so atomic temp-file renames do not strand the
+        // watcher on the old inode.
+        cleanup = window.nodeAPI.fs.watch(
+          path.dirname(full),
+          (_event, changedName) => {
+            if (changedName !== null && changedName.toString() !== path.basename(full)) return;
+            listener();
+          },
+          () => {
+            cleanup();
+            retry();
+          }
+        );
+      } catch {
+        retry();
+      }
+    };
+    start();
+    return () => {
+      stopped = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = null;
+      cleanup();
+    };
   }
 }

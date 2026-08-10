@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { appReducer, initialState } from '../animator/context/AnimatorContext';
+import { appReducer, initialState, isUndoTracked } from '../animator/context/AnimatorContext';
 import type { Animation } from '../animator/types';
 import { createStageDocument } from '../stage/document';
 
@@ -82,5 +82,23 @@ describe('appReducer stage document state', () => {
     expect(next.stage).toBe(stage);
     expect(next.stageFile).toBe('stages/fixture.json');
     expect(next.stageSelection).toEqual({ kind: 'collision', id: 'main-platform' });
+  });
+});
+
+describe('undo tracking', () => {
+  it('tracks document edits but not loading or navigation actions', () => {
+    expect(isUndoTracked({ type: 'SET_CHARACTER', payload: null })).toBe(false);
+    expect(isUndoTracked({ type: 'SET_PARSED', payload: null })).toBe(false);
+    expect(
+      isUndoTracked({ type: 'SET_ANIMATION', payload: { animation: anim(), name: 'jab' } })
+    ).toBe(false);
+    expect(
+      isUndoTracked({
+        type: 'SET_ANIMATION',
+        payload: { animation: anim(), updateParsed: true },
+      })
+    ).toBe(true);
+    expect(isUndoTracked({ type: 'SET_STAGE', payload: null })).toBe(false);
+    expect(isUndoTracked({ type: 'SET_STAGE', payload: null, history: true })).toBe(true);
   });
 });

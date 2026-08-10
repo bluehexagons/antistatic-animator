@@ -26,14 +26,15 @@ export class UploadStorage implements StorageBackend {
 
   /** Load a flat list of files (basename → content) into memory. */
   async loadFiles(files: File[], label?: string): Promise<number> {
-    this.files.clear();
+    const next = new Map<string, string>();
     const accepted = files.filter((f) => DATA_FILE_RE.test(f.name));
     for (const f of accepted) {
       const text = await f.text();
       const relativePath = (f as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
       const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(relativePath);
-      this.files.set(stageFile ? `stages/${f.name}` : f.name, text);
+      next.set(stageFile ? `stages/${f.name}` : f.name, text);
     }
+    this.files = next;
     this.dirLabel = label || (accepted[0] ? guessDirLabel(accepted) : '');
     return this.files.size;
   }

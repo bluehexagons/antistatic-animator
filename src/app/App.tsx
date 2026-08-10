@@ -13,7 +13,7 @@ import type { AnimationMap, EntityData } from '../animator/types';
 import { save as saveFile } from '../animator/operations/file-operations';
 import { clearBaselines } from '../animator/operations/diff';
 import { createTools } from '../animator/api/tools';
-import { library } from '../storage/library';
+import { library, StorageConflictError } from '../storage/library';
 import { ElectronStorage } from '../storage/electron';
 import { FsAccessStorage } from '../storage/fs-access';
 import { UploadStorage } from '../storage/upload';
@@ -61,7 +61,7 @@ const Shell: React.FC = () => {
   const [showShield, setShowShield] = useState(false);
   const [saveDirty, setSaveDirty] = useState(false);
   const [liveSync, setLiveSync] = useState(() => getLocalStorageItem(LIVE_SYNC_KEY) === '1');
-  const [externalChange, setExternalChange] = useState(false);
+  const [externalFiles, setExternalFiles] = useState<Set<string>>(() => new Set());
   const [showPicker, setShowPicker] = useState(!library.ready);
   const [mode, setMode] = useState<EditorMode>('character');
 
@@ -76,12 +76,13 @@ const Shell: React.FC = () => {
   const [stageFrame, setStageFrame] = useState(0);
   const [stagePlaying, setStagePlaying] = useState(false);
   const [stageFitRequest, setStageFitRequest] = useState(0);
+  const editRevision = useRef(0);
 
   const clearOpenFile = useCallback(() => {
+    editRevision.current++;
     setSelectedFile(null);
     setSelectedHitbubble(-1);
     setSaveDirty(false);
-    setExternalChange(false);
     setTick(0);
     setPlaying(false);
     setStageFrame(0);
@@ -139,6 +140,12 @@ const Shell: React.FC = () => {
   );
 
   const liveSyncAvailable = mode === 'character' && library.kind === 'electron' && library.canSave;
+
+  const activeSourceNames = useMemo(() => {
+    const names = mode === 'stage' ? [state.stageFile] : [selectedFile ?? '', state.animFile];
+    return [...new Set(names.filter(Boolean))];
+  }, [mode, selectedFile, state.animFile, state.stageFile]);
+  const externalChange = activeSourceNames.some((name) => externalFiles.has(name));
 
   // Animation map list for the current file.
   const animationKeyframeCounts = useMemo(() => {
@@ -202,11 +209,17 @@ const Shell: React.FC = () => {
   );
 
   useEffect(() => {
-    const names = mode === 'stage' ? [state.stageFile] : [selectedFile ?? '', state.animFile];
-    const uniqueNames = [...new Set(names.filter(Boolean))];
-    const unwatch = uniqueNames.map((name) => library.watch(name, () => setExternalChange(true)));
+    const unwatch = activeSourceNames.map((name) =>
+      library.watch(name, () => {
+        setExternalFiles((files) => {
+          const next = new Set(files);
+          next.add(name);
+          return next;
+        });
+      })
+    );
     return () => unwatch.forEach((stop) => stop());
-  }, [mode, selectedFile, state.animFile, state.stageFile]);
+  }, [activeSourceNames, library.backendVersion]);
 
   const animationList = useMemo(
     () => (state.parsed ? Object.getOwnPropertyNames(state.parsed).sort() : []),
@@ -228,6 +241,7 @@ const Shell: React.FC = () => {
   );
 
   const onAnimationChange = useCallback(() => {
+    editRevision.current++;
     if (state.animation) {
       // Re-render with a shallow clone so identity-keyed memos recompute
       // (the keyframes array reference is retained, so keyframe edits stay
@@ -241,7 +255,9 @@ const Shell: React.FC = () => {
   }, [state.animation, dispatch]);
 
   const onStageChange = useCallback(() => {
-    if (state.stage) dispatch({ type: 'SET_STAGE', payload: structuredClone(state.stage) });
+    editRevision.current++;
+    if (state.stage)
+      dispatch({ type: 'SET_STAGE', payload: structuredClone(state.stage), history: true });
     setSaveDirty(true);
   }, [state.stage, dispatch]);
 
@@ -285,26 +301,31 @@ const Shell: React.FC = () => {
   }, [state.stage, state.stageSelection, dispatch, onStageChange]);
 
   const handleCreateStage = useCallback(async () => {
-    const name = prompt('Stage name', 'New Stage')?.trim();
-    if (!name) return;
-    const suggested = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'stage'}.json`;
-    const fileName = prompt('Stage file name', suggested)?.trim();
-    if (!fileName) return;
-    const safeFileName = fileName
-      .replace(/^stages\//, '')
-      .replace(/\.jsonc?$/i, '')
-      .replace(/[^a-zA-Z0-9_-]+/g, '-');
-    const path = `stages/${safeFileName || 'stage'}.json`;
-    if (library.has(path) && !confirm(`${path} already exists. Replace it?`)) return;
-    const document = createStageDocument(name);
-    await library.save(path, renderStageFile(undefined, document));
-    clearOpenFile();
-    setMode('stage');
-    dispatch({ type: 'SET_STAGE_FILE', payload: path });
-    dispatch({ type: 'SET_STAGE', payload: document });
-    dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
-    setStageFitRequest((value) => value + 1);
-    setSaveDirty(false);
+    try {
+      const name = prompt('Stage name', 'New Stage')?.trim();
+      if (!name) return;
+      const suggested = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'stage'}.json`;
+      const fileName = prompt('Stage file name', suggested)?.trim();
+      if (!fileName) return;
+      const safeFileName = fileName
+        .replace(/^stages\//, '')
+        .replace(/\.jsonc?$/i, '')
+        .replace(/[^a-zA-Z0-9_-]+/g, '-');
+      const path = `stages/${safeFileName || 'stage'}.json`;
+      if (library.has(path) && !confirm(`${path} already exists. Replace it?`)) return;
+      const document = createStageDocument(name);
+      await library.save(path, renderStageFile(undefined, document));
+      clearOpenFile();
+      setMode('stage');
+      dispatch({ type: 'SET_STAGE_FILE', payload: path });
+      dispatch({ type: 'SET_STAGE', payload: document });
+      dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
+      setStageFitRequest((value) => value + 1);
+      setSaveDirty(false);
+    } catch (err) {
+      console.error('stage creation failed', err);
+      alert(`Unable to create stage: ${(err as Error).message ?? err}`);
+    }
   }, [clearOpenFile, dispatch]);
 
   const onSelectBubble = useCallback(
@@ -334,6 +355,11 @@ const Shell: React.FC = () => {
   );
 
   const handleSave = useCallback(async () => {
+    if (externalChange) {
+      alert('The source changed externally. Reload it before saving.');
+      return;
+    }
+    const revision = editRevision.current;
     try {
       if (mode === 'stage') {
         if (!state.stageFile || !state.stage) return;
@@ -352,13 +378,34 @@ const Shell: React.FC = () => {
         await saveFile(state.animFile, state.parsed);
         clearBaselines();
       }
-      setSaveDirty(false);
-      setExternalChange(false);
+      if (editRevision.current === revision) {
+        setSaveDirty(false);
+        setExternalFiles((files) => {
+          const next = new Set(files);
+          for (const name of activeSourceNames) next.delete(name);
+          return next;
+        });
+      }
     } catch (err) {
+      if (err instanceof StorageConflictError) {
+        setExternalFiles((files) => {
+          const next = new Set(files);
+          next.add(err.filename);
+          return next;
+        });
+      }
       console.error('save failed', err);
       alert(`Save failed: ${(err as Error).message ?? err}`);
     }
-  }, [mode, state.animFile, state.parsed, state.stageFile, state.stage]);
+  }, [
+    activeSourceNames,
+    externalChange,
+    mode,
+    state.animFile,
+    state.parsed,
+    state.stageFile,
+    state.stage,
+  ]);
 
   useEffect(() => {
     if (!liveSync || !liveSyncAvailable || !saveDirty || externalChange) return;
@@ -380,7 +427,11 @@ const Shell: React.FC = () => {
       // Refresh before selecting: the cache intentionally remains old while
       // the conflict banner is visible so a manual save cannot overwrite it.
       await library.refresh();
-      setExternalChange(false);
+      setExternalFiles((files) => {
+        const next = new Set(files);
+        for (const name of activeSourceNames) next.delete(name);
+        return next;
+      });
       if (mode === 'stage' && state.stageFile) {
         handleSelectStageFile(state.stageFile);
       } else if (mode === 'character' && selectedFile) {
@@ -389,41 +440,64 @@ const Shell: React.FC = () => {
     } catch (err) {
       alert(`Reload failed: ${(err as Error).message ?? err}`);
     }
-  }, [handleSelectFile, handleSelectStageFile, mode, saveDirty, selectedFile, state.stageFile]);
+  }, [
+    activeSourceNames,
+    handleSelectFile,
+    handleSelectStageFile,
+    mode,
+    saveDirty,
+    selectedFile,
+    state.stageFile,
+  ]);
 
   const openSource = useCallback(async () => {
     setShowPicker(true);
   }, []);
 
   const handlePickElectron = useCallback(async () => {
-    const backend =
-      library.getBackend() instanceof ElectronStorage
-        ? (library.getBackend() as ElectronStorage)
-        : new ElectronStorage();
-    const ok = await backend.pickDirectory();
-    if (ok) {
-      clearOpenFile();
-      library.setBackend(backend);
-      await library.refresh();
-      if (backend.ready) {
-        setLocalStorageItem(ELECTRON_SOURCE_KEY, backend.label);
-        setShowPicker(false);
+    const previous = library.getBackend();
+    try {
+      const backend = new ElectronStorage();
+      const ok = await backend.pickDirectory();
+      if (ok) {
+        library.setBackend(backend);
+        await library.refresh();
+        clearOpenFile();
+        setExternalFiles(new Set());
+        if (backend.ready) {
+          setLocalStorageItem(ELECTRON_SOURCE_KEY, backend.label);
+          setShowPicker(false);
+        }
       }
+    } catch (err) {
+      if (library.getBackend() !== previous) {
+        library.setBackend(previous);
+        await library.refresh().catch(() => undefined);
+      }
+      console.error('directory selection failed', err);
+      alert(`Unable to open directory: ${(err as Error).message ?? err}`);
     }
   }, [clearOpenFile]);
 
   const handlePickFsAccess = useCallback(async () => {
+    const previous = library.getBackend();
     const backend = new FsAccessStorage();
     try {
       const ok = await backend.pickRoot();
       if (ok) {
-        clearOpenFile();
         library.setBackend(backend);
         await library.refresh();
+        clearOpenFile();
+        setExternalFiles(new Set());
         setShowPicker(false);
       }
     } catch (err) {
+      if (library.getBackend() !== previous) {
+        library.setBackend(previous);
+        await library.refresh().catch(() => undefined);
+      }
       console.error(err);
+      alert(`Unable to open folder: ${(err as Error).message ?? err}`);
     }
   }, [clearOpenFile]);
 
@@ -435,15 +509,23 @@ const Shell: React.FC = () => {
   const handleUploadFiles = useCallback(
     async (files: File[]) => {
       if (!files.length) return;
-      let backend = library.getBackend();
-      if (!(backend instanceof UploadStorage)) {
-        backend = new UploadStorage();
+      const previous = library.getBackend();
+      const backend = new UploadStorage();
+      try {
+        await backend.loadFiles(files);
         library.setBackend(backend);
+        await library.refresh();
+        clearOpenFile();
+        setExternalFiles(new Set());
+        setShowPicker(!backend.ready);
+      } catch (err) {
+        if (library.getBackend() !== previous) {
+          library.setBackend(previous);
+          await library.refresh().catch(() => undefined);
+        }
+        console.error('upload failed', err);
+        alert(`Upload failed: ${(err as Error).message ?? err}`);
       }
-      clearOpenFile();
-      await (backend as UploadStorage).loadFiles(files);
-      await library.refresh();
-      setShowPicker(!backend.ready);
     },
     [clearOpenFile]
   );
@@ -540,6 +622,7 @@ const Shell: React.FC = () => {
         sourceKind={library.kind}
         ready={library.ready}
         canSave={library.canSave}
+        saveBlocked={externalChange}
         saveDirty={saveDirty}
         liveSync={liveSync}
         liveSyncAvailable={liveSyncAvailable}

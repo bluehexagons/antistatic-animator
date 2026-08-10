@@ -130,7 +130,10 @@ export class FsAccessStorage implements StorageBackend {
     if (!location.directory) throw new Error('no directory selected for this file type');
     const file = await location.directory.getFileHandle(location.name, { create: true });
     const w = await file.createWritable();
-    await w.write(content);
-    await w.close();
+    try {
+      await w.write(content);
+    } finally {
+      await w.close();
+    }
   }
 }

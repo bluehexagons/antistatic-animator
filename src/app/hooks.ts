@@ -11,8 +11,26 @@ import { library } from '../storage/library';
 export function useLibrary() {
   return useSyncExternalStore(
     (l) => library.subscribe(l),
-    () => library.label + '|' + library.kind + '|' + library.size,
-    () => library.label + '|' + library.kind + '|' + library.size
+    () =>
+      library.version +
+      '|' +
+      library.backendVersion +
+      '|' +
+      library.label +
+      '|' +
+      library.kind +
+      '|' +
+      library.size,
+    () =>
+      library.version +
+      '|' +
+      library.backendVersion +
+      '|' +
+      library.label +
+      '|' +
+      library.kind +
+      '|' +
+      library.size
   );
 }
 

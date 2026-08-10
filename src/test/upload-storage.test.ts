@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { UploadStorage } from '../storage/upload';
 
 describe('UploadStorage', () => {
@@ -25,5 +25,15 @@ describe('UploadStorage', () => {
     await storage.loadFiles([stage]);
     await expect(storage.list()).resolves.toEqual(['stages/ruins.json']);
     await expect(storage.read('stages/ruins.json')).resolves.toBe('{}');
+  });
+
+  it('keeps the previous upload when a new file cannot be read', async () => {
+    const storage = new UploadStorage();
+    await storage.loadFiles([new File(['{}'], 'carbon.json')]);
+    const broken = new File(['broken'], 'new.json');
+    vi.spyOn(broken, 'text').mockRejectedValue(new Error('read failed'));
+
+    await expect(storage.loadFiles([broken])).rejects.toThrow('read failed');
+    await expect(storage.list()).resolves.toEqual(['carbon.json']);
   });
 });

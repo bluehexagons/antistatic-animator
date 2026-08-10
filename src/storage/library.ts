@@ -11,6 +11,13 @@ import type { StorageBackend } from './types';
 
 export type LibraryListener = () => void;
 
+export class StorageConflictError extends Error {
+  constructor(public readonly filename: string) {
+    super(`File changed externally: ${filename}`);
+    this.name = 'StorageConflictError';
+  }
+}
+
 export interface LibraryFile {
   name: string;
   content: string;
@@ -20,9 +27,17 @@ export class Library {
   private backend: StorageBackend | null = null;
   private cache = new Map<string, string>();
   private listeners = new Set<LibraryListener>();
+  private backendGeneration = 0;
+  private backendRevision = 0;
+  private revision = 0;
+  private refreshGeneration = 0;
+  private writeQueues = new Map<StorageBackend, Map<string, Promise<void>>>();
 
   setBackend(backend: StorageBackend | null) {
     this.backend = backend;
+    this.backendGeneration++;
+    this.backendRevision++;
+    this.refreshGeneration++;
     this.cache.clear();
     this.emit();
   }
@@ -52,18 +67,37 @@ export class Library {
     return !!this.backend?.canSave;
   }
 
+  get backendVersion(): number {
+    return this.backendRevision;
+  }
+
+  get version(): number {
+    return this.revision;
+  }
+
   /** Force a re-list of files from the backend. */
   async refresh(): Promise<void> {
-    if (!this.backend) return;
-    this.cache.clear();
-    const names = await this.backend.list();
+    const backend = this.backend;
+    if (!backend) return;
+    const backendGeneration = this.backendGeneration;
+    const refreshGeneration = ++this.refreshGeneration;
+    const next = new Map<string, string>();
+    const names = await backend.list();
     for (const name of names) {
       try {
-        this.cache.set(name, await this.backend.read(name));
+        next.set(name, await backend.read(name));
       } catch (err) {
         console.warn('failed to load', name, err);
       }
     }
+    if (
+      backend !== this.backend ||
+      backendGeneration !== this.backendGeneration ||
+      refreshGeneration !== this.refreshGeneration
+    ) {
+      return;
+    }
+    this.cache = next;
     this.emit();
   }
 
@@ -81,13 +115,46 @@ export class Library {
 
   /** Update local cache; persistence depends on the backend. */
   async save(name: string, content: string): Promise<void> {
-    if (this.backend?.canSave) {
-      await this.backend.write(name, content);
+    const backend = this.backend;
+    if (!backend) {
+      this.cache.set(name, content);
+      this.emit();
+      return;
     }
-    // Only update the cache after persistence succeeds. A failed write must
-    // not make a later save treat stale in-memory content as disk-authoritative.
-    this.cache.set(name, content);
-    this.emit();
+    const backendGeneration = this.backendGeneration;
+    let backendQueues = this.writeQueues.get(backend);
+    if (!backendQueues) {
+      backendQueues = new Map();
+      this.writeQueues.set(backend, backendQueues);
+    }
+    const previous = backendQueues.get(name) ?? Promise.resolve();
+    const operation = previous
+      .catch(() => undefined)
+      .then(async () => {
+        if (backend !== this.backend || backendGeneration !== this.backendGeneration) return;
+        if (backend.canSave) {
+          if (this.cache.has(name)) {
+            const diskContent = await backend.read(name);
+            if (diskContent !== this.cache.get(name)) {
+              throw new StorageConflictError(name);
+            }
+          }
+          await backend.write(name, content);
+        }
+        // A slow write from an old source must not populate the new source's
+        // cache after the user switches backends.
+        if (backend === this.backend && backendGeneration === this.backendGeneration) {
+          this.cache.set(name, content);
+          this.emit();
+        }
+      });
+    backendQueues.set(name, operation);
+    try {
+      await operation;
+    } finally {
+      if (backendQueues.get(name) === operation) backendQueues.delete(name);
+      if (backendQueues.size === 0) this.writeQueues.delete(backend);
+    }
   }
 
   /**
@@ -99,22 +166,28 @@ export class Library {
     const backend = this.backend;
     if (!backend?.watch) return () => {};
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const check = () => {
+    let active = true;
+    const check = (attempt = 0) => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        timer = null;
-        void backend
-          .read(name)
-          .then((content) => {
-            if (content !== this.cache.get(name)) listener(content);
-          })
-          .catch(() => {
-            // A file may briefly disappear during an atomic replacement.
-          });
-      }, 50);
+      timer = setTimeout(
+        () => {
+          timer = null;
+          void backend
+            .read(name)
+            .then((content) => {
+              if (active && content !== this.cache.get(name)) listener(content);
+            })
+            .catch(() => {
+              // A file may briefly disappear during an atomic replacement.
+              if (active && attempt < 5) check(attempt + 1);
+            });
+        },
+        attempt === 0 ? 50 : 100 * attempt
+      );
     };
     const unwatch = backend.watch(name, check);
     return () => {
+      active = false;
       if (timer) clearTimeout(timer);
       unwatch();
     };
@@ -126,6 +199,7 @@ export class Library {
   }
 
   private emit() {
+    this.revision++;
     for (const l of this.listeners) l();
   }
 }

@@ -64,6 +64,41 @@ describe('Library', () => {
     expect(lib.has('missing.txt')).toBe(false);
   });
 
+  it('does not let a stale refresh repopulate a newly selected backend', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    let releaseOldList!: (names: string[]) => void;
+    const oldList = new Promise<string[]>((resolve) => {
+      releaseOldList = resolve;
+    });
+    const oldBackend = {
+      kind: 'electron' as const,
+      label: '/old-game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(() => oldList),
+      read: vi.fn(async () => 'old'),
+      write: vi.fn(),
+    };
+    const newBackend = {
+      kind: 'electron' as const,
+      label: '/new-game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => ['new.json']),
+      read: vi.fn(async () => 'new'),
+      write: vi.fn(),
+    };
+    lib.setBackend(oldBackend);
+    const staleRefresh = lib.refresh();
+    lib.setBackend(newBackend);
+    await lib.refresh();
+    releaseOldList(['old.json']);
+    await staleRefresh;
+
+    expect(lib.files()).toEqual([{ name: 'new.json', content: 'new' }]);
+  });
+
   it('save updates the in-memory cache', async () => {
     const Library = await getLibrary();
     const lib = new Library();
@@ -120,6 +155,66 @@ describe('Library', () => {
     expect(lib.has('test.json')).toBe(false);
   });
 
+  it('rejects a save when the source changed since the last refresh', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    let content = '{}';
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => ['test.json']),
+      read: vi.fn(async () => content),
+      write: vi.fn(async (_name: string, next: string) => {
+        content = next;
+      }),
+    };
+    lib.setBackend(backend);
+    await lib.refresh();
+    content = '{"external":true}';
+
+    await expect(lib.save('test.json', '{"local":true}')).rejects.toThrow(
+      'File changed externally'
+    );
+    expect(backend.write).not.toHaveBeenCalled();
+  });
+
+  it('serializes writes for the same file in submission order', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    let content = '{}';
+    let releaseFirstWrite!: () => void;
+    const firstWrite = new Promise<void>((resolve) => {
+      releaseFirstWrite = resolve;
+    });
+    const writes: string[] = [];
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => ['test.json']),
+      read: vi.fn(async () => content),
+      write: vi.fn(async (_name: string, next: string) => {
+        writes.push(next);
+        if (writes.length === 1) await firstWrite;
+        content = next;
+      }),
+    };
+    lib.setBackend(backend);
+    await lib.refresh();
+
+    const first = lib.save('test.json', '{"first":true}');
+    const second = lib.save('test.json', '{"second":true}');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(writes).toEqual(['{"first":true}']);
+    releaseFirstWrite();
+    await Promise.all([first, second]);
+    expect(writes).toEqual(['{"first":true}', '{"second":true}']);
+    expect(lib.get('test.json')).toBe('{"second":true}');
+  });
+
   it('reports external file changes but ignores its own cached content', async () => {
     const Library = await getLibrary();
     const lib = new Library();
@@ -156,6 +251,45 @@ describe('Library', () => {
     await new Promise((resolve) => setTimeout(resolve, 75));
     expect(changed).toHaveBeenCalledWith('{"changed":true}');
     stop();
+  });
+
+  it('does not report a change after watch cleanup while a read is pending', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    let trigger: (() => void) | undefined;
+    let releaseRead!: (content: string) => void;
+    const pendingRead = new Promise<string>((resolve) => {
+      releaseRead = resolve;
+    });
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => ['test.json']),
+      read: vi
+        .fn()
+        .mockResolvedValueOnce('{}')
+        .mockImplementationOnce(() => pendingRead),
+      write: vi.fn(),
+      watch: vi.fn((_name: string, listener: () => void) => {
+        trigger = listener;
+        return () => {
+          trigger = undefined;
+        };
+      }),
+    };
+    lib.setBackend(backend);
+    await lib.refresh();
+    const changed = vi.fn();
+    const stop = lib.watch('test.json', changed);
+
+    trigger?.();
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    stop();
+    releaseRead('{"changed":true}');
+    await Promise.resolve();
+    expect(changed).not.toHaveBeenCalled();
   });
 
   it('notifies subscribers on backend/save/refresh changes', async () => {
