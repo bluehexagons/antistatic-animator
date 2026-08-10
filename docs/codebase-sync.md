@@ -4,7 +4,7 @@
 
 Last checked: 2026-08-10
 
-- Animator repository: `9ad7ad7` (`main`)
+- Animator repository: `7ffeb4e` (`main`)
 - Antistatic repository: `8b08fccb` (`main`)
 - Reference paths: `../antistatic/app/src/game/animation.ts`,
   `../antistatic/app/src/game/bubbles.ts`, `../antistatic/app/src/game/stage.ts`,
@@ -30,15 +30,18 @@ animation caching do not change the authoring format.
 - Stage animation target IDs are encoded without assuming IDs cannot contain
   colons; negative-speed playback starts from the final frame.
 - Failed saves no longer update the in-memory library cache.
+- Electron source files can be watched for external edits, and live sync can
+  debounce-save animator edits for Antistatic's existing debug watcher.
 
 ## Known Gaps
 
-- The viewport is an SVG authoring proxy, not Antistatic's 3D renderer. Meshes,
-  prefab geometry, material response, lighting, fog, particle simulation,
-  camera perspective, and angular model motion are not rendered as in-game.
+- The viewport is intentionally an SVG authoring proxy. A 3D renderer is not on
+  the project roadmap; in-game feedback should come from live updates instead.
 - Audio fields can be edited but audio assets are not discovered or played.
 - Runtime handler functions are not executed in the editor. Handler validation
   remains advisory because character-specific handlers are loaded by the game.
+- Antistatic's current debug watcher reloads character data, not stage files;
+  stage live reload remains a game-side follow-up.
 - Stage `autoplay`, `randomStart`, stage coordinate scaling, and some runtime
   lighting/material transforms are preserved but not fully simulated.
 - JSONC saves preserve untouched document structure; replacing a nested object or

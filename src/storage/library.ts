@@ -90,6 +90,36 @@ export class Library {
     this.emit();
   }
 
+  /**
+   * Watch a loaded file for changes made outside the animator. The backend
+   * watcher can fire more than once for one write, so compare after a short
+   * debounce and ignore changes that already match our cache.
+   */
+  watch(name: string, listener: (content: string) => void): () => void {
+    const backend = this.backend;
+    if (!backend?.watch) return () => {};
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const check = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        void backend
+          .read(name)
+          .then((content) => {
+            if (content !== this.cache.get(name)) listener(content);
+          })
+          .catch(() => {
+            // A file may briefly disappear during an atomic replacement.
+          });
+      }, 50);
+    };
+    const unwatch = backend.watch(name, check);
+    return () => {
+      if (timer) clearTimeout(timer);
+      unwatch();
+    };
+  }
+
   subscribe(listener: LibraryListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

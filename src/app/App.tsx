@@ -46,6 +46,7 @@ import type { StageSelectionKind } from '../stage/types';
 
 const VERSION = import.meta.env.VITE_APP_VERSION || '0.1.0';
 const ELECTRON_SOURCE_KEY = 'antistatic-dir';
+const LIVE_SYNC_KEY = 'antistatic-live-sync';
 
 const Shell: React.FC = () => {
   const { state, dispatch, undo, redo, canUndo, canRedo } = useAnimator();
@@ -59,6 +60,8 @@ const Shell: React.FC = () => {
   const [showLabels, setShowLabels] = useState(false);
   const [showShield, setShowShield] = useState(false);
   const [saveDirty, setSaveDirty] = useState(false);
+  const [liveSync, setLiveSync] = useState(() => getLocalStorageItem(LIVE_SYNC_KEY) === '1');
+  const [externalChange, setExternalChange] = useState(false);
   const [showPicker, setShowPicker] = useState(!library.ready);
   const [mode, setMode] = useState<EditorMode>('character');
 
@@ -78,6 +81,7 @@ const Shell: React.FC = () => {
     setSelectedFile(null);
     setSelectedHitbubble(-1);
     setSaveDirty(false);
+    setExternalChange(false);
     setTick(0);
     setPlaying(false);
     setStageFrame(0);
@@ -133,6 +137,8 @@ const Shell: React.FC = () => {
         .sort(),
     [library.size, library.label]
   );
+
+  const liveSyncAvailable = mode === 'character' && library.kind === 'electron' && library.canSave;
 
   // Animation map list for the current file.
   const animationKeyframeCounts = useMemo(() => {
@@ -194,6 +200,13 @@ const Shell: React.FC = () => {
     },
     [clearOpenFile, dispatch]
   );
+
+  useEffect(() => {
+    const names = mode === 'stage' ? [state.stageFile] : [selectedFile ?? '', state.animFile];
+    const uniqueNames = [...new Set(names.filter(Boolean))];
+    const unwatch = uniqueNames.map((name) => library.watch(name, () => setExternalChange(true)));
+    return () => unwatch.forEach((stop) => stop());
+  }, [mode, selectedFile, state.animFile, state.stageFile]);
 
   const animationList = useMemo(
     () => (state.parsed ? Object.getOwnPropertyNames(state.parsed).sort() : []),
@@ -340,11 +353,43 @@ const Shell: React.FC = () => {
         clearBaselines();
       }
       setSaveDirty(false);
+      setExternalChange(false);
     } catch (err) {
       console.error('save failed', err);
       alert(`Save failed: ${(err as Error).message ?? err}`);
     }
   }, [mode, state.animFile, state.parsed, state.stageFile, state.stage]);
+
+  useEffect(() => {
+    if (!liveSync || !liveSyncAvailable || !saveDirty || externalChange) return;
+    const timer = setTimeout(() => void handleSave(), 250);
+    return () => clearTimeout(timer);
+  }, [externalChange, handleSave, liveSync, liveSyncAvailable, saveDirty]);
+
+  const handleToggleLiveSync = useCallback(() => {
+    setLiveSync((enabled) => {
+      const next = !enabled;
+      setLocalStorageItem(LIVE_SYNC_KEY, next ? '1' : '0');
+      return next;
+    });
+  }, []);
+
+  const handleReloadSource = useCallback(async () => {
+    if (saveDirty && !confirm('Discard unsaved edits and reload the changed source?')) return;
+    try {
+      // Refresh before selecting: the cache intentionally remains old while
+      // the conflict banner is visible so a manual save cannot overwrite it.
+      await library.refresh();
+      setExternalChange(false);
+      if (mode === 'stage' && state.stageFile) {
+        handleSelectStageFile(state.stageFile);
+      } else if (mode === 'character' && selectedFile) {
+        handleSelectFile(selectedFile);
+      }
+    } catch (err) {
+      alert(`Reload failed: ${(err as Error).message ?? err}`);
+    }
+  }, [handleSelectFile, handleSelectStageFile, mode, saveDirty, selectedFile, state.stageFile]);
 
   const openSource = useCallback(async () => {
     setShowPicker(true);
@@ -496,6 +541,11 @@ const Shell: React.FC = () => {
         ready={library.ready}
         canSave={library.canSave}
         saveDirty={saveDirty}
+        liveSync={liveSync}
+        liveSyncAvailable={liveSyncAvailable}
+        onToggleLiveSync={handleToggleLiveSync}
+        externalChange={externalChange}
+        onReloadSource={handleReloadSource}
         editorMode={mode}
         onOpenSource={openSource}
         onSave={handleSave}

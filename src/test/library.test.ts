@@ -120,6 +120,44 @@ describe('Library', () => {
     expect(lib.has('test.json')).toBe(false);
   });
 
+  it('reports external file changes but ignores its own cached content', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    let content = '{}';
+    let trigger: (() => void) | undefined;
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => ['test.json']),
+      read: vi.fn(async () => content),
+      write: vi.fn(async (_name: string, next: string) => {
+        content = next;
+      }),
+      watch: vi.fn((_name: string, listener: () => void) => {
+        trigger = listener;
+        return () => {
+          trigger = undefined;
+        };
+      }),
+    };
+    lib.setBackend(backend);
+    await lib.refresh();
+    const changed = vi.fn();
+    const stop = lib.watch('test.json', changed);
+
+    trigger?.();
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    expect(changed).not.toHaveBeenCalled();
+
+    content = '{"changed":true}';
+    trigger?.();
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    expect(changed).toHaveBeenCalledWith('{"changed":true}');
+    stop();
+  });
+
   it('notifies subscribers on backend/save/refresh changes', async () => {
     const Library = await getLibrary();
     const lib = new Library();

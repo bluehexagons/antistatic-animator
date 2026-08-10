@@ -16,13 +16,15 @@ npm start
    to open/create a stage scene
 3. Edit hurtbubbles by dragging on the stage or nudging with WASD / arrows
    (marquee-drag to multi-select); step keyframes with `,` / `.`; save with
-   Ctrl/Cmd+S
+   Ctrl/Cmd+S, or enable **Live sync** for a local Antistatic checkout
 4. In stage mode, add collision, models, lights, fog, particles, and animations
    from the scene list. Drag positioned objects in the viewport and edit exact
    values in the inspector/timeline.
 
 For the stage editor and game-runtime acceptance pass, see
 [`docs/stage-authoring-qa.md`](docs/stage-authoring-qa.md).
+For local game hot reload and conflict handling, see
+[`docs/live-updates.md`](docs/live-updates.md).
 
 ## Development
 
@@ -54,6 +56,7 @@ installation.
   including array/object values, with schema-aware dropdowns and lint
 - JSONC-preserving animation and stage saves (keeps untouched comments and
   formatting; character metadata is read-only)
+- Electron live sync with external-change detection and reload protection
 - Console API (`window.Tools`) for batch operations
 
 ## Architecture

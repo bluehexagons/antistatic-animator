@@ -30,9 +30,10 @@ common smear forms. Remaining deliberate gaps are documented below and in
 - **G1** (audio preview) — skipped; the storage layer reads text, not the
   binary `.ogg` assets it would need. Revisit if storage gains binary reads.
 
-Additional parity work remains intentionally outside the 2D editor: a real 3D
-viewport, engine handler execution, full stage lighting/material simulation,
-and stage autoplay/random-start simulation.
+Additional work should prioritize filesystem live sync, external-change safety,
+and a game-side stage reload path. A real 3D viewport is intentionally not on
+the roadmap; runtime-only handler execution and lighting simulation remain
+outside the editor.
 
 ## Batches
 
@@ -152,6 +153,22 @@ shipping a 3D viewport yet.
 - G2. **Copy/paste keyframes** through the app's reusable clipboard slot for
        cross-animation reuse (not the operating-system clipboard).
 - G3. **Diff highlight** — mark keyframes modified during the session.
+
+### Batch H — Live iteration ✅ (character data)
+
+The preferred feedback loop is the running game, not a larger editor viewport.
+Antistatic already watches character files in debug mode and replaces matching
+live entities, so the animator only needs to make that path safe and low
+friction.
+
+- H1. **Debounced Live sync.** Electron local edits save automatically after a
+       short idle period while the toolbar toggle is enabled.
+- H2. **External-change detection.** Ignore watcher events caused by the
+       animator's own writes and surface changes made by another tool.
+- H3. **Conflict-safe reload.** Pause live autosave until the user reloads the
+       changed source, confirming before discarding dirty edits.
+- H4. **Stage reload path.** Deferred until Antistatic exposes equivalent
+       development-time stage invalidation and replacement.
 
 ## Order of work
 

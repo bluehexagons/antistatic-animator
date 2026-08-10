@@ -15,6 +15,11 @@ export interface ToolbarProps {
   onOpenSource: () => void;
   onSave: () => void;
   saveDirty: boolean;
+  liveSync: boolean;
+  liveSyncAvailable: boolean;
+  onToggleLiveSync: () => void;
+  externalChange: boolean;
+  onReloadSource: () => void;
   editorMode: EditorMode;
 
   // undo / redo
@@ -62,6 +67,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onOpenSource,
   onSave,
   saveDirty,
+  liveSync,
+  liveSyncAvailable,
+  onToggleLiveSync,
+  externalChange,
+  onReloadSource,
   editorMode,
   canUndo,
   canRedo,
@@ -204,6 +214,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       >
         {saveDirty ? 'Save *' : 'Save'}
       </button>
+      {liveSyncAvailable && (
+        <button
+          className={`btn ghost ${liveSync ? 'primary' : ''}`}
+          aria-pressed={liveSync}
+          onClick={onToggleLiveSync}
+          title="Automatically save edits for Antistatic's debug hot reload"
+        >
+          {liveSync ? 'Live on' : 'Live sync'}
+        </button>
+      )}
+      {externalChange && (
+        <button
+          className="btn ghost"
+          onClick={onReloadSource}
+          title="Reload the changed source file"
+        >
+          Reload changed
+        </button>
+      )}
     </header>
   );
 };
