@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type {
   AgentPlayOptions,
   AgentPlayObservation,
@@ -76,10 +76,24 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
   const [captureFrames, setCaptureFrames] = useState('0,1,2,4,8,16');
   const [captureStatus, setCaptureStatus] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [playerTarget, setPlayerTarget] = useState('0');
+  const [playerDamage, setPlayerDamage] = useState('0');
+  const [playerStocks, setPlayerStocks] = useState('3');
+  const [playerX, setPlayerX] = useState('0');
+  const [playerY, setPlayerY] = useState('0');
+  const [playerAnimation, setPlayerAnimation] = useState('idle');
   const observation = response?.observation ?? ready?.observation;
   const summary = observationSummary(observation);
   const active = ready !== null;
   const screenshotsAvailable = ready?.capabilities?.screenshots === true;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
 
   const request = (value: AgentPlayRequest) => {
     setRequestError(null);
@@ -143,6 +157,57 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
     });
   };
 
+  const playerNumberValue = () => {
+    const value = Number.parseInt(playerTarget, 10);
+    if (!Number.isSafeInteger(value) || value < 0) {
+      setRequestError('Player number must be a non-negative integer.');
+      return null;
+    }
+    return value;
+  };
+
+  const numberValue = (value: string, label: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      setRequestError(`${label} must be a finite number.`);
+      return null;
+    }
+    return parsed;
+  };
+
+  const playerAction = (kind: 'set-animation' | 'set-damage' | 'set-position' | 'set-stocks') => {
+    const playerNumber = playerNumberValue();
+    if (playerNumber === null) return;
+    if (kind === 'set-animation') {
+      const animation = playerAnimation.trim();
+      if (!animation) {
+        setRequestError('Animation must not be empty.');
+        return;
+      }
+      request({ command: 'player-action', action: { animation, kind, playerNumber } });
+      return;
+    }
+    if (kind === 'set-position') {
+      const x = numberValue(playerX, 'X');
+      const y = numberValue(playerY, 'Y');
+      if (x === null || y === null) return;
+      request({ command: 'player-action', action: { kind, playerNumber, x, y } });
+      return;
+    }
+    if (kind === 'set-damage') {
+      const damage = numberValue(playerDamage, 'Damage');
+      if (damage === null) return;
+      request({ command: 'player-action', action: { damage, kind, playerNumber } });
+      return;
+    }
+    const stocks = numberValue(playerStocks, 'Stocks');
+    if (stocks === null || !Number.isSafeInteger(stocks)) {
+      setRequestError('Stocks must be an integer.');
+      return;
+    }
+    request({ command: 'player-action', action: { kind, playerNumber, stocks } });
+  };
+
   const start = () => {
     void onStartAgentPlay({
       startMode: debugSetup ? 'training' : versusSetup ? 'versus' : startMode,
@@ -167,6 +232,7 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="game-panel-title"
+        aria-busy={busy}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="gamePanelHeader">
@@ -484,6 +550,123 @@ export const GameTestPanel: React.FC<GameTestPanelProps> = ({
                     <strong>{String(value)}</strong>
                   </div>
                 ))}
+              </div>
+            )}
+            {active && (
+              <div className="gamePlayerTools">
+                <div className="gamePanelSectionTitle">Player state</div>
+                <p className="gamePanelHint">
+                  Set deterministic battle state without composing a raw protocol request.
+                </p>
+                <div className="gamePlayerCards">
+                  {(observation?.players ?? []).map((player) => (
+                    <div
+                      className="gamePlayerCard"
+                      key={`${player.playerNumber ?? 'unknown'}:${player.name ?? ''}`}
+                    >
+                      <div className="gamePlayerCardHead">
+                        <strong>P{(player.playerNumber ?? 0) + 1}</strong>
+                        <span>{player.name ?? 'unknown fighter'}</span>
+                        <span className="gamePlayerAnimation">{player.animation ?? '—'}</span>
+                      </div>
+                      <div className="gamePlayerStats">
+                        <span>
+                          <small>damage</small>
+                          <strong>{player.damage ?? '—'}</strong>
+                        </span>
+                        <span>
+                          <small>stocks</small>
+                          <strong>{player.stocks ?? '—'}</strong>
+                        </span>
+                        <span>
+                          <small>position</small>
+                          <strong>
+                            {player.x ?? '—'}, {player.y ?? '—'}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {(observation?.players?.length ?? 0) === 0 && (
+                    <div className="gamePlayerEmpty">No fighters in the current scene.</div>
+                  )}
+                </div>
+                <div className="gamePlayerForm">
+                  <label>
+                    Player index
+                    <input
+                      type="number"
+                      min={0}
+                      title="Antistatic player numbers start at 0"
+                      value={playerTarget}
+                      onChange={(event) => setPlayerTarget(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Damage
+                    <input
+                      type="number"
+                      min={0}
+                      value={playerDamage}
+                      onChange={(event) => setPlayerDamage(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Stocks
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={playerStocks}
+                      onChange={(event) => setPlayerStocks(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    X
+                    <input value={playerX} onChange={(event) => setPlayerX(event.target.value)} />
+                  </label>
+                  <label>
+                    Y
+                    <input value={playerY} onChange={(event) => setPlayerY(event.target.value)} />
+                  </label>
+                  <label>
+                    Animation
+                    <input
+                      value={playerAnimation}
+                      onChange={(event) => setPlayerAnimation(event.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="gamePlayerActions">
+                  <button
+                    className="btn ghost"
+                    disabled={busy}
+                    onClick={() => playerAction('set-damage')}
+                  >
+                    Set damage
+                  </button>
+                  <button
+                    className="btn ghost"
+                    disabled={busy}
+                    onClick={() => playerAction('set-stocks')}
+                  >
+                    Set stocks
+                  </button>
+                  <button
+                    className="btn ghost"
+                    disabled={busy}
+                    onClick={() => playerAction('set-position')}
+                  >
+                    Set position
+                  </button>
+                  <button
+                    className="btn ghost"
+                    disabled={busy}
+                    onClick={() => playerAction('set-animation')}
+                  >
+                    Set animation
+                  </button>
+                </div>
               </div>
             )}
             {active && (

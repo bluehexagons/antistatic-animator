@@ -87,9 +87,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           Stages
         </button>
       </div>
-      <div className="sidebarSection" style={{ flex: '0 1 35%' }}>
+      <div className="sidebarSection sidebarFiles">
         <div className="sidebarHeading sidebarHeadingRow">
           <span>{mode === 'stage' ? 'Stage files' : 'Characters'}</span>
+          <span className="sidebarCount">
+            {filteredFiles.length}/{activeFiles.length}
+          </span>
           {mode === 'stage' && (
             <button className="miniAction" onClick={onCreateStage} title="Create stage">
               +
@@ -117,7 +120,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
       <div className="sidebarSection">
-        <div className="sidebarHeading">{mode === 'stage' ? 'Scene objects' : 'Animations'}</div>
+        <div className="sidebarHeading sidebarHeadingRow">
+          <span>{mode === 'stage' ? 'Scene objects' : 'Animations'}</span>
+          <span className="sidebarCount">
+            {mode === 'stage' ? stageItems.length : filteredAnims.length}/
+            {mode === 'stage' ? stageItems.length : animations.length}
+          </span>
+        </div>
         <input
           className="filterInput"
           placeholder="filter…"

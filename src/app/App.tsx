@@ -844,18 +844,23 @@ const Shell: React.FC = () => {
 
       <main className="stage">
         <div className="stageHeader">
-          <div className="crumbs">
-            <span>
-              {mode === 'stage'
-                ? state.stageFile.replace(/^stages\//, '') || 'No stage'
-                : (selectedFile ?? 'No character')}
+          <div className="stageIdentity">
+            <span className="stageModeTag">
+              {mode === 'stage' ? 'Scene workspace' : 'Animation workspace'}
             </span>
-            <span className="sep">›</span>
-            <strong>
-              {mode === 'stage'
-                ? (state.stageSelection.id ?? state.stageSelection.kind)
-                : state.animationName || '—'}
-            </strong>
+            <div className="crumbs">
+              <span>
+                {mode === 'stage'
+                  ? state.stageFile.replace(/^stages\//, '') || 'No stage'
+                  : (selectedFile ?? 'No character')}
+              </span>
+              <span className="sep">›</span>
+              <strong>
+                {mode === 'stage'
+                  ? (state.stageSelection.id ?? state.stageSelection.kind)
+                  : state.animationName || '—'}
+              </strong>
+            </div>
           </div>
           <div className="stageStats">
             <span>

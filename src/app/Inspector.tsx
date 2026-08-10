@@ -35,11 +35,16 @@ const Section: React.FC<SectionProps> = ({ title, count, defaultOpen = true, chi
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="section">
-      <div className={`sectionHeader ${open ? '' : 'collapsed'}`} onClick={() => setOpen(!open)}>
+      <button
+        type="button"
+        className={`sectionHeader ${open ? '' : 'collapsed'}`}
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+      >
         <span className="caret">▼</span>
         {title}
         {count !== undefined && <span className="sectionCount">{count}</span>}
-      </div>
+      </button>
       {open && <div className="sectionBody">{children}</div>}
     </div>
   );

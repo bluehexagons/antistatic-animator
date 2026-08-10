@@ -23,6 +23,7 @@ export interface AgentPlayObservation {
     name?: string;
     animation?: string;
     damage?: number;
+    stocks?: number;
     x?: number;
     y?: number;
   }>;
