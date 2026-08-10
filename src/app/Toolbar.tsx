@@ -171,7 +171,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               title="Toggle shield overlay"
               aria-pressed={showShield}
               onClick={onToggleShield}
-              style={toggleStyle(showShield, '#6aa9ff')}
+              style={toggleStyle(showShield, 'var(--accent-warm)')}
             >
               {'🛡︎'}
             </button>

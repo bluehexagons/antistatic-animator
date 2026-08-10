@@ -302,8 +302,9 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             <path
               d={`M ${50 * camera.scale} 0 L 0 0 0 ${50 * camera.scale}`}
               fill="none"
-              stroke="rgba(106,169,255,.12)"
+              stroke="var(--accent)"
               strokeWidth="1"
+              strokeOpacity="0.12"
             />
           </pattern>
         </defs>
@@ -318,7 +319,8 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               width={Math.abs(stage.blastRight! - stage.blastLeft!) * camera.scale}
               height={Math.abs(stage.blastBottom! - stage.blastTop!) * camera.scale}
               fill="none"
-              stroke="rgba(240,100,100,.5)"
+              stroke="var(--hit)"
+              strokeOpacity="0.5"
               strokeDasharray="8 5"
             />
             {selection.kind === 'stage' && (
@@ -378,8 +380,10 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
                 y={toY(position[1] - Math.abs(dimensions[1]) / 2)}
                 width={Math.max(8, Math.abs(dimensions[0]) * camera.scale)}
                 height={Math.max(8, Math.abs(dimensions[1]) * camera.scale)}
-                fill={active ? 'rgba(106,169,255,.3)' : 'rgba(106,169,255,.1)'}
-                stroke={active ? '#6aa9ff' : 'rgba(106,169,255,.45)'}
+                fill="var(--accent)"
+                fillOpacity={active ? 0.3 : 0.1}
+                stroke="var(--accent)"
+                strokeOpacity={active ? 1 : 0.45}
               />
               <text x={toX(position[0]) + 5} y={toY(position[1]) - 6} className="stageObjectLabel">
                 {model.id}
@@ -420,7 +424,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
                 y1={toY(from[1])}
                 x2={toX(to[0])}
                 y2={toY(to[1])}
-                stroke={active ? '#ffcc66' : '#e6eaf2'}
+                stroke={active ? 'var(--accent-warm)' : 'var(--fg)'}
                 strokeWidth={active ? 5 : 3}
                 onPointerDown={(event) =>
                   beginObjectDrag(event, { kind: 'collision', id: collision.id })
@@ -430,7 +434,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
                 cx={toX(from[0])}
                 cy={toY(from[1])}
                 r={active ? 6 : 4}
-                fill="#ffcc66"
+                fill="var(--accent-warm)"
                 className="stageResizeHandle"
                 onPointerDown={(event) =>
                   beginObjectDrag(event, { kind: 'collision', id: collision.id }, 'collision-from')
@@ -440,7 +444,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
                 cx={toX(to[0])}
                 cy={toY(to[1])}
                 r={active ? 6 : 4}
-                fill="#ffcc66"
+                fill="var(--accent-warm)"
                 className="stageResizeHandle"
                 onPointerDown={(event) =>
                   beginObjectDrag(event, { kind: 'collision', id: collision.id }, 'collision-to')
@@ -459,8 +463,10 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
                 cx={toX(position[0])}
                 cy={toY(position[1])}
                 r={Math.max(6, radius * camera.scale)}
-                fill={active ? 'rgba(150,180,220,.2)' : 'rgba(150,180,220,.08)'}
-                stroke={active ? '#a8c8ff' : 'rgba(168,200,255,.45)'}
+                fill="var(--accent-warm)"
+                fillOpacity={active ? 0.2 : 0.08}
+                stroke="var(--accent-warm)"
+                strokeOpacity={active ? 1 : 0.45}
                 pointerEvents="stroke"
                 onPointerDown={(event) =>
                   beginObjectDrag(event, { kind: 'fogVolume', id: volume.id })
@@ -487,8 +493,10 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           const dimensions = emitter.size ?? [20, 20, 20];
           const active = selected(selection, 'particleEmitter', emitter.id);
           const common = {
-            fill: active ? 'rgba(176,106,255,.2)' : 'rgba(176,106,255,.08)',
-            stroke: active ? '#c98cff' : 'rgba(201,140,255,.5)',
+            fill: 'var(--hit)',
+            fillOpacity: active ? 0.2 : 0.08,
+            stroke: 'var(--hit)',
+            strokeOpacity: active ? 1 : 0.5,
             pointerEvents: 'stroke' as const,
             onPointerDown: (event: React.PointerEvent) =>
               beginObjectDrag(event, { kind: 'particleEmitter', id: emitter.id }),
@@ -550,11 +558,13 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
                 cx={toX(position[0])}
                 cy={toY(position[1])}
                 r={displayRadius}
-                fill={active ? 'rgba(255,220,100,.2)' : 'rgba(255,220,100,.07)'}
-                stroke={active ? '#ffdc64' : 'rgba(255,220,100,.45)'}
+                fill="var(--accent-warm)"
+                fillOpacity={active ? 0.2 : 0.07}
+                stroke="var(--accent-warm)"
+                strokeOpacity={active ? 1 : 0.45}
                 pointerEvents="stroke"
               />
-              <circle cx={toX(position[0])} cy={toY(position[1])} r={5} fill="#ffdc64" />
+              <circle cx={toX(position[0])} cy={toY(position[1])} r={5} fill="var(--accent-warm)" />
               {active && (
                 <circle
                   cx={toX(position[0]) + displayRadius}

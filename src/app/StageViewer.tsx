@@ -575,7 +575,7 @@ export const StageViewer: React.FC<StageViewerProps> = ({
             y1={toSvgY(vy)}
             x2={toSvgX(yAxisX)}
             y2={toSvgY(yAxisY)}
-            stroke="#6aa9ff"
+            stroke="var(--accent)"
             strokeWidth={selected ? 1.4 : 1}
           />
         </g>
@@ -613,10 +613,10 @@ export const StageViewer: React.FC<StageViewerProps> = ({
     const prev = animation.keyframes[keyframe - 1]?.hurtbubbles;
     const next = animation.keyframes[keyframe + 1]?.hurtbubbles;
     if (Array.isArray(prev)) {
-      ghosts.push(<g key="onion-prev">{renderPoseGhost(prev, '#ff8a4a', 'prev')}</g>);
+      ghosts.push(<g key="onion-prev">{renderPoseGhost(prev, 'var(--hit)', 'prev')}</g>);
     }
     if (Array.isArray(next)) {
-      ghosts.push(<g key="onion-next">{renderPoseGhost(next, '#6aa9ff', 'next')}</g>);
+      ghosts.push(<g key="onion-next">{renderPoseGhost(next, 'var(--accent-warm)', 'next')}</g>);
     }
     return ghosts;
   };
@@ -642,15 +642,15 @@ export const StageViewer: React.FC<StageViewerProps> = ({
       <g pointerEvents="none">
         <polygon
           points={points}
-          fill="#6aa9ff"
+          fill="var(--accent-warm)"
           fillOpacity={0.12}
-          stroke="#6aa9ff"
+          stroke="var(--accent-warm)"
           strokeWidth={1}
         />
         <text
           x={toSvgX((sx + sx2) / 2)}
           y={toSvgY((sy + sy2) / 2)}
-          fill="#6aa9ff"
+          fill="var(--accent-warm)"
           fontFamily="monospace"
           fontSize="9"
           textAnchor="middle"
@@ -815,8 +815,9 @@ export const StageViewer: React.FC<StageViewerProps> = ({
             cx={sx}
             cy={sy}
             r={sr}
-            fill="rgba(106, 169, 255, 0.18)"
-            stroke="#6aa9ff"
+            fill="var(--accent)"
+            fillOpacity={0.18}
+            stroke="var(--accent)"
             strokeWidth="1.5"
           />
           <line
@@ -824,7 +825,7 @@ export const StageViewer: React.FC<StageViewerProps> = ({
             y1={sy}
             x2={sx + sr + 6}
             y2={sy}
-            stroke="#6aa9ff"
+            stroke="var(--accent)"
             strokeWidth="0.6"
           />
           <line
@@ -832,10 +833,16 @@ export const StageViewer: React.FC<StageViewerProps> = ({
             y1={sy - sr - 6}
             x2={sx}
             y2={sy + sr + 6}
-            stroke="#6aa9ff"
+            stroke="var(--accent)"
             strokeWidth="0.6"
           />
-          <text x={sx + sr + 6} y={sy + 3} fill="#6aa9ff" fontFamily="monospace" fontSize="10">
+          <text
+            x={sx + sr + 6}
+            y={sy + 3}
+            fill="var(--accent)"
+            fontFamily="monospace"
+            fontSize="10"
+          >
             #{selectedBubble}
           </text>
         </g>
