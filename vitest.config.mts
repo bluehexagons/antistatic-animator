@@ -1,7 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import { stageValidatorPlugin } from './vite.config.mts';
 
 export default defineConfig({
+  plugins: [stageValidatorPlugin],
   test: {
     globals: true,
     environment: 'happy-dom',

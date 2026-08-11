@@ -1,6 +1,6 @@
-import Ajv2020, { type ErrorObject } from 'ajv/dist/2020';
+import type { ErrorObject } from 'ajv';
 import * as JSONC from 'jsonc-parser';
-import stageSchema from './stage.schema.json';
+import validateSchema from 'virtual:stage-validator';
 import type {
   StageAnimation,
   StageCollision,
@@ -30,8 +30,6 @@ export interface StageSceneItem {
   badge: string;
 }
 
-const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
-const validateSchema = ajv.compile(stageSchema);
 const formattingOptions: JSONC.FormattingOptions = { tabSize: 2, insertSpaces: true, eol: '\n' };
 
 const schemaIssue = (error: ErrorObject): StageIssue => ({
