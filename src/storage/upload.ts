@@ -9,6 +9,11 @@
 import { DATA_FILE_RE } from '../utils';
 import type { StorageBackend } from './types';
 
+export interface UploadContent {
+  path: string;
+  content: string;
+}
+
 export class UploadStorage implements StorageBackend {
   readonly kind = 'upload' as const;
   readonly canSave = true; // saves through download
@@ -26,16 +31,26 @@ export class UploadStorage implements StorageBackend {
 
   /** Load a flat list of files (basename → content) into memory. */
   async loadFiles(files: File[], label?: string): Promise<number> {
-    const next = new Map<string, string>();
     const accepted = files.filter((f) => DATA_FILE_RE.test(f.name));
+    const contents: UploadContent[] = [];
     for (const f of accepted) {
-      const text = await f.text();
       const relativePath = (f as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
-      const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(relativePath);
-      next.set(stageFile ? `stages/${f.name}` : f.name, text);
+      contents.push({ path: relativePath || f.name, content: await f.text() });
+    }
+    return this.loadContents(contents, label || (accepted.length ? guessDirLabel(accepted) : ''));
+  }
+
+  /** Load bundled or otherwise already-read files without using browser File APIs. */
+  async loadContents(files: readonly UploadContent[], label?: string): Promise<number> {
+    const next = new Map<string, string>();
+    for (const file of files) {
+      const basename = file.path.split('/').pop();
+      if (!basename || !DATA_FILE_RE.test(basename)) continue;
+      const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(file.path);
+      next.set(stageFile ? `stages/${basename}` : basename, file.content);
     }
     this.files = next;
-    this.dirLabel = label || (accepted[0] ? guessDirLabel(accepted) : '');
+    this.dirLabel = label || (files.length ? `${files.length} example files` : '');
     return this.files.size;
   }
 

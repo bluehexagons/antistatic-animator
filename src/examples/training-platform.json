@@ -1,0 +1,68 @@
+{
+  "name": "Training Platform",
+  "order": 0,
+  "anchors": [{ "x": 0, "y": 80, "weight": 1 }],
+  "entrances": [
+    { "x": -120, "y": 20, "face": true },
+    { "x": 120, "y": 20, "face": false }
+  ],
+  "spawns": [
+    { "x": -60, "y": 20, "face": true },
+    { "x": 60, "y": 20, "face": false }
+  ],
+  "blastLeft": -450,
+  "blastTop": -240,
+  "blastBottom": 320,
+  "blastRight": 450,
+  "scene": {
+    "schemaVersion": 2,
+    "models": [
+      {
+        "id": "moving-platform",
+        "primitive": { "type": "box" },
+        "position": [0, 0, 0],
+        "size": [360, 24, 40]
+      },
+      {
+        "id": "side-tower",
+        "primitive": { "type": "box" },
+        "position": [-220, 90, 0],
+        "size": [30, 180, 40]
+      }
+    ],
+    "collision": [
+      {
+        "id": "main-platform",
+        "from": [-180, 0],
+        "to": [180, 0],
+        "flags": ["top", "solid", "blastZone"],
+        "model": "moving-platform"
+      },
+      {
+        "id": "tower-wall",
+        "from": [-235, 0],
+        "to": [-235, 180],
+        "flags": ["right", "solid"],
+        "model": "side-tower"
+      }
+    ],
+    "animations": [
+      {
+        "id": "platform-cycle",
+        "autoplay": true,
+        "loop": true,
+        "duration": 120,
+        "tracks": [
+          {
+            "target": { "kind": "model", "id": "moving-platform" },
+            "keyframes": [
+              { "time": 0, "position": [0, 0, 0] },
+              { "time": 60, "position": [0, 90, 0] },
+              { "time": 120, "position": [0, 0, 0] }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

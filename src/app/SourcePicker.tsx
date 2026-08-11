@@ -5,15 +5,25 @@
 
 import React from 'react';
 import { detectCapabilities } from '../storage/types';
+import type { ExampleProject } from '../examples';
 
 export interface SourcePickerProps {
   onElectron: () => void;
   onFsAccess: () => void;
   onUpload: () => void;
+  examples: ExampleProject[];
+  onExample: (id: string) => void;
 }
 
-export const SourcePicker: React.FC<SourcePickerProps> = ({ onElectron, onFsAccess, onUpload }) => {
+export const SourcePicker: React.FC<SourcePickerProps> = ({
+  onElectron,
+  onFsAccess,
+  onUpload,
+  examples,
+  onExample,
+}) => {
   const caps = detectCapabilities();
+  const [showExamples, setShowExamples] = React.useState(false);
 
   return (
     <div
@@ -66,7 +76,37 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({ onElectron, onFsAcce
               </small>
             </span>
           </button>
+          <button
+            type="button"
+            className="sourceOption exampleLauncher"
+            onClick={() => setShowExamples((visible) => !visible)}
+            aria-expanded={showExamples}
+            aria-controls="example-options"
+          >
+            <span className="icon" aria-hidden="true">
+              ✨
+            </span>
+            <span className="text">
+              <strong>Try examples — files stay local in your browser</strong>
+              <small>Explore the editor without a game checkout. Nothing is uploaded.</small>
+            </span>
+          </button>
         </div>
+        {showExamples && (
+          <div className="exampleOptions" id="example-options">
+            {examples.map((example) => (
+              <button
+                key={example.id}
+                type="button"
+                className="exampleOption"
+                onClick={() => onExample(example.id)}
+              >
+                <strong>{example.name}</strong>
+                <small>{example.description}</small>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

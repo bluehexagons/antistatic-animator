@@ -1,0 +1,20 @@
+{
+  "name": "practice-fighter",
+  "headbubble": 2,
+  "corebubble": 1,
+  "shieldX": 0,
+  "shieldY": 12,
+  "shieldX2": 0,
+  "shieldY2": 24,
+  "shieldMinSize": 12,
+  "shieldGrowth": 18,
+  "hurtbubbles": [
+    { "name": "root", "i1": 0, "i2": 0, "z": 0 },
+    { "name": "body", "i1": 1, "i2": 1, "z": 0 },
+    { "name": "head", "i1": 2, "i2": 2, "z": 0 },
+    { "name": "rarm", "i1": 3, "i2": 4, "z": 2 },
+    { "name": "larm", "i1": 5, "i2": 6, "z": -2 },
+    { "name": "rleg", "i1": 7, "i2": 8, "z": 1 },
+    { "name": "lleg", "i1": 9, "i2": 10, "z": -1 }
+  ]
+}

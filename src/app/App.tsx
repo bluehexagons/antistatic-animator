@@ -40,6 +40,7 @@ import { DropZone } from './DropZone';
 import { GameTestPanel } from './GameTestPanel';
 import { useLibrary, useLatest } from './hooks';
 import { findAnimationFile, isCharacterDataFile, isStageDataFile } from './file-names';
+import { EXAMPLE_PROJECTS, exampleById } from '../examples';
 import type { EditorMode } from './Sidebar';
 import {
   addStageSceneItem,
@@ -223,6 +224,36 @@ const Shell: React.FC = () => {
       setStageFitRequest((value) => value + 1);
     },
     [clearOpenFile, dispatch]
+  );
+
+  const handleLoadExample = useCallback(
+    async (id: string) => {
+      const example = exampleById(id);
+      if (!example) return;
+      const previous = library.getBackend();
+      try {
+        const backend = new UploadStorage();
+        await backend.loadContents(example.files, `Example: ${example.name}`);
+        library.setBackend(backend);
+        await library.refresh();
+        clearOpenFile();
+        setExternalFiles(new Set());
+        const names = await backend.list();
+        const characterFile = names.find(isCharacterDataFile);
+        const stageFile = names.find(isStageDataFile);
+        if (characterFile) handleSelectFile(characterFile);
+        else if (stageFile) handleSelectStageFile(stageFile);
+        setShowPicker(false);
+      } catch (err) {
+        if (library.getBackend() !== previous) {
+          library.setBackend(previous);
+          await library.refresh().catch(() => undefined);
+        }
+        console.error('example load failed', err);
+        alert(`Unable to load example: ${(err as Error).message ?? err}`);
+      }
+    },
+    [clearOpenFile, handleSelectFile, handleSelectStageFile]
   );
 
   useEffect(() => {
@@ -1039,6 +1070,8 @@ const Shell: React.FC = () => {
           onElectron={handlePickElectron}
           onFsAccess={handlePickFsAccess}
           onUpload={handlePickUpload}
+          examples={EXAMPLE_PROJECTS}
+          onExample={(id) => void handleLoadExample(id)}
         />
       )}
       {showPicker && library.ready && (
@@ -1093,6 +1126,23 @@ const Shell: React.FC = () => {
                   <small>Saves via download</small>
                 </span>
               </button>
+              {EXAMPLE_PROJECTS.map((example) => (
+                <button
+                  key={example.id}
+                  type="button"
+                  className="sourceOption"
+                  onClick={() => void handleLoadExample(example.id)}
+                  aria-label={`Try ${example.name}; files stay local in your browser`}
+                >
+                  <span className="icon" aria-hidden="true">
+                    ✨
+                  </span>
+                  <span className="text">
+                    <strong>{example.name}</strong>
+                    <small>{example.description} Files stay local in your browser.</small>
+                  </span>
+                </button>
+              ))}
             </div>
             <div style={{ marginTop: 16, textAlign: 'right' }}>
               <button className="btn ghost" onClick={() => setShowPicker(false)}>

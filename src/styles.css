@@ -1979,6 +1979,57 @@ button.btn.ghost:hover {
   line-height: 1.4;
 }
 
+.exampleLauncher {
+  border-color: var(--accent-glow);
+  background: var(--accent-soft);
+}
+
+.exampleOptions {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-0);
+}
+
+.exampleOption {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--fg);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: var(--font);
+}
+
+.exampleOption:hover,
+.exampleOption:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg-2);
+  outline: none;
+}
+
+.exampleOption strong,
+.exampleOption small {
+  display: block;
+}
+
+.exampleOption strong {
+  font-size: 12px;
+}
+
+.exampleOption small {
+  margin-top: 2px;
+  color: var(--fg-dim);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .versionTag {
   font-size: 10px;
   color: var(--fg-mute);

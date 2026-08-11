@@ -27,6 +27,25 @@ describe('UploadStorage', () => {
     await expect(storage.read('stages/ruins.json')).resolves.toBe('{}');
   });
 
+  it('loads bundled example contents using the same local backend', async () => {
+    const storage = new UploadStorage();
+    await storage.loadContents(
+      [
+        { path: 'app/characters/data/demo.json', content: '{"name":"demo"}' },
+        { path: 'app/characters/data/demo_anim.json', content: '{}' },
+        { path: 'app/assets/stages/demo.json', content: '{"name":"stage"}' },
+      ],
+      'Example: Demo'
+    );
+
+    await expect(storage.list()).resolves.toEqual([
+      'demo.json',
+      'demo_anim.json',
+      'stages/demo.json',
+    ]);
+    expect(storage.label).toBe('Example: Demo');
+  });
+
   it('keeps the previous upload when a new file cannot be read', async () => {
     const storage = new UploadStorage();
     await storage.loadFiles([new File(['{}'], 'carbon.json')]);
