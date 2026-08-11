@@ -113,6 +113,17 @@ describe('renderAnimationFile', () => {
     expect(out).not.toContain('{ "idle": ');
   });
 
+  it('falls back when JSONC parsing reports an incomplete object', () => {
+    const parsed: AnimationMap = {
+      idle: {
+        type: 'movement',
+        keyframes: [{ duration: 5 }],
+      },
+    };
+    const out = renderAnimationFile('{ "idle": { "type": "movement"', parsed);
+    expect(JSON.parse(out)).toEqual(parsed);
+  });
+
   it('always ends with a trailing newline', () => {
     const parsed: AnimationMap = {
       idle: {

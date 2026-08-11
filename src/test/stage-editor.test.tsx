@@ -185,6 +185,12 @@ describe('stage document operations', () => {
     expect(parseStageDocument(output).document?.name).toBe('After');
   });
 
+  it('falls back to clean JSON when the original stage is malformed', () => {
+    const stage = createStageDocument('After');
+    const output = renderStageFile('{ "name": "Before",', stage);
+    expect(JSON.parse(output)).toEqual(stage);
+  });
+
   it('reports broken stable-id references', () => {
     const stage = createStageDocument('Broken');
     stage.scene.collision![0].model = 'missing-model';

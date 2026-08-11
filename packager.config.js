@@ -14,7 +14,7 @@ module.exports = {
     /^\/release/,
     /^\/releases/,
     /tsconfig\.json/,
-    /vite\.config\.ts/,
+    /vite\.config\.m?ts/,
     /eslint\.config\.mjs/,
     /\.prettierrc\.json/,
     /packager\.config\.js/,

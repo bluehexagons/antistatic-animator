@@ -26,8 +26,7 @@
     "removeComments": true,
     "sourceMap": true,
     "target": "ES2022",
-    "types": ["node"],
-    "plugins": [{ "name": "typescript-plugin-css-modules" }]
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

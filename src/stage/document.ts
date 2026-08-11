@@ -39,6 +39,11 @@ const schemaIssue = (error: ErrorObject): StageIssue => ({
   message: error.message ?? 'invalid value',
 });
 
+const schemaIssues = (value: unknown): StageIssue[] => {
+  if (validateSchema(value)) return [];
+  return (validateSchema.errors ?? []).map(schemaIssue);
+};
+
 const semanticIssues = (stage: StageDocument): StageIssue[] => {
   const issues: StageIssue[] = [];
   const blastBounds = [stage.blastLeft, stage.blastTop, stage.blastBottom, stage.blastRight];
@@ -139,8 +144,8 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
 };
 
 export const validateStageDocument = (value: unknown): StageIssue[] => {
-  if (!validateSchema(value)) return (validateSchema.errors ?? []).map(schemaIssue);
-  return semanticIssues(value as StageDocument);
+  const issues = schemaIssues(value);
+  return issues.length > 0 ? issues : semanticIssues(value as StageDocument);
 };
 
 export const parseStageDocument = (source: string): StageParseResult => {
@@ -155,9 +160,8 @@ export const parseStageDocument = (source: string): StageParseResult => {
       })),
     };
   }
-  if (!validateSchema(value)) {
-    return { document: null, issues: (validateSchema.errors ?? []).map(schemaIssue) };
-  }
+  const schemaValidationIssues = schemaIssues(value);
+  if (schemaValidationIssues.length > 0) return { document: null, issues: schemaValidationIssues };
   const document = value as StageDocument;
   return { document, issues: semanticIssues(document) };
 };
@@ -414,10 +418,26 @@ export const renameStageSceneItem = (
 };
 
 export const renderStageFile = (originalText: string | undefined, stage: StageDocument): string => {
-  if (!originalText) return `${JSON.stringify(stage, null, 2)}\n`;
-  const original = JSONC.parse(originalText);
-  if (!original || typeof original !== 'object' || Array.isArray(original)) {
-    return `${JSON.stringify(stage, null, 2)}\n`;
+  const cleanOutput = `${JSON.stringify(stage, null, 2)}\n`;
+  if (!originalText) return cleanOutput;
+
+  const parseErrors: JSONC.ParseError[] = [];
+  let original: Record<string, unknown> | null = null;
+  try {
+    const parsed = JSONC.parse(originalText, parseErrors);
+    if (
+      parseErrors.length === 0 &&
+      parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed)
+    ) {
+      original = parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Fall through to the clean rendering below.
+  }
+  if (!original) {
+    return cleanOutput;
   }
   let output = originalText;
   const keys = new Set([...Object.keys(original), ...Object.keys(stage)]);

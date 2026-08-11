@@ -17,17 +17,15 @@ const mockDirHandle = (files: string[]): FsDirHandle => {
       })();
     },
     getDirectoryHandle: vi.fn().mockRejectedValue(new Error('not found')),
-    getFileHandle: vi.fn(
-      async (name: string): Promise<FsFileHandle> => ({
-        kind: 'file',
-        name,
-        getFile: async () => new File([JSON.stringify({ name })], name),
-        createWritable: async (): Promise<FsWritable> => ({
-          write: vi.fn(),
-          close: vi.fn(),
-        }),
-      })
-    ),
+    getFileHandle: vi.fn(async (name: string): Promise<FsFileHandle> => ({
+      kind: 'file',
+      name,
+      getFile: async () => new File([JSON.stringify({ name })], name),
+      createWritable: async (): Promise<FsWritable> => ({
+        write: vi.fn(),
+        close: vi.fn(),
+      }),
+    })),
   };
 };
 

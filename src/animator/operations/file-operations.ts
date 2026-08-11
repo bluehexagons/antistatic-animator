@@ -36,9 +36,16 @@ const reformatHurtbubbleArrays = (text: string): string =>
 const canonicalize = (v: unknown): string => JSON.stringify(v);
 
 const parseAnimationMap = (text: string): AnimationMap | null => {
+  const parseErrors: JSONC.ParseError[] = [];
   try {
-    const original = JSONC.parse(text) as AnimationMap;
-    if (!original || typeof original !== 'object' || Array.isArray(original)) return null;
+    const original = JSONC.parse(text, parseErrors) as AnimationMap;
+    if (
+      parseErrors.length > 0 ||
+      !original ||
+      typeof original !== 'object' ||
+      Array.isArray(original)
+    )
+      return null;
     return original;
   } catch {
     return null;
