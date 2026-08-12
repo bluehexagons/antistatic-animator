@@ -71,8 +71,9 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
             <span className="text">
               <strong>Drag &amp; drop files</strong>
               <small>
-                Drop your <code>data</code> folder anywhere on the window, or click here to pick
-                files. Edits are saved by downloading the updated JSON.
+                Files stay local in your browser. Nothing is uploaded. Drop your <code>data</code>{' '}
+                folder anywhere on the window, or click here to pick files. Edits are saved by
+                downloading the updated JSON.
               </small>
             </span>
           </button>
@@ -87,8 +88,8 @@ export const SourcePicker: React.FC<SourcePickerProps> = ({
               ✨
             </span>
             <span className="text">
-              <strong>Try examples — files stay local in your browser</strong>
-              <small>Explore the editor without a game checkout. Nothing is uploaded.</small>
+              <strong>Try examples</strong>
+              <small>Explore a character and stage workspace without a game checkout.</small>
             </span>
           </button>
         </div>

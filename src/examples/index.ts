@@ -38,5 +38,10 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
   },
 ];
 
+/** Files loaded together when the examples are used as a practice workspace. */
+export const EXAMPLE_WORKSPACE_FILES: ExampleFile[] = EXAMPLE_PROJECTS.flatMap(
+  (example) => example.files
+);
+
 export const exampleById = (id: string): ExampleProject | undefined =>
   EXAMPLE_PROJECTS.find((example) => example.id === id);

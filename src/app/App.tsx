@@ -40,7 +40,7 @@ import { DropZone } from './DropZone';
 import { GameTestPanel } from './GameTestPanel';
 import { useLibrary, useLatest } from './hooks';
 import { findAnimationFile, isCharacterDataFile, isStageDataFile } from './file-names';
-import { EXAMPLE_PROJECTS, exampleById } from '../examples';
+import { EXAMPLE_PROJECTS, EXAMPLE_WORKSPACE_FILES, exampleById } from '../examples';
 import type { EditorMode } from './Sidebar';
 import {
   addStageSceneItem,
@@ -175,9 +175,9 @@ const Shell: React.FC = () => {
     return out;
   }, [state.parsed]);
 
-  const handleSelectFile = useCallback(
-    (file: string) => {
-      clearOpenFile();
+  const openCharacterFile = useCallback(
+    (file: string, reset = true) => {
+      if (reset) clearOpenFile();
       setMode('character');
       setSelectedFile(file);
       const content = library.get(file);
@@ -207,9 +207,14 @@ const Shell: React.FC = () => {
     [clearOpenFile, dispatch]
   );
 
-  const handleSelectStageFile = useCallback(
-    (file: string) => {
-      clearOpenFile();
+  const handleSelectFile = useCallback(
+    (file: string) => openCharacterFile(file),
+    [openCharacterFile]
+  );
+
+  const openStageFile = useCallback(
+    (file: string, reset = true) => {
+      if (reset) clearOpenFile();
       setMode('stage');
       const content = library.get(file);
       if (!content) return;
@@ -226,6 +231,8 @@ const Shell: React.FC = () => {
     [clearOpenFile, dispatch]
   );
 
+  const handleSelectStageFile = useCallback((file: string) => openStageFile(file), [openStageFile]);
+
   const handleLoadExample = useCallback(
     async (id: string) => {
       const example = exampleById(id);
@@ -233,16 +240,34 @@ const Shell: React.FC = () => {
       const previous = library.getBackend();
       try {
         const backend = new UploadStorage();
-        await backend.loadContents(example.files, `Example: ${example.name}`);
+        await backend.loadContents(EXAMPLE_WORKSPACE_FILES, `Example workspace: ${example.name}`);
         library.setBackend(backend);
         await library.refresh();
         clearOpenFile();
         setExternalFiles(new Set());
         const names = await backend.list();
-        const characterFile = names.find(isCharacterDataFile);
-        const stageFile = names.find(isStageDataFile);
-        if (characterFile) handleSelectFile(characterFile);
-        else if (stageFile) handleSelectStageFile(stageFile);
+        const exampleCharacter = example.files.find((file) => {
+          const basename = file.path.split('/').pop() ?? '';
+          return !/(?:^|\/)app\/assets\/stages\//i.test(file.path) && isCharacterDataFile(basename);
+        });
+        const characterFile =
+          exampleCharacter?.path.split('/').pop() ?? names.find(isCharacterDataFile);
+        const exampleStage = example.files.find((file) =>
+          /(?:^|\/)app\/assets\/stages\//i.test(file.path)
+        );
+        const stageFile = exampleStage?.path.split('/').pop();
+        const selectedStageFile = stageFile ? `stages/${stageFile}` : names.find(isStageDataFile);
+        if (characterFile) openCharacterFile(characterFile, false);
+        if (selectedStageFile) openStageFile(selectedStageFile, false);
+        setMode(
+          exampleCharacter
+            ? 'character'
+            : exampleStage
+              ? 'stage'
+              : characterFile
+                ? 'character'
+                : 'stage'
+        );
         setShowPicker(false);
       } catch (err) {
         if (library.getBackend() !== previous) {
@@ -253,7 +278,7 @@ const Shell: React.FC = () => {
         alert(`Unable to load example: ${(err as Error).message ?? err}`);
       }
     },
-    [clearOpenFile, handleSelectFile, handleSelectStageFile]
+    [clearOpenFile, openCharacterFile, openStageFile]
   );
 
   useEffect(() => {
@@ -1123,7 +1148,9 @@ const Shell: React.FC = () => {
                 </span>
                 <span className="text">
                   <strong>Drag &amp; drop / upload</strong>
-                  <small>Saves via download</small>
+                  <small>
+                    Files stay local in your browser. Nothing is uploaded. Saves via download.
+                  </small>
                 </span>
               </button>
               {EXAMPLE_PROJECTS.map((example) => (
@@ -1132,14 +1159,14 @@ const Shell: React.FC = () => {
                   type="button"
                   className="sourceOption"
                   onClick={() => void handleLoadExample(example.id)}
-                  aria-label={`Try ${example.name}; files stay local in your browser`}
+                  aria-label={`Try ${example.name}`}
                 >
                   <span className="icon" aria-hidden="true">
                     ✨
                   </span>
                   <span className="text">
                     <strong>{example.name}</strong>
-                    <small>{example.description} Files stay local in your browser.</small>
+                    <small>{example.description}</small>
                   </span>
                 </button>
               ))}

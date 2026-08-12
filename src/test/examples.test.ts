@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { EXAMPLE_PROJECTS } from '../examples';
+import { EXAMPLE_PROJECTS, EXAMPLE_WORKSPACE_FILES } from '../examples';
+import { isCharacterDataFile } from '../app/file-names';
 import { parseStageDocument } from '../stage/document';
 
 describe('bundled examples', () => {
@@ -20,5 +21,10 @@ describe('bundled examples', () => {
     const parsed = parseStageDocument(stageFile!.content);
     expect(parsed.issues).toEqual([]);
     expect(parsed.document?.scene.schemaVersion).toBe(2);
+  });
+
+  it('combines the character and stage examples into one workspace', () => {
+    expect(EXAMPLE_WORKSPACE_FILES.some((file) => isCharacterDataFile(file.path))).toBe(true);
+    expect(EXAMPLE_WORKSPACE_FILES.some((file) => file.path.includes('/stages/'))).toBe(true);
   });
 });
