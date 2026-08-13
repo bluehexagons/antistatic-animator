@@ -2,10 +2,11 @@
 
 ## Audit
 
-Last checked: 2026-08-10
+Last checked: 2026-08-13
 
-- Animator repository: `7ffeb4e` (`main`)
-- Antistatic repository: `8b08fccb` (`main`)
+- Animator repository: `4022f1f` (`main` baseline)
+- Antistatic repository: `01388435` (`main`)
+- Easing package: `v0.5.0`
 - Reference paths: `../antistatic/app/src/game/animation.ts`,
   `../antistatic/app/src/game/bubbles.ts`, `../antistatic/app/src/game/stage.ts`,
   and `../antistatic/docs/schemas/stage.schema.json`
@@ -24,8 +25,7 @@ animation caching do not change the authoring format.
 - Hitbubble preview converts authored Y coordinates, expands `smear: true`,
   respects active `start` / `end` windows, and previews continuation / `next`
   hitbubbles without changing source data.
-- Easing choices are limited to valid tween functions and match the engine's
-  `inOut` helper behavior.
+- Easing choices come from the same named-curve registry as the engine.
 - Stage collision tracks move linked visual models with the collision segment.
 - Stage animation target IDs are encoded without assuming IDs cannot contain
   colons; negative-speed playback starts from the final frame.

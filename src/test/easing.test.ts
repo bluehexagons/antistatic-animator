@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
+import { easings } from '@bluehexagons/easing/named';
 
-import { Ease } from '../easing';
+import { TweenNames } from '../animator/schema';
+import { Ease, easeFn } from '../easing';
 
 describe('easing parity', () => {
+  it('uses every named curve from the engine package', () => {
+    expect(TweenNames).toEqual(Object.keys(easings));
+    expect(easeFn('quadIn')).toBe(easings.quadIn);
+    expect(easeFn('spring')).toBe(Ease.linear);
+    expect(easeFn('unknown')).toBe(Ease.linear);
+  });
+
   it('keeps elastic in-out centered and symmetric', () => {
     expect(Ease.elasticInOut(0.5)).toBe(0.5);
     for (const time of [0.1, 0.25, 0.4]) {

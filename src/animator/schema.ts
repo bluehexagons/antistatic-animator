@@ -165,8 +165,7 @@ export const KnownHandlerNames: Record<HandlerEvent, string[]> = {
   spawn: ['spawn'],
 };
 
-/** Tween names — names exported by the engine's @bluehexagons/easing
- *  package (mirrored in `src/easing.ts`). */
+/** Tween names exported by the engine's @bluehexagons/easing package. */
 export const TweenNames = [
   'linear',
   'sineIn',
