@@ -5,6 +5,16 @@
   Original code MIT License + 3-clause BSD http://robertpenner.com/easing_terms_of_use.html
 */
 
+const elasticShift = (amplitude: number, period: number): number => {
+  if (!Number.isFinite(amplitude) || amplitude < 1) {
+    throw new RangeError('Elastic amplitude must be a finite number greater than or equal to 1');
+  }
+  if (!Number.isFinite(period) || period <= 0) {
+    throw new RangeError('Elastic period must be a finite number greater than 0');
+  }
+  return (period / (2 * Math.PI)) * Math.asin(1 / amplitude);
+};
+
 /** Resolve an easing function by name, falling back to linear for unknown names. */
 export const easeFn = (name: string | undefined): ((t: number) => number) => {
   if (!name) return (t) => t;
@@ -98,12 +108,12 @@ export const Ease = {
   },
 
   elasticOut: (time: number, amplitude = 1, period = 0.3) => {
+    const overshoot = elasticShift(amplitude, period);
     if (time === 0) {
       return 0;
     } else if (time === 1) {
       return 1;
     } else {
-      const overshoot = (period / (2 * Math.PI)) * Math.asin(1 / amplitude);
       return (
         amplitude * 2 ** (-10 * time) * Math.sin(((time - overshoot) * (2 * Math.PI)) / period) + 1
       );
@@ -111,12 +121,12 @@ export const Ease = {
   },
 
   elasticIn: (time: number, amplitude = 1, period = 0.3) => {
+    const overshoot = elasticShift(amplitude, period);
     if (time === 0) {
       return 0;
     } else if (time === 1) {
       return 1;
     } else {
-      const overshoot = (period / (2 * Math.PI)) * Math.asin(1 / amplitude);
       time -= 1;
       return (
         -(amplitude * 2 ** (10 * time)) * Math.sin(((time - overshoot) * (2 * Math.PI)) / period)
@@ -125,13 +135,13 @@ export const Ease = {
   },
 
   elasticInOut: (time: number, amplitude = 1, period = 0.45) => {
+    const overshoot = elasticShift(amplitude, period);
     time = time * 2;
     if (time === 0) {
       return 0;
     } else if (time === 2) {
       return 1;
     } else {
-      const overshoot = (period / (2 * Math.PI)) * Math.asin(1 / amplitude);
       time = time - 1;
       if (time < 0) {
         return (
@@ -141,7 +151,10 @@ export const Ease = {
         );
       } else {
         return (
-          amplitude * 2 ** (-10 * time) * Math.sin(((time - overshoot) * (2 * Math.PI)) / period) +
+          0.5 *
+            amplitude *
+            2 ** (-10 * time) *
+            Math.sin(((time - overshoot) * (2 * Math.PI)) / period) +
           1
         );
       }
