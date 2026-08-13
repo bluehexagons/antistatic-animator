@@ -27,7 +27,7 @@
   },
   "dash": {
     "type": "movement",
-    "cancellable": ["dashattack", "jump", "pivot", "run", "shield"],
+    "cancellable": ["dashattack", "jump", "pivot", "run", "shieldup"],
     "dashSpeed": 5.2,
     "acceleration": 1.15,
     "friction": 0.92,
@@ -90,7 +90,7 @@
             "growth": 20,
             "angle": 35,
             "flags": "stale_di",
-            "audio": { "name": "light", "pitch": 0.9 },
+            "audio": { "name": "hit", "pitch": 0.9 },
             "smear": true
           }
         ]
@@ -157,7 +157,7 @@
           2, -3, 12, 1, 4, 5, 15, 1, 7, 22, 10, 1, 14, 10, 7, 1, 23, 3, 7, 1, -9, 12, 7, 1, -18, 7,
           7, 1, 12, -8, 8, 1, 28, -17, 7, 1, -8, -8, 8, 1, -13, -18, 7, 1
         ],
-        "hitbubbles": true
+        "hitbubbles": []
       },
       {
         "duration": 7,

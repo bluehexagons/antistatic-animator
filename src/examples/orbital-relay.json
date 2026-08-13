@@ -52,26 +52,26 @@
       {
         "id": "relay-deck",
         "primitive": { "type": "box" },
-        "position": [0, 32, 0],
-        "size": [420, 30, 82],
+        "position": [0, -32, 0],
+        "size": [210, 15, 41],
         "castsShadows": true
       },
       {
         "id": "left-shuttle",
         "primitive": { "type": "box" },
-        "position": [-175, -86, 0],
-        "size": [112, 12, 48]
+        "position": [-175, 90, 0],
+        "size": [56, 6, 24]
       },
       {
         "id": "right-shuttle",
         "primitive": { "type": "box" },
-        "position": [175, -86, 0],
-        "size": [112, 12, 48]
+        "position": [175, 90, 0],
+        "size": [56, 6, 24]
       },
       {
         "id": "signal-ring",
         "primitive": { "type": "torus", "segments": 40, "rings": 14, "tubeRadius": 0.12 },
-        "position": [0, 122, 70],
+        "position": [0, -122, 70],
         "scale": [92, 92, 22],
         "rotation": { "pitch": 0.55, "yaw": 0.2 },
         "angularVelocity": [0.08, 0.22, 0.04]
@@ -79,7 +79,7 @@
       {
         "id": "relay-orb",
         "primitive": { "type": "sphere", "segments": 24, "rings": 16 },
-        "position": [0, 122, 70],
+        "position": [0, -122, 70],
         "scale": [22, 22, 22]
       }
     ],
@@ -158,9 +158,9 @@
           {
             "target": { "kind": "model", "id": "relay-orb" },
             "keyframes": [
-              { "time": 0, "position": [0, 122, 70] },
-              { "time": 150, "position": [0, 98, 70] },
-              { "time": 300, "position": [0, 122, 70] }
+              { "time": 0, "position": [0, -122, 70] },
+              { "time": 150, "position": [0, -98, 70] },
+              { "time": 300, "position": [0, -122, 70] }
             ]
           }
         ]

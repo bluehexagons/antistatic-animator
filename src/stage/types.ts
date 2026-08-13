@@ -47,7 +47,9 @@ export interface StageModel {
   };
   castsShadows?: boolean;
   scale?: Vec3;
+  /** Target axis extents; these are half-extents for primitives, whose vertices span -1..1. */
   size?: Vec3;
+  /** Model-space position. Y is up, unlike collision and spawn coordinates. */
   position?: Vec3;
   rotation?: Vec4 | { pitch?: number; yaw?: number; roll?: number };
   angularVelocity?: Vec3;
@@ -125,6 +127,7 @@ export interface StageParticleEmitter {
 
 export interface StageAnimationKeyframe {
   time: number;
+  /** Collision tracks use stage Y-down coordinates; model tracks use model-space Y-up. */
   position: Vec2 | Vec3;
 }
 

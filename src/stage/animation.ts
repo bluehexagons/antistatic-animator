@@ -1,6 +1,8 @@
 import type { StageAnimation, StageAnimationKeyframe, StageDocument, Vec2, Vec3 } from './types';
+import { stageModelDisplayPosition } from './view';
 
 export interface StageAnimationPreview {
+  /** Positions converted into the stage viewer's authored collision coordinate space. */
   models: Map<string, Vec3>;
   collision: Map<string, { from: Vec2; to: Vec2 }>;
 }
@@ -45,7 +47,9 @@ export const evaluateStageAnimation = (
     const position = sampleStagePosition(track.keyframes, frame);
     if (!position) continue;
     if (track.target.kind === 'model') {
-      if (position.length === 3) preview.models.set(track.target.id, position as Vec3);
+      if (position.length === 3) {
+        preview.models.set(track.target.id, stageModelDisplayPosition(stage, position as Vec3));
+      }
       continue;
     }
     const collision = stage.scene.collision?.find((item) => item.id === track.target.id);

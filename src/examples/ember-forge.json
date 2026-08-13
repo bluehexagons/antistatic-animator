@@ -59,28 +59,26 @@
       {
         "id": "forge-base",
         "primitive": { "type": "box" },
-        "position": [0, 40, 0],
-        "size": [400, 54, 90],
+        "position": [0, -40, 0],
+        "size": [200, 27, 45],
         "castsShadows": true
       },
       {
         "id": "left-anvil",
         "primitive": { "type": "box" },
-        "position": [-130, -70, 0],
-        "size": [108, 12, 54],
-        "rotation": { "roll": -0.025 }
+        "position": [-130, 70, 0],
+        "size": [54, 6, 27]
       },
       {
         "id": "right-anvil",
         "primitive": { "type": "box" },
-        "position": [130, -70, 0],
-        "size": [108, 12, 54],
-        "rotation": { "roll": 0.025 }
+        "position": [130, 70, 0],
+        "size": [54, 6, 27]
       },
       {
         "id": "furnace-core",
         "primitive": { "type": "sphere", "segments": 24, "rings": 16 },
-        "position": [0, 122, 42],
+        "position": [0, -122, 42],
         "scale": [54, 28, 54],
         "angularVelocity": [0, 0.18, 0]
       }
@@ -114,13 +112,13 @@
         "id": "left-side",
         "from": [-200, 14],
         "to": [-185, 55],
-        "flags": ["left", "solid"]
+        "flags": ["left", "solid", "asymmetric"]
       },
       {
         "id": "right-side",
         "from": [185, 55],
         "to": [200, 14],
-        "flags": ["right", "solid"]
+        "flags": ["right", "solid", "asymmetric"]
       },
       {
         "id": "underside",

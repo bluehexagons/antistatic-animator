@@ -74,6 +74,29 @@ describe('lintAnimation', () => {
     );
   });
 
+  it('flags next hitbubbles that cannot be expanded safely by the runtime', () => {
+    const beforeContinuation = lintAnimation(
+      sampleCharacter(),
+      animationWith({
+        keyframes: [
+          { duration: 2, hitbubbles: [{ type: 'ground', next: true }] },
+          { duration: 2, hitbubbles: true },
+        ],
+      })
+    );
+    expect(
+      beforeContinuation.some((issue) => /before a `hitbubbles: true`/.test(issue.message))
+    ).toBe(true);
+
+    const onFinalKeyframe = lintAnimation(
+      sampleCharacter(),
+      animationWith({
+        keyframes: [{ duration: 2, hitbubbles: [{ type: 'ground', next: true }] }],
+      })
+    );
+    expect(onFinalKeyframe.some((issue) => /final keyframe/.test(issue.message))).toBe(true);
+  });
+
   it('flags bad follow target', () => {
     const issues = lintAnimation(
       sampleCharacter(),

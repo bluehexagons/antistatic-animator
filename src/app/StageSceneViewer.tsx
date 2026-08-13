@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CameraState } from '../animator/context/AnimatorContext';
 import { evaluateStageAnimation } from '../stage/animation';
-import { cameraForStageBounds, stageAuthoringBounds } from '../stage/view';
+import {
+  cameraForStageBounds,
+  stageAuthoringBounds,
+  stageModelDisplayHalfExtents,
+  stageModelDisplayPosition,
+} from '../stage/view';
 import type { StageAnimation, StageDocument, StageSelection, Vec2, Vec3 } from '../stage/types';
 
 export interface StageSceneViewerProps {
@@ -179,8 +184,19 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       case 'model': {
         const item = stage.scene.models?.find((value) => value.id === target.id);
         if (item && handle === 'model-size') {
-          item.size = [Math.max(0, values[0] + dx * 2), Math.max(0, values[1] + dy * 2), values[2]];
-        } else if (item && positions[0]) item.position = move3(positions[0] as Vec3);
+          item.size = [
+            Math.max(0, values[0] + dx * Math.abs(stage.scaleX ?? 1)),
+            Math.max(0, values[1] + dy * Math.abs(stage.scaleY ?? 1)),
+            values[2],
+          ];
+        } else if (item && positions[0]) {
+          const position = positions[0] as Vec3;
+          item.position = [
+            position[0] + dx * (stage.scaleX ?? 1),
+            position[1] - dy * (stage.scaleY ?? 1),
+            position[2],
+          ];
+        }
         break;
       }
       case 'pointLight': {
@@ -369,8 +385,10 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           </g>
         )}
         {(stage.scene.models ?? []).map((model) => {
-          const position = preview.models.get(model.id) ?? model.position ?? [0, 0, 0];
-          const dimensions = model.size ?? model.scale ?? [30, 30, 30];
+          const position =
+            preview.models.get(model.id) ??
+            stageModelDisplayPosition(stage, model.position ?? [0, 0, 0]);
+          const dimensions = stageModelDisplayHalfExtents(stage, model);
           const active = selected(selection, 'model', model.id);
           return (
             <g
@@ -378,10 +396,10 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               onPointerDown={(event) => beginObjectDrag(event, { kind: 'model', id: model.id })}
             >
               <rect
-                x={toX(position[0] - Math.abs(dimensions[0]) / 2)}
-                y={toY(position[1] - Math.abs(dimensions[1]) / 2)}
-                width={Math.max(8, Math.abs(dimensions[0]) * camera.scale)}
-                height={Math.max(8, Math.abs(dimensions[1]) * camera.scale)}
+                x={toX(position[0] - dimensions[0])}
+                y={toY(position[1] - dimensions[1])}
+                width={Math.max(8, dimensions[0] * 2 * camera.scale)}
+                height={Math.max(8, dimensions[1] * 2 * camera.scale)}
                 fill="var(--accent)"
                 fillOpacity={active ? 0.3 : 0.1}
                 stroke="var(--accent)"
@@ -392,16 +410,16 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               </text>
               {active && model.size && (
                 <rect
-                  x={toX(position[0] + Math.abs(dimensions[0]) / 2) - 5}
-                  y={toY(position[1] + Math.abs(dimensions[1]) / 2) - 5}
+                  x={toX(position[0] + dimensions[0]) - 5}
+                  y={toY(position[1] + dimensions[1]) - 5}
                   width={10}
                   height={10}
                   className="stageResizeHandle"
                   onPointerDown={(event) =>
                     beginObjectDrag(event, { kind: 'model', id: model.id }, 'model-size', [
-                      Math.abs(dimensions[0]),
-                      Math.abs(dimensions[1]),
-                      Math.abs(dimensions[2]),
+                      Math.abs(model.size[0]),
+                      Math.abs(model.size[1]),
+                      Math.abs(model.size[2]),
                     ])
                   }
                 />

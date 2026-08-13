@@ -1,5 +1,5 @@
 import type { CameraState } from '../animator/context/AnimatorContext';
-import type { StageDocument, Vec2 } from './types';
+import type { StageDocument, StageModel, Vec2, Vec3 } from './types';
 
 export interface StageAuthoringBounds {
   minX: number;
@@ -13,6 +13,26 @@ const includePoint = (bounds: StageAuthoringBounds, point: Vec2) => {
   bounds.minY = Math.min(bounds.minY, point[1]);
   bounds.maxX = Math.max(bounds.maxX, point[0]);
   bounds.maxY = Math.max(bounds.maxY, point[1]);
+};
+
+const stageScale = (value: number | undefined): number =>
+  value !== undefined && value !== 0 ? value : 1;
+
+/** Convert a model-space Y-up position into the stage's authored collision coordinate space. */
+export const stageModelDisplayPosition = (stage: StageDocument, position: Vec3): Vec3 => [
+  position[0] / stageScale(stage.scaleX),
+  -position[1] / stageScale(stage.scaleY),
+  position[2],
+];
+
+/** Approximate a model's authored half-extents in stage collision coordinates. */
+export const stageModelDisplayHalfExtents = (stage: StageDocument, model: StageModel): Vec3 => {
+  const size = model.size ?? model.scale ?? [25, 25, 25];
+  return [
+    Math.abs(size[0] / stageScale(stage.scaleX)),
+    Math.abs(size[1] / stageScale(stage.scaleY)),
+    Math.abs(size[2]),
+  ];
 };
 
 export const stageAuthoringBounds = (stage: StageDocument): StageAuthoringBounds => {
@@ -47,16 +67,10 @@ export const stageAuthoringBounds = (stage: StageDocument): StageAuthoringBounds
 
   if (!Number.isFinite(bounds.minX)) {
     for (const model of stage.scene.models ?? []) {
-      const position = model.position ?? [0, 0, 0];
-      const size = model.size ?? model.scale ?? [50, 50, 50];
-      includePoint(bounds, [
-        position[0] - Math.abs(size[0]) / 2,
-        position[1] - Math.abs(size[1]) / 2,
-      ]);
-      includePoint(bounds, [
-        position[0] + Math.abs(size[0]) / 2,
-        position[1] + Math.abs(size[1]) / 2,
-      ]);
+      const position = stageModelDisplayPosition(stage, model.position ?? [0, 0, 0]);
+      const size = stageModelDisplayHalfExtents(stage, model);
+      includePoint(bounds, [position[0] - size[0], position[1] - size[1]]);
+      includePoint(bounds, [position[0] + size[0], position[1] + size[1]]);
     }
   }
   if (!Number.isFinite(bounds.minX)) {

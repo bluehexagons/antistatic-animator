@@ -49,7 +49,7 @@ describe('stage animation preview', () => {
     expect(stageAnimationDuration(animation)).toBe(11);
     expect(sampleStagePosition(animation.tracks[1].keyframes, 5)).toEqual([10, 20, 30]);
     const preview = evaluateStageAnimation(stage, animation, 5);
-    expect(preview.models.get('model-1')).toEqual([10, 20, 30]);
+    expect(preview.models.get('model-1')).toEqual([10, -20, 30]);
     expect(preview.models.get('model-0')).toEqual([100, 52, 0]);
     expect(preview.collision.get('main-platform')).toEqual({
       from: [-100, 50],
@@ -102,6 +102,24 @@ describe('stage viewport framing', () => {
     expect(camera.scale).toBeCloseTo(0.975);
     expect(camera.x).toBeCloseTo(0.195);
     expect(camera.y).toBeCloseTo(-0.0325);
+  });
+
+  it('frames model-only scenes using runtime Y-up positions and half-extents', () => {
+    const stage = createStageDocument('Models');
+    stage.anchors = [];
+    stage.entrances = [];
+    stage.spawns = [];
+    stage.scene.collision = [];
+    stage.scene.models = [
+      {
+        id: 'box',
+        primitive: { type: 'box' },
+        position: [10, 20, 0],
+        size: [30, 40, 5],
+      },
+    ];
+
+    expect(stageAuthoringBounds(stage)).toEqual({ minX: -20, minY: -60, maxX: 40, maxY: 20 });
   });
 });
 
@@ -325,5 +343,41 @@ describe('stage editor rendering', () => {
     );
     expect(timeline).toContain('main-platform');
     expect(timeline).toContain('keyframe');
+  });
+
+  it('renders model coordinates and sizes the way the game runtime does', () => {
+    const stage = createStageDocument('Fixture');
+    stage.scene.models = [
+      {
+        id: 'box',
+        primitive: { type: 'box' },
+        position: [10, 20, 0],
+        size: [30, 40, 5],
+      },
+    ];
+    const noop = vi.fn();
+    const canvas = renderToStaticMarkup(
+      <StageSceneViewer
+        stage={stage}
+        selection={{ kind: 'model', id: 'box' }}
+        camera={{ x: 0, y: 0, scale: 1 }}
+        onSelect={noop}
+        onCameraChange={noop}
+        onChange={noop}
+        showGrid={false}
+      />
+    );
+    const inspector = renderToStaticMarkup(
+      <StageInspector
+        stage={stage}
+        selection={{ kind: 'model', id: 'box' }}
+        issues={[]}
+        onSelectionChange={noop}
+        onChange={noop}
+      />
+    );
+
+    expect(canvas).toContain('<rect x="-20" y="-60" width="60" height="80"');
+    expect(inspector).toContain('Model positions use Y-up');
   });
 });

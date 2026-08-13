@@ -390,14 +390,21 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
               />
             </div>
             {position && (
-              <VectorEditor
-                label="position"
-                value={position}
-                onChange={(value) => {
-                  (selectedObject as { position?: Vec3 }).position = value as Vec3;
-                  changed();
-                }}
-              />
+              <>
+                <VectorEditor
+                  label="position"
+                  value={position}
+                  onChange={(value) => {
+                    (selectedObject as { position?: Vec3 }).position = value as Vec3;
+                    changed();
+                  }}
+                />
+                {selection.kind === 'model' && (
+                  <div className="stageIssue clean">
+                    Model positions use Y-up; collision and spawn positions use Y-down.
+                  </div>
+                )}
+              </>
             )}
             {collision && (
               <>

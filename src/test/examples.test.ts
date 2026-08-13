@@ -4,6 +4,7 @@ import { isCharacterDataFile } from '../app/file-names';
 import { lintAnimation } from '../animator/lint';
 import type { AnimationMap, EntityData } from '../animator/types';
 import { parseStageDocument } from '../stage/document';
+import { stageModelDisplayHalfExtents, stageModelDisplayPosition } from '../stage/view';
 
 describe('bundled examples', () => {
   it('includes a character and three stage projects with parseable files', () => {
@@ -43,6 +44,10 @@ describe('bundled examples', () => {
     expect(Object.keys(animations)).toEqual(['idle', 'dash', 'jab', 'sweep', 'uair', 'taunt']);
     expect(animations.taunt.keyframes).toHaveLength(4);
     expect(animations.uair.type).toBe('aerial');
+    expect(animations.sweep.keyframes[1].hitbubbles).toEqual(
+      expect.arrayContaining([expect.objectContaining({ next: true })])
+    );
+    expect(animations.sweep.keyframes[2].hitbubbles).toEqual([]);
     for (const [name, animation] of Object.entries(animations)) {
       expect(lintAnimation(character, animation, name), name).toEqual([]);
     }
@@ -63,5 +68,35 @@ describe('bundled examples', () => {
     expect(forge.lighting?.atmosphere).toBeDefined();
     expect(forge.scene.effects?.particleEmitters).toHaveLength(1);
     expect(relay.scene.animations?.some((animation) => animation.tracks.length > 1)).toBe(true);
+  });
+
+  it('keeps stage models aligned with runtime collision and symmetry semantics', () => {
+    const stageFiles = EXAMPLE_WORKSPACE_FILES.filter((file) => file.path.includes('/stages/'));
+    for (const file of stageFiles) {
+      const stage = parseStageDocument(file.content).document!;
+      const models = new Map(stage.scene.models?.map((model) => [model.id, model]));
+      for (const collision of stage.scene.collision ?? []) {
+        if (collision.model) {
+          const model = models.get(collision.model)!;
+          const position = stageModelDisplayPosition(stage, model.position ?? [0, 0, 0]);
+          const extents = stageModelDisplayHalfExtents(stage, model);
+          expect(position[0], `${file.path}:${collision.id}`).toBeCloseTo(
+            (collision.from[0] + collision.to[0]) / 2
+          );
+          expect(position[1], `${file.path}:${collision.id}`).toBeCloseTo(collision.from[1] + 2);
+          expect(extents[0], `${file.path}:${collision.id}`).toBeCloseTo(
+            Math.abs(collision.to[0] - collision.from[0]) / 2
+          );
+        }
+
+        const pivot = stage.pivot ?? 0;
+        const entirelyOnOneSide =
+          (collision.from[0] < pivot && collision.to[0] < pivot) ||
+          (collision.from[0] > pivot && collision.to[0] > pivot);
+        if (stage.symmetric && entirelyOnOneSide) {
+          expect(collision.flags, `${file.path}:${collision.id}`).toContain('asymmetric');
+        }
+      }
+    }
   });
 });

@@ -129,6 +129,21 @@ export function lintAnimation(
     } else if (Array.isArray(kf.hitbubbles)) {
       for (let h = 0; h < kf.hitbubbles.length; h++) {
         const hb: Hitbubble = kf.hitbubbles[h];
+        if (hb.next) {
+          if (i === animation.keyframes.length - 1) {
+            issues.push({
+              severity: 'error',
+              keyframe: i,
+              message: `Hitbox #${h} has \`next: true\` on the final keyframe.`,
+            });
+          } else if (animation.keyframes[i + 1].hitbubbles === true) {
+            issues.push({
+              severity: 'error',
+              keyframe: i,
+              message: `Hitbox #${h} cannot use \`next: true\` before a \`hitbubbles: true\` continuation.`,
+            });
+          }
+        }
         if (hb.type && !(HitbubbleTypes as readonly string[]).includes(hb.type)) {
           issues.push({
             severity: 'warn',

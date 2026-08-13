@@ -44,35 +44,35 @@
       {
         "id": "arena-deck",
         "primitive": { "type": "box" },
-        "position": [0, 34, 0],
-        "size": [440, 24, 70],
+        "position": [0, -34, 0],
+        "size": [220, 12, 35],
         "castsShadows": true
       },
       {
         "id": "lift-deck",
         "primitive": { "type": "box" },
-        "position": [0, -68, 0],
-        "size": [130, 12, 48],
+        "position": [0, 72, 0],
+        "size": [65, 6, 24],
         "castsShadows": true
       },
       {
         "id": "reactor-ring",
         "primitive": { "type": "torus", "segments": 32, "rings": 12, "tubeRadius": 0.18 },
-        "position": [0, 115, 45],
+        "position": [0, -115, 45],
         "scale": [75, 75, 20],
         "angularVelocity": [0, 0.35, 0]
       },
       {
         "id": "left-pylon",
         "primitive": { "type": "box" },
-        "position": [-190, 95, 25],
-        "size": [28, 130, 32]
+        "position": [-190, -95, 25],
+        "size": [14, 65, 16]
       },
       {
         "id": "right-pylon",
         "primitive": { "type": "box" },
-        "position": [190, 95, 25],
-        "size": [28, 130, 32]
+        "position": [190, -95, 25],
+        "size": [14, 65, 16]
       }
     ],
     "collisionModel": {
@@ -99,13 +99,13 @@
         "id": "left-wall",
         "from": [-220, 22],
         "to": [-220, 58],
-        "flags": ["left", "solid"]
+        "flags": ["left", "solid", "asymmetric"]
       },
       {
         "id": "right-wall",
         "from": [220, 58],
         "to": [220, 22],
-        "flags": ["right", "solid"]
+        "flags": ["right", "solid", "asymmetric"]
       }
     ],
     "animations": [
