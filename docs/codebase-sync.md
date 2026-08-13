@@ -4,9 +4,9 @@
 
 Last checked: 2026-08-13
 
-- Animator repository: `4022f1f` (`main` baseline)
-- Antistatic repository: `01388435` (`main`)
-- Easing package: `v0.5.0`
+- Animator repository: `db2bd1e` (`main` baseline)
+- Antistatic repository: `4991d3ca` (`main`)
+- Easing package: `v0.5.1`
 - Reference paths: `../antistatic/app/src/game/animation.ts`,
   `../antistatic/app/src/game/bubbles.ts`, `../antistatic/app/src/game/stage.ts`,
   and `../antistatic/docs/schemas/stage.schema.json`
