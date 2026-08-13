@@ -5,11 +5,10 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import * as JSONC from 'jsonc-parser';
 
 import { AnimatorProvider, useAnimator } from '../animator/context/AnimatorContext';
 import { ErrorBoundary } from './ErrorBoundary';
-import type { AnimationMap, EntityData } from '../animator/types';
+import { parseAnimationDocument, parseCharacterDocument } from '../animator/parsing';
 import { save as saveFile } from '../animator/operations/file-operations';
 import { clearBaselines } from '../animator/operations/diff';
 import { createTools } from '../animator/api/tools';
@@ -183,10 +182,11 @@ const Shell: React.FC = () => {
       const content = library.get(file);
       if (!content) return;
       try {
-        const character = JSONC.parse(content) as EntityData;
+        const character = parseCharacterDocument(content);
         dispatch({ type: 'SET_CHARACTER', payload: character });
       } catch (err) {
         console.error('failed to parse character', err);
+        alert(`Unable to load character: ${(err as Error).message ?? String(err)}`);
         return;
       }
       const animFile = findAnimationFile(file, (name) => library.has(name));
@@ -194,10 +194,11 @@ const Shell: React.FC = () => {
       const animContent = library.get(animFile);
       if (animContent) {
         try {
-          const parsed = JSONC.parse(animContent) as AnimationMap;
+          const parsed = parseAnimationDocument(animContent);
           dispatch({ type: 'SET_PARSED', payload: parsed });
         } catch (err) {
           console.error('failed to parse animations', err);
+          alert(`Unable to load animations: ${(err as Error).message ?? String(err)}`);
           dispatch({ type: 'SET_PARSED', payload: null });
         }
       } else {

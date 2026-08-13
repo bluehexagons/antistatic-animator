@@ -47,6 +47,7 @@ export class FsAccessStorage implements StorageBackend {
   readonly canSave = true;
   private charHandle: FsDirHandle | null = null;
   private stageHandle: FsDirHandle | null = null;
+  private rootHandle: FsDirHandle | null = null;
   private rootName = '';
 
   get ready() {
@@ -69,6 +70,7 @@ export class FsAccessStorage implements StorageBackend {
     const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'antistatic-chars' });
     this.charHandle = handle;
     this.stageHandle = null;
+    this.rootHandle = null;
     this.rootName = handle.name;
     return true;
   }
@@ -86,8 +88,9 @@ export class FsAccessStorage implements StorageBackend {
     };
     this.charHandle = await findDirectory(CHAR_PATH);
     this.stageHandle = await findDirectory(STAGE_PATH);
+    this.rootHandle = this.charHandle || this.stageHandle ? handle : null;
     // A directly selected character directory retains the previous behavior.
-    if (!this.charHandle && !this.stageHandle) {
+    if (!this.rootHandle) {
       if (handle.name.toLowerCase() === 'stages') this.stageHandle = handle;
       else this.charHandle = handle;
     }
@@ -117,6 +120,21 @@ export class FsAccessStorage implements StorageBackend {
     return { directory: this.charHandle, name };
   }
 
+  private async writableLocation(
+    name: string
+  ): Promise<{ directory: FsDirHandle | null; name: string }> {
+    const location = this.fileLocation(name);
+    if (location.directory || !this.rootHandle) return location;
+    const segments = name.startsWith(STAGE_FILE_PREFIX) ? STAGE_PATH : CHAR_PATH;
+    let directory = this.rootHandle;
+    for (const segment of segments) {
+      directory = await directory.getDirectoryHandle(segment, { create: true });
+    }
+    if (name.startsWith(STAGE_FILE_PREFIX)) this.stageHandle = directory;
+    else this.charHandle = directory;
+    return { directory, name: name.replace(/^stages\//, '') };
+  }
+
   async read(name: string): Promise<string> {
     const location = this.fileLocation(name);
     if (!location.directory) throw new Error('no directory selected for this file type');
@@ -126,7 +144,7 @@ export class FsAccessStorage implements StorageBackend {
   }
 
   async write(name: string, content: string): Promise<void> {
-    const location = this.fileLocation(name);
+    const location = await this.writableLocation(name);
     if (!location.directory) throw new Error('no directory selected for this file type');
     const file = await location.directory.getFileHandle(location.name, { create: true });
     const w = await file.createWritable();
@@ -135,5 +153,16 @@ export class FsAccessStorage implements StorageBackend {
     } finally {
       await w.close();
     }
+  }
+
+  async writeIfUnchanged(name: string, content: string, expectedContent?: string): Promise<void> {
+    let current: string | undefined;
+    try {
+      current = await this.read(name);
+    } catch {
+      // A missing file is a valid first save.
+    }
+    if (current !== expectedContent) throw new Error(`File changed externally: ${name}`);
+    await this.write(name, content);
   }
 }

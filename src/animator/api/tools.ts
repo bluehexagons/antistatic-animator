@@ -105,11 +105,11 @@ export const createTools = (
     /**
      * Save current animation to file
      */
-    save(): void {
+    async save(): Promise<void> {
       const animFile = getAnimFile();
       const parsed = getParsed();
       if (parsed) {
-        save(animFile, parsed);
+        await save(animFile, parsed);
       }
     },
   };

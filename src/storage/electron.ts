@@ -36,6 +36,7 @@ export class ElectronStorage implements StorageBackend {
     this.rootDir = dir;
     this.charDir = path.resolve(dir, CHAR_SUBDIR);
     this.stageDir = path.resolve(dir, STAGE_SUBDIR);
+    window.nodeAPI.fs.setRoot?.(dir);
   }
 
   private hasDataDir(dir: string): boolean {
@@ -106,6 +107,22 @@ export class ElectronStorage implements StorageBackend {
     window.nodeAPI.fs.writeFileAtomic(this.resolveFile(name), content);
   }
 
+  async writeIfUnchanged(name: string, content: string, expectedContent?: string): Promise<void> {
+    const filename = this.resolveFile(name);
+    if (window.nodeAPI.fs.writeFileAtomicIfUnchanged) {
+      window.nodeAPI.fs.writeFileAtomicIfUnchanged(filename, content, expectedContent);
+      return;
+    }
+    let current: string | undefined;
+    try {
+      current = window.nodeAPI.fs.readFileSync(filename, 'utf8') as string;
+    } catch {
+      // A missing file is a valid first save.
+    }
+    if (current !== expectedContent) throw new Error(`File changed externally: ${name}`);
+    window.nodeAPI.fs.writeFileAtomic(filename, content);
+  }
+
   watch(name: string, listener: () => void): () => void {
     const full = this.resolveFile(name);
     const path = window.nodeAPI.path;
@@ -114,7 +131,11 @@ export class ElectronStorage implements StorageBackend {
     let retryCount = 0;
     let cleanup = () => {};
     const retry = () => {
-      if (stopped || retryTimer || retryCount >= 5) return;
+      if (stopped || retryTimer) return;
+      if (retryCount >= 5) {
+        console.warn(`stopped watching ${full} after repeated filesystem errors`);
+        return;
+      }
       const delay = 100 * 2 ** retryCount++;
       retryTimer = setTimeout(() => {
         retryTimer = null;

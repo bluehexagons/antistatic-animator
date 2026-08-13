@@ -6,10 +6,10 @@
  * the animation/keyframe JSON).
  */
 
-import React, { useCallback, useId, useMemo, useState } from 'react';
-import * as JSONC from 'jsonc-parser';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { objHas } from '../utils';
 import { multichoice, defaultTypes, excludeProps, valueSuggestions } from '../animator/constants';
+import { parseJsoncValue } from '../animator/parsing';
 
 export type Value = string | number | boolean | unknown[] | Record<string, unknown> | null;
 export type Obj = Record<string, Value>;
@@ -32,6 +32,37 @@ const inferType = (v: Value): 'string' | 'number' | 'bool' | 'array' | 'object' 
   if (Array.isArray(v)) return 'array';
   if (v !== null && typeof v === 'object') return 'object';
   return 'other';
+};
+
+const NumberPropertyInput: React.FC<{
+  id: string;
+  value: number;
+  onCommit: (value: number) => void;
+}> = ({ id, value, onCommit }) => {
+  const [draft, setDraft] = useState(() => String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  return (
+    <input
+      id={id}
+      type="number"
+      value={draft}
+      step="any"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const next = Number(draft);
+        if (draft.trim() === '' || !Number.isFinite(next)) {
+          setDraft(String(value));
+          return;
+        }
+        onCommit(next);
+        setDraft(String(next));
+      }}
+    />
+  );
 };
 
 export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
@@ -112,12 +143,10 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
         );
       case 'number':
         return (
-          <input
+          <NumberPropertyInput
             id={inputId}
-            type="number"
             value={Number.isFinite(v as number) ? (v as number) : 0}
-            step="any"
-            onChange={(e) => setKey(k, parseFloat(e.target.value) || 0)}
+            onCommit={(n) => setKey(k, n)}
           />
         );
       case 'array':
@@ -133,19 +162,21 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
             defaultValue={JSON.stringify(v)}
             onBlur={(e) => {
               try {
-                const parsed = JSONC.parse(e.target.value);
+                const parsed = parseJsoncValue<Value>(e.target.value, `property "${k}"`);
                 const ok =
-                  t === 'array' ? Array.isArray(parsed) : !!parsed && typeof parsed === 'object';
+                  t === 'array'
+                    ? Array.isArray(parsed)
+                    : !!parsed && typeof parsed === 'object' && !Array.isArray(parsed);
                 if (ok) setKey(k, parsed);
               } catch {
-                /* ignore */
+                // Keep the previous value until the user enters valid JSONC.
               }
             }}
           />
         );
       default: {
         const suggestList = valueSuggestions[k];
-        const listId = suggestList ? `prop-suggest-${k}` : undefined;
+        const listId = suggestList ? `prop-suggest-${editorId}-${k}` : undefined;
         return (
           <>
             <input

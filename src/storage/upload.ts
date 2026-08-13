@@ -44,10 +44,15 @@ export class UploadStorage implements StorageBackend {
   async loadContents(files: readonly UploadContent[], label?: string): Promise<number> {
     const next = new Map<string, string>();
     for (const file of files) {
-      const basename = file.path.split('/').pop();
+      const normalizedPath = file.path.replaceAll('\\', '/');
+      const basename = normalizedPath.split('/').pop();
       if (!basename || !DATA_FILE_RE.test(basename)) continue;
-      const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(file.path);
-      next.set(stageFile ? `stages/${basename}` : basename, file.content);
+      const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(normalizedPath);
+      const name = stageFile ? `stages/${basename}` : basename;
+      if (next.has(name)) {
+        throw new Error(`Duplicate uploaded file name: ${name}`);
+      }
+      next.set(name, file.content);
     }
     this.files = next;
     this.dirLabel = label || (files.length ? `${files.length} example files` : '');

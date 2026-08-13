@@ -117,6 +117,48 @@ describe('Library', () => {
     expect(backend.write).toHaveBeenCalledWith('test.json', '{"x":1}');
   });
 
+  it('rejects overwriting a file that was not present in the cache', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => []),
+      read: vi.fn(async () => '{"external":true}'),
+      write: vi.fn(),
+    };
+    lib.setBackend(backend);
+
+    await expect(lib.save('new.json', '{"local":true}')).rejects.toThrow('File changed externally');
+    expect(backend.write).not.toHaveBeenCalled();
+  });
+
+  it('uses conflict-aware backend writes when available', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => ['test.json']),
+      read: vi.fn(async () => '{}'),
+      write: vi.fn(),
+      writeIfUnchanged: vi.fn(async () => {
+        throw new Error('File changed externally');
+      }),
+    };
+    lib.setBackend(backend);
+    await lib.refresh();
+
+    await expect(lib.save('test.json', '{"local":true}')).rejects.toThrow(
+      'File changed externally'
+    );
+    expect(backend.write).not.toHaveBeenCalled();
+  });
+
   it('save skips the backend write when canSave is false', async () => {
     const Library = await getLibrary();
     const lib = new Library();

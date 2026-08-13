@@ -81,6 +81,11 @@ export const Timeline: React.FC<TimelineProps> = ({
   const tickRef = useRef(tick);
   const keyframeRef = useRef(keyframe);
   useEffect(() => {
+    // A new animation can inherit the previous animation's reverse leg when
+    // ping-pong playback was paused. Always start a new animation forwards.
+    dirRef.current = 1;
+  }, [animation]);
+  useEffect(() => {
     tickRef.current = tick;
   }, [tick]);
   useEffect(() => {

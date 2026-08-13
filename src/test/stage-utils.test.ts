@@ -40,4 +40,11 @@ describe('character hitbubble preview helpers', () => {
     expect(hitbubble.next).toBe(true);
     expect(hitbubblesForKeyframe(animation, 2)).toEqual([]);
   });
+
+  it('ignores invalid numeric follow references instead of crashing the preview', () => {
+    expect(() => resolveHitbubble({ follow: 99, x: 1 }, character, [0, 0, 1, 1])).not.toThrow();
+    expect(() =>
+      resolveHitbubble({ smear: { follow: -99 }, x: 1 }, character, [0, 0, 1, 1])
+    ).not.toThrow();
+  });
 });

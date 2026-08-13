@@ -74,12 +74,14 @@ export function resolveHitbubble(
     const idx = followIndex(hb.follow);
     if (idx !== undefined && idx !== 0) {
       const b = character.hurtbubbles[Math.abs(idx) - 1];
-      const base = 4 * (idx > 0 ? b.i1 : b.i2);
-      anchorX = hurtbubbles[base] ?? 0;
-      anchorY = hurtbubbles[base + 1] ?? 0;
-      x += anchorX;
-      y += anchorY;
-      hasAnchor = true;
+      if (b) {
+        const base = 4 * (idx > 0 ? b.i1 : b.i2);
+        anchorX = hurtbubbles[base] ?? 0;
+        anchorY = hurtbubbles[base + 1] ?? 0;
+        x += anchorX;
+        y += anchorY;
+        hasAnchor = true;
+      }
     }
   }
   if (hurtbubbles && hasSmear) {
@@ -87,12 +89,14 @@ export function resolveHitbubble(
       const idx = followIndex(smear.follow);
       if (idx !== undefined && idx !== 0) {
         const b = character.hurtbubbles[Math.abs(idx) - 1];
-        const base = 4 * (idx > 0 ? b.i1 : b.i2);
-        smearAnchorX = hurtbubbles[base] ?? 0;
-        smearAnchorY = hurtbubbles[base + 1] ?? 0;
-        smearX += smearAnchorX;
-        smearY += smearAnchorY;
-        smearAnchorPresent = true;
+        if (b) {
+          const base = 4 * (idx > 0 ? b.i1 : b.i2);
+          smearAnchorX = hurtbubbles[base] ?? 0;
+          smearAnchorY = hurtbubbles[base + 1] ?? 0;
+          smearX += smearAnchorX;
+          smearY += smearAnchorY;
+          smearAnchorPresent = true;
+        }
       }
     } else if (hasAnchor) {
       smearX += anchorX;

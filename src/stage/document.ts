@@ -110,6 +110,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
   }
   for (const animation of stage.scene.animations ?? []) {
     const targets = new Set<string>();
+    let lastKeyframeTime = 0;
     for (const track of animation.tracks) {
       const targetKey = `${track.target.kind}:${track.target.id}`;
       if (targets.has(targetKey)) {
@@ -127,7 +128,15 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
         });
       }
       const times = new Set<number>();
+      const dimensions = track.target.kind === 'model' ? 3 : 2;
       for (const keyframe of track.keyframes) {
+        lastKeyframeTime = Math.max(lastKeyframeTime, keyframe.time);
+        if (keyframe.position.length !== dimensions) {
+          issues.push({
+            path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
+            message: `${track.target.kind} keyframes must have exactly ${dimensions} coordinates`,
+          });
+        }
         if (times.has(keyframe.time)) {
           issues.push({
             path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
@@ -136,6 +145,12 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
         }
         times.add(keyframe.time);
       }
+    }
+    if (animation.duration !== undefined && animation.duration < lastKeyframeTime + 1) {
+      issues.push({
+        path: `/scene/animations/${animation.id}/duration`,
+        message: `must include the final keyframe at time ${lastKeyframeTime}`,
+      });
     }
   }
   return issues;

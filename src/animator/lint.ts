@@ -80,6 +80,12 @@ export function lintAnimation(
       keyframe: -1,
       message: 'Animation has no keyframes.',
     });
+  } else if (animation.keyframes.length === 1) {
+    issues.push({
+      severity: 'warn',
+      keyframe: -1,
+      message: 'Animation has one keyframe and cannot be played as a motion.',
+    });
   }
   for (let i = 0; i < animation.keyframes.length; i++) {
     const kf: Keyframe = animation.keyframes[i];

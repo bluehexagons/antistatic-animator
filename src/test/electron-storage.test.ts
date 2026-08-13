@@ -101,7 +101,7 @@ describe('ElectronStorage', () => {
       expect.any(Function)
     );
 
-    const directoryListener = watch.mock.calls[0][1] as (
+    const directoryListener = watch.mock.calls[0][1] as unknown as (
       event: string,
       name: string | null
     ) => void;

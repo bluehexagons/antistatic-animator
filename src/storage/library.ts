@@ -133,13 +133,35 @@ export class Library {
       .then(async () => {
         if (backend !== this.backend || backendGeneration !== this.backendGeneration) return;
         if (backend.canSave) {
-          if (this.cache.has(name)) {
-            const diskContent = await backend.read(name);
-            if (diskContent !== this.cache.get(name)) {
+          let diskContent: string | undefined;
+          try {
+            const value = await backend.read(name);
+            if (typeof value === 'string') diskContent = value;
+          } catch {
+            // A missing file is a valid first save. The backend write below
+            // remains responsible for reporting permission and I/O errors.
+          }
+          const cachedContent = this.cache.get(name);
+          if (cachedContent !== undefined && diskContent !== cachedContent) {
+            throw new StorageConflictError(name);
+          }
+          if (cachedContent === undefined && diskContent !== undefined) {
+            // The file appeared after the last refresh. Do not overwrite it
+            // merely because it was not present in the cache.
+            throw new StorageConflictError(name);
+          }
+          try {
+            if (backend.writeIfUnchanged) {
+              await backend.writeIfUnchanged(name, content, diskContent);
+            } else {
+              await backend.write(name, content);
+            }
+          } catch (error) {
+            if (error instanceof Error && error.message.startsWith('File changed externally')) {
               throw new StorageConflictError(name);
             }
+            throw error;
           }
-          await backend.write(name, content);
         }
         // A slow write from an old source must not populate the new source's
         // cache after the user switches backends.

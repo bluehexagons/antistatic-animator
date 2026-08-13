@@ -24,22 +24,26 @@ declare global {
     };
     nodeAPI: {
       fs: {
-        existsSync: typeof import('fs').existsSync;
-        readdirSync: typeof import('fs').readdirSync;
-        readFileSync: typeof import('fs').readFileSync;
-        writeFileAtomic: (filename: import('fs').PathLike, content: string) => void;
-        // Preload wraps fs.watch to return a cleanup function instead of FSWatcher
-        // (FSWatcher is not serializable across the contextBridge).
+        setRoot?: (rootDir: string) => void;
+        existsSync: (filename: string) => boolean;
+        readdirSync: (directory: string) => string[];
+        readFileSync: (filename: string, encoding: BufferEncoding) => string;
+        writeFileAtomic: (filename: string, content: string) => void;
+        writeFileAtomicIfUnchanged?: (
+          filename: string,
+          content: string,
+          expectedContent?: string
+        ) => void;
         watch: {
           (
-            filename: import('fs').PathLike,
-            listener?: import('fs').WatchListener<string>,
+            filename: string,
+            listener?: (event: string, filename: string | null) => void,
             onError?: (error: Error) => void
           ): () => void;
           (
-            filename: import('fs').PathLike,
-            options: import('fs').WatchOptions | BufferEncoding,
-            listener?: import('fs').WatchListener<string>,
+            filename: string,
+            options: BufferEncoding,
+            listener?: (event: string, filename: string | null) => void,
             onError?: (error: Error) => void
           ): () => void;
         };

@@ -19,7 +19,10 @@ module.exports = {
     /\.prettierrc\.json/,
     /packager\.config\.js/,
     /\.gitignore/,
-    /readme\.md/,
+    /readme\.md/i,
+    /^\/docs(?:\/|$)/,
+    /^\/src\/test(?:\/|$)/,
+    /^\/AGENTS\.md$/i,
   ],
   extraResource: [],
 };

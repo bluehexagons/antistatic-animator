@@ -115,7 +115,7 @@
         "loop": true,
         "pingPong": true,
         "randomStart": false,
-        "duration": 180,
+        "duration": 181,
         "tracks": [
           {
             "target": { "kind": "collision", "id": "lift-platform" },

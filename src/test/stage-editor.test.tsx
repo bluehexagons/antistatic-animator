@@ -269,6 +269,21 @@ describe('stage document operations', () => {
     expect(issues.filter((issue) => issue.message.includes('must NOT be valid'))).toHaveLength(2);
     expect(animation.id).toBeTruthy();
   });
+
+  it('rejects target coordinate dimensions and unreachable durations', () => {
+    const stage = createStageDocument('Animation validation');
+    const model = addStageSceneItem(stage, 'model');
+    addStageSceneItem(stage, 'animation');
+    stage.scene.animations![0].duration = 5;
+    stage.scene.animations![0].tracks.push({
+      target: { kind: 'model', id: model.id! },
+      keyframes: [{ time: 6, position: [0, 0] }],
+    });
+
+    const messages = validateStageDocument(stage).map((issue) => issue.message);
+    expect(messages).toContain('model keyframes must have exactly 3 coordinates');
+    expect(messages).toContain('must include the final keyframe at time 6');
+  });
 });
 
 describe('stage editor rendering', () => {

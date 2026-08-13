@@ -55,4 +55,14 @@ describe('UploadStorage', () => {
     await expect(storage.loadFiles([broken])).rejects.toThrow('read failed');
     await expect(storage.list()).resolves.toEqual(['carbon.json']);
   });
+
+  it('rejects duplicate basenames instead of silently replacing one', async () => {
+    const storage = new UploadStorage();
+    await expect(
+      storage.loadContents([
+        { path: 'first/app/characters/data/shared.json', content: 'first' },
+        { path: 'second/app/characters/data/shared.json', content: 'second' },
+      ])
+    ).rejects.toThrow('Duplicate uploaded file name: shared.json');
+  });
 });

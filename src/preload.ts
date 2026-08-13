@@ -1,6 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import * as fs from 'fs';
-import * as path from 'path';
 import type {
   AgentPlayOptions,
   AgentPlayReady,
@@ -9,21 +7,55 @@ import type {
   AntistaticLaunchResult,
 } from './runtime/antistatic-types';
 
-let atomicWriteSequence = 0;
+type StorageResponse<T> = { ok: true; value: T } | { ok: false; error: string };
+type WatchListener = (event: string, filename: string | null) => void;
 
-const writeFileAtomic = (filename: fs.PathLike, content: string) => {
-  const temporary = `${filename}.antistatic-animator-${Date.now()}-${atomicWriteSequence++}.tmp`;
-  try {
-    fs.writeFileSync(temporary, content, { encoding: 'utf8' });
-    fs.renameSync(temporary, filename);
-  } catch (err) {
-    try {
-      fs.unlinkSync(temporary);
-    } catch {
-      // Preserve the original write/rename error.
-    }
-    throw err;
+const callSync = <T>(channel: string, ...args: unknown[]): T => {
+  const result = ipcRenderer.sendSync(channel, ...args) as StorageResponse<T>;
+  if (!result.ok) throw new Error((result as { error: string }).error);
+  return result.value;
+};
+
+const watchCallbacks = new Map<
+  string,
+  { listener: WatchListener; onError: (error: Error) => void }
+>();
+let watchSequence = 0;
+
+ipcRenderer.on(
+  'storage-watch-event',
+  (_event, id: string, eventName: string, filename: string | null) => {
+    watchCallbacks.get(id)?.listener(eventName, filename);
   }
+);
+ipcRenderer.on('storage-watch-error', (_event, id: string, message: string) => {
+  const callback = watchCallbacks.get(id);
+  if (callback) callback.onError(new Error(message));
+});
+
+const watch = (
+  filename: string,
+  optionsOrListener?: BufferEncoding | WatchListener,
+  listener?: WatchListener | ((error: Error) => void),
+  onError?: (error: Error) => void
+): (() => void) => {
+  const id = `${Date.now()}-${watchSequence++}`;
+  const callback: WatchListener =
+    typeof optionsOrListener === 'function'
+      ? optionsOrListener
+      : typeof listener === 'function'
+        ? (listener as WatchListener)
+        : () => {};
+  const errorHandler =
+    typeof optionsOrListener === 'function' && typeof listener === 'function'
+      ? (listener as (error: Error) => void)
+      : (onError ?? (() => {}));
+  watchCallbacks.set(id, { listener: callback, onError: errorHandler });
+  ipcRenderer.send('storage-watch-start', id, filename);
+  return () => {
+    watchCallbacks.delete(id);
+    ipcRenderer.send('storage-watch-stop', id);
+  };
 };
 
 // Expose protected methods that allow the renderer process to use
@@ -41,51 +73,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopAntistaticAgentPlay: (): Promise<void> => ipcRenderer.invoke('stopAntistaticAgentPlay'),
 });
 
-// Expose Node.js APIs that are needed by the renderer
+// Expose only scoped storage operations. The actual filesystem remains in the
+// main process, where every path is checked against the selected project root.
 contextBridge.exposeInMainWorld('nodeAPI', {
   fs: {
-    existsSync: fs.existsSync,
-    readdirSync: fs.readdirSync,
-    readFileSync: fs.readFileSync,
-    writeFileAtomic,
-    // Wrap fs.watch to return a cleanup function instead of FSWatcher (non-serializable)
-    watch: (
-      filename: fs.PathLike,
-      optionsOrListener?: fs.WatchOptions | BufferEncoding | fs.WatchListener<string>,
-      listener?: fs.WatchListener<string> | ((error: Error) => void),
-      onError?: (error: Error) => void
-    ): (() => void) => {
-      let watcher: fs.FSWatcher;
-      let errorHandler = onError;
-      if (typeof optionsOrListener === 'function') {
-        watcher = fs.watch(filename, optionsOrListener);
-        if (typeof listener === 'function') errorHandler = listener as (error: Error) => void;
-      } else if (typeof optionsOrListener === 'string') {
-        watcher = fs.watch(
-          filename,
-          optionsOrListener as BufferEncoding,
-          listener as fs.WatchListener<string>
-        );
-      } else {
-        watcher = fs.watch(
-          filename,
-          optionsOrListener as fs.WatchOptionsWithStringEncoding,
-          listener as fs.WatchListener<string>
-        );
-      }
-      watcher.on('error', errorHandler ?? (() => {}));
-      return () => watcher.close();
+    setRoot: (rootDir: string): void => callSync<void>('storage-set-root', rootDir),
+    existsSync: (filename: string): boolean => callSync('storage-fs-exists', filename),
+    readdirSync: (directory: string): string[] => callSync('storage-fs-readdir', directory),
+    readFileSync: (filename: string, encoding: BufferEncoding): string =>
+      callSync('storage-fs-read', filename, encoding),
+    writeFileAtomic: (filename: string, content: string): void => {
+      callSync<void>('storage-fs-write', filename, content);
     },
+    writeFileAtomicIfUnchanged: (
+      filename: string,
+      content: string,
+      expectedContent?: string
+    ): void => {
+      callSync<void>('storage-fs-write-if-unchanged', filename, content, expectedContent);
+    },
+    watch,
   },
   path: {
-    resolve: path.resolve,
-    join: path.join,
-    dirname: path.dirname,
-    basename: path.basename,
-    extname: path.extname,
+    resolve: (...parts: string[]): string => callSync('path-resolve', ...parts),
+    join: (...parts: string[]): string => callSync('path-join', ...parts),
+    dirname: (value: string): string => callSync('path-dirname', value),
+    basename: (value: string): string => callSync('path-basename', value),
+    extname: (value: string): string => callSync('path-extname', value),
   },
   process: {
-    cwd: () => process.cwd(),
-    platform: process.platform,
+    cwd: (): string => callSync('process-cwd'),
+    platform: callSync<NodeJS.Platform>('process-platform'),
   },
 });

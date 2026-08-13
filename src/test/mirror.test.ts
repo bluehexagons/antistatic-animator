@@ -115,6 +115,27 @@ describe('mirrorHitbubble', () => {
     expect((hb.smear as { x: number }).x).toBe(-3);
     expect((hb.smear as { follow: string }).follow).toBe('lleg');
   });
+
+  it('mirrors numeric smear endpoint references with the character permutation', () => {
+    const anim: Animation = {
+      name: 'numeric-smear',
+      keyframes: [
+        {
+          duration: 1,
+          hitbubbles: [{ x: 1, smear: { follow: 2 } }],
+        },
+        { duration: 1 },
+      ],
+    };
+    const smearFollow = () => {
+      const smear = anim.keyframes[0].hitbubbles?.[0]?.smear;
+      return smear && typeof smear === 'object' ? (smear as { follow?: number }).follow : undefined;
+    };
+    mirrorAnimation(character, anim);
+    expect(smearFollow()).toBe(6);
+    mirrorAnimation(character, anim);
+    expect(smearFollow()).toBe(2);
+  });
 });
 
 describe('mirrorModelTransformFrame', () => {

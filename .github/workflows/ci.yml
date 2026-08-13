@@ -1,10 +1,14 @@
 name: CI
 
-# Runs only on version tags (and manual dispatch) — not on every commit.
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:

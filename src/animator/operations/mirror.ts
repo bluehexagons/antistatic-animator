@@ -62,15 +62,24 @@ export const mirrorModelTransformFrame = (frame: number[], perm: readonly number
 };
 
 /** Mirror a single hitbubble in place. */
-export const mirrorHitbubble = (hb: Hitbubble): void => {
+const mirrorNumericFollow = (follow: number, perm: readonly number[]): number => {
+  const index = Math.abs(follow) - 1;
+  const mirrored = (perm[index] ?? index) + 1;
+  return Math.sign(follow) * mirrored;
+};
+
+export const mirrorHitbubble = (hb: Hitbubble, perm?: readonly number[]): void => {
   if (typeof hb.x === 'number') hb.x = -hb.x;
   if (typeof hb.x2 === 'number') hb.x2 = -hb.x2;
   if (typeof hb.angle === 'number') hb.angle = norm(180 - hb.angle);
   if (typeof hb.follow === 'string' && hb.follow) hb.follow = mirrorName(hb.follow);
-  const smear = hb.smear as { follow?: string; x?: number } | undefined;
+  const smear = hb.smear as { follow?: string | number; x?: number } | undefined;
   if (smear) {
     if (typeof smear.x === 'number') smear.x = -smear.x;
     if (typeof smear.follow === 'string' && smear.follow) smear.follow = mirrorName(smear.follow);
+    else if (typeof smear.follow === 'number' && perm) {
+      smear.follow = mirrorNumericFollow(smear.follow, perm);
+    }
   }
 };
 
@@ -96,7 +105,7 @@ export const mirrorAnimation = (character: EntityData, animation: Animation): vo
       );
     }
     if (Array.isArray(kf.hitbubbles)) {
-      for (const hb of kf.hitbubbles) mirrorHitbubble(hb);
+      for (const hb of kf.hitbubbles) mirrorHitbubble(hb, perm);
     }
   }
 };

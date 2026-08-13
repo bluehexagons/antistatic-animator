@@ -24,6 +24,8 @@ export interface StorageBackend {
   read(name: string): Promise<string>;
   /** Write a file's text content. May reject when {@link canSave} is false. */
   write(name: string, content: string): Promise<void>;
+  /** Write only when the file still contains the expected content. */
+  writeIfUnchanged?(name: string, content: string, expectedContent?: string): Promise<void>;
 
   /** Optional cooperative watch — returns an unsubscribe handle. */
   watch?(name: string, listener: () => void): () => void;
