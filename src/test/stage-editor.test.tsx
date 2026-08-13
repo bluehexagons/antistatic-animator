@@ -134,6 +134,38 @@ describe('stage document operations', () => {
     expect(parsed.document?.scene.schemaVersion).toBe(2);
   });
 
+  it('validates and preserves stage interactions', () => {
+    const stage = createStageDocument('Hazards');
+    stage.scene.collision![0].friction = 0.995;
+    stage.scene.collision![0].hazard = {
+      damage: 12,
+      knockback: 18,
+      angle: 75,
+      cooldown: 45,
+    };
+    stage.scene.windZones = [
+      { id: 'updraft', from: [-100, -280], to: [100, -40], wind: [0, -0.1] },
+    ];
+
+    expect(validateStageDocument(stage)).toEqual([]);
+    const output = renderStageFile('', stage);
+    const parsed = parseStageDocument(output);
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.document?.scene.collision?.[0].friction).toBe(0.995);
+    expect(parsed.document?.scene.collision?.[0].hazard).toEqual(stage.scene.collision![0].hazard);
+    expect(parsed.document?.scene.windZones).toEqual(stage.scene.windZones);
+
+    stage.scene.windZones.push({ ...stage.scene.windZones[0] });
+    expect(
+      validateStageDocument(stage).some((issue) => issue.message.includes('duplicate id'))
+    ).toBe(true);
+    stage.scene.windZones.pop();
+    stage.scene.collision![0].hazard = { instantKO: true };
+    expect(validateStageDocument(stage)).toEqual([]);
+    stage.scene.collision![0].hazard = { damage: 1, instantKO: true } as never;
+    expect(validateStageDocument(stage).length).toBeGreaterThan(0);
+  });
+
   it('rejects structurally invalid documents before rendering', () => {
     const parsed = parseStageDocument('{ "name": "Incomplete" }');
     expect(parsed.document).toBeNull();

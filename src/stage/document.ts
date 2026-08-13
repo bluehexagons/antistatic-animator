@@ -66,6 +66,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
   };
   const modelIds = collectIds('models', stage.scene.models);
   const collisionIds = collectIds('collision', stage.scene.collision);
+  collectIds('windZones', stage.scene.windZones);
   collectIds('effects/pointLights', stage.scene.effects?.pointLights);
   collectIds('effects/fogVolumes', stage.scene.effects?.fogVolumes);
   collectIds('effects/particleEmitters', stage.scene.effects?.particleEmitters);

@@ -76,7 +76,25 @@ export interface StageCollision {
   to: Vec2;
   flags: StageCollisionFlag[];
   model?: string;
+  friction?: number;
+  hazard?: StageHazard;
   properties?: Record<string, unknown>;
+}
+
+export type StageHazard =
+  | { instantKO: true }
+  | {
+      damage?: number;
+      knockback?: number;
+      angle?: number;
+      cooldown?: number;
+    };
+
+export interface StageWindZone {
+  id: string;
+  from: Vec2;
+  to: Vec2;
+  wind: Vec2;
 }
 
 export interface StagePointLight {
@@ -151,6 +169,7 @@ export interface StageScene {
   schemaVersion: typeof STAGE_SCENE_SCHEMA_VERSION;
   models?: StageModel[];
   collision?: StageCollision[];
+  windZones?: StageWindZone[];
   collisionModel?: {
     depth?: number;
     thickness?: number;

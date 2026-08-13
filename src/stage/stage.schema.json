@@ -183,9 +183,49 @@
           "uniqueItems": true
         },
         "model": { "$ref": "#/$defs/id" },
+        "friction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "hazard": { "$ref": "#/$defs/hazard" },
         "properties": { "type": "object" }
       },
       "required": ["id", "from", "to", "flags"],
+      "additionalProperties": false
+    },
+    "hazard": {
+      "type": "object",
+      "properties": {
+        "damage": { "type": "number", "minimum": 0 },
+        "knockback": { "type": "number", "minimum": 0 },
+        "angle": { "type": "number" },
+        "cooldown": { "type": "integer", "minimum": 1 },
+        "instantKO": { "const": true }
+      },
+      "oneOf": [
+        { "required": ["instantKO"], "maxProperties": 1 },
+        {
+          "not": { "required": ["instantKO"] },
+          "anyOf": [
+            {
+              "required": ["damage"],
+              "properties": { "damage": { "type": "number", "exclusiveMinimum": 0 } }
+            },
+            {
+              "required": ["knockback"],
+              "properties": { "knockback": { "type": "number", "exclusiveMinimum": 0 } }
+            }
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "windZone": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "from": { "$ref": "#/$defs/vec2" },
+        "to": { "$ref": "#/$defs/vec2" },
+        "wind": { "$ref": "#/$defs/vec2" }
+      },
+      "required": ["id", "from", "to", "wind"],
       "additionalProperties": false
     },
     "collisionModel": {
@@ -378,6 +418,7 @@
         "schemaVersion": { "const": 2 },
         "models": { "type": "array", "items": { "$ref": "#/$defs/model" } },
         "collision": { "type": "array", "items": { "$ref": "#/$defs/collision" } },
+        "windZones": { "type": "array", "items": { "$ref": "#/$defs/windZone" } },
         "collisionModel": { "$ref": "#/$defs/collisionModel" },
         "animations": { "type": "array", "items": { "$ref": "#/$defs/animation" } },
         "effects": {
