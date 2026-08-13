@@ -1,0 +1,191 @@
+{
+  "name": "Ember Forge",
+  "order": 1,
+  "kind": "neutral",
+  "reverbPreset": "cave",
+  "anchors": [
+    { "x": 0, "y": -20, "weight": 0.5 },
+    { "x": -135, "y": 30, "weight": 0.25 },
+    { "x": 135, "y": 30, "weight": 0.25 }
+  ],
+  "entrances": [
+    { "x": -175, "y": 8, "face": true },
+    { "x": 175, "y": 8, "face": false }
+  ],
+  "spawns": [
+    { "x": -72, "y": 8, "face": true },
+    { "x": 72, "y": 8, "face": false },
+    { "x": -125, "y": 8, "face": true },
+    { "x": 125, "y": 8, "face": false }
+  ],
+  "blastLeft": -430,
+  "blastTop": -260,
+  "blastBottom": 325,
+  "blastRight": 430,
+  "symmetric": true,
+  "pivot": 0,
+  "lighting": {
+    "sunDirection": [-0.22, -0.6, -0.76],
+    "sunColor": [1, 0.68, 0.4],
+    "sunIntensity": 0.65,
+    "ambientColor": [0.16, 0.075, 0.055],
+    "backgroundColor": [0.055, 0.018, 0.02],
+    "fogNear": 240,
+    "fogFar": 2800,
+    "atmosphere": {
+      "color": [0.32, 0.09, 0.04],
+      "density": 0.00055,
+      "height": 90,
+      "heightFalloff": 0.006,
+      "smokeDensity": 0.0008,
+      "smokeScale": 0.008,
+      "smokeSpeed": 0.12,
+      "wind": [1.5, -0.3, 0.6],
+      "sunScattering": 0.14,
+      "pointLightScattering": 0.22,
+      "anisotropy": 0.2
+    },
+    "colorGrading": {
+      "tint": [1.08, 0.94, 0.88],
+      "saturation": 1.08,
+      "contrast": 1.12,
+      "exposure": -0.1,
+      "vignette": 0.16
+    }
+  },
+  "scene": {
+    "schemaVersion": 2,
+    "models": [
+      {
+        "id": "forge-base",
+        "primitive": { "type": "box" },
+        "position": [0, 40, 0],
+        "size": [400, 54, 90],
+        "castsShadows": true
+      },
+      {
+        "id": "left-anvil",
+        "primitive": { "type": "box" },
+        "position": [-130, -70, 0],
+        "size": [108, 12, 54],
+        "rotation": { "roll": -0.025 }
+      },
+      {
+        "id": "right-anvil",
+        "primitive": { "type": "box" },
+        "position": [130, -70, 0],
+        "size": [108, 12, 54],
+        "rotation": { "roll": 0.025 }
+      },
+      {
+        "id": "furnace-core",
+        "primitive": { "type": "sphere", "segments": 24, "rings": 16 },
+        "position": [0, 122, 42],
+        "scale": [54, 28, 54],
+        "angularVelocity": [0, 0.18, 0]
+      }
+    ],
+    "collisionModel": {
+      "depth": 60,
+      "thickness": 7,
+      "z": 0,
+      "castsShadows": true
+    },
+    "collision": [
+      {
+        "id": "forge-floor",
+        "from": [-200, 14],
+        "to": [200, 14],
+        "flags": ["top", "solid", "leftGrabbable", "rightGrabbable", "blastZone"]
+      },
+      {
+        "id": "left-platform",
+        "from": [-184, -76],
+        "to": [-76, -76],
+        "flags": ["top", "asymmetric"]
+      },
+      {
+        "id": "right-platform",
+        "from": [76, -76],
+        "to": [184, -76],
+        "flags": ["top", "asymmetric"]
+      },
+      {
+        "id": "left-side",
+        "from": [-200, 14],
+        "to": [-185, 55],
+        "flags": ["left", "solid"]
+      },
+      {
+        "id": "right-side",
+        "from": [185, 55],
+        "to": [200, 14],
+        "flags": ["right", "solid"]
+      },
+      {
+        "id": "underside",
+        "from": [-185, 55],
+        "to": [185, 55],
+        "flags": ["bottom", "solid"]
+      }
+    ],
+    "effects": {
+      "pointLights": [
+        {
+          "id": "furnace-light",
+          "position": [0, 78, -35],
+          "color": [1, 0.26, 0.055],
+          "intensity": 18000,
+          "range": 420,
+          "sourceRadius": 24,
+          "castsShadows": true
+        },
+        {
+          "id": "rim-light",
+          "position": [0, -140, 80],
+          "color": [0.2, 0.36, 0.8],
+          "intensity": 4200,
+          "range": 360,
+          "sourceRadius": 18
+        }
+      ],
+      "fogVolumes": [
+        {
+          "id": "forge-smoke",
+          "position": [0, 90, 35],
+          "radius": 210,
+          "density": 0.0018,
+          "color": [0.24, 0.07, 0.035]
+        }
+      ],
+      "particleEmitters": [
+        {
+          "id": "embers",
+          "target": "furnace-core",
+          "shape": "ellipsoid",
+          "position": [0, 0, 0],
+          "size": [1.2, 0.5, 0.8],
+          "color": [1, 0.28, 0.03, 0.8],
+          "colorEnd": [1, 0.75, 0.18, 0],
+          "rate": 16,
+          "velocity": [0, -22, 0],
+          "velocityJitter": [8, 10, 8],
+          "radius": [0.35, 1.1],
+          "lifetime": [0.7, 2.8],
+          "gravity": [-0.25, -0.08],
+          "geometry": false,
+          "lightProbability": 0.3,
+          "glowStrength": 3.5,
+          "shading": "emissive",
+          "flicker": 0.4,
+          "opacityFadeIn": 0.08,
+          "opacityFadeOut": 0.72,
+          "scaleStart": 0.5,
+          "scaleEnd": 0.1,
+          "windInfluence": 0.35,
+          "nearFade": 0
+        }
+      ]
+    }
+  }
+}

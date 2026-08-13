@@ -1,68 +1,184 @@
 {
-  "name": "Training Platform",
+  "name": "Lift Laboratory",
   "order": 0,
-  "anchors": [{ "x": 0, "y": 80, "weight": 1 }],
+  "kind": "misc",
+  "reverbPreset": "largeRoom",
+  "anchors": [
+    { "x": 0, "y": -45, "weight": 0.45 },
+    { "x": -120, "y": 15, "weight": 0.2 },
+    { "x": 120, "y": 15, "weight": 0.2 }
+  ],
   "entrances": [
-    { "x": -120, "y": 20, "face": true },
-    { "x": 120, "y": 20, "face": false }
+    { "x": -150, "y": 10, "face": true },
+    { "x": 150, "y": 10, "face": false }
   ],
   "spawns": [
-    { "x": -60, "y": 20, "face": true },
-    { "x": 60, "y": 20, "face": false }
+    { "x": -70, "y": 10, "face": true },
+    { "x": 70, "y": 10, "face": false }
   ],
-  "blastLeft": -450,
-  "blastTop": -240,
-  "blastBottom": 320,
-  "blastRight": 450,
+  "blastLeft": -460,
+  "blastTop": -280,
+  "blastBottom": 330,
+  "blastRight": 460,
+  "symmetric": true,
+  "pivot": 0,
+  "lighting": {
+    "sunDirection": [-0.35, -0.75, -0.55],
+    "sunColor": [0.72, 0.86, 1],
+    "sunIntensity": 0.85,
+    "ambientColor": [0.09, 0.13, 0.2],
+    "backgroundColor": [0.035, 0.055, 0.09],
+    "fogNear": 450,
+    "fogFar": 3200,
+    "colorGrading": {
+      "tint": [0.92, 1, 1.08],
+      "saturation": 0.92,
+      "contrast": 1.08,
+      "exposure": -0.06,
+      "vignette": 0.12
+    }
+  },
   "scene": {
     "schemaVersion": 2,
     "models": [
       {
-        "id": "moving-platform",
+        "id": "arena-deck",
         "primitive": { "type": "box" },
-        "position": [0, 0, 0],
-        "size": [360, 24, 40]
+        "position": [0, 34, 0],
+        "size": [440, 24, 70],
+        "castsShadows": true
       },
       {
-        "id": "side-tower",
+        "id": "lift-deck",
         "primitive": { "type": "box" },
-        "position": [-220, 90, 0],
-        "size": [30, 180, 40]
+        "position": [0, -68, 0],
+        "size": [130, 12, 48],
+        "castsShadows": true
+      },
+      {
+        "id": "reactor-ring",
+        "primitive": { "type": "torus", "segments": 32, "rings": 12, "tubeRadius": 0.18 },
+        "position": [0, 115, 45],
+        "scale": [75, 75, 20],
+        "angularVelocity": [0, 0.35, 0]
+      },
+      {
+        "id": "left-pylon",
+        "primitive": { "type": "box" },
+        "position": [-190, 95, 25],
+        "size": [28, 130, 32]
+      },
+      {
+        "id": "right-pylon",
+        "primitive": { "type": "box" },
+        "position": [190, 95, 25],
+        "size": [28, 130, 32]
       }
     ],
+    "collisionModel": {
+      "depth": 52,
+      "thickness": 8,
+      "z": 0,
+      "castsShadows": true
+    },
     "collision": [
       {
         "id": "main-platform",
-        "from": [-180, 0],
-        "to": [180, 0],
-        "flags": ["top", "solid", "blastZone"],
-        "model": "moving-platform"
+        "from": [-220, 22],
+        "to": [220, 22],
+        "flags": ["top", "solid", "leftGrabbable", "rightGrabbable", "blastZone"]
       },
       {
-        "id": "tower-wall",
-        "from": [-235, 0],
-        "to": [-235, 180],
-        "flags": ["right", "solid"],
-        "model": "side-tower"
+        "id": "lift-platform",
+        "from": [-65, -74],
+        "to": [65, -74],
+        "flags": ["top", "leftGrabbable", "rightGrabbable"],
+        "model": "lift-deck"
+      },
+      {
+        "id": "left-wall",
+        "from": [-220, 22],
+        "to": [-220, 58],
+        "flags": ["left", "solid"]
+      },
+      {
+        "id": "right-wall",
+        "from": [220, 58],
+        "to": [220, 22],
+        "flags": ["right", "solid"]
       }
     ],
     "animations": [
       {
-        "id": "platform-cycle",
+        "id": "lift-cycle",
         "autoplay": true,
         "loop": true,
-        "duration": 120,
+        "pingPong": true,
+        "randomStart": false,
+        "duration": 180,
         "tracks": [
           {
-            "target": { "kind": "model", "id": "moving-platform" },
+            "target": { "kind": "collision", "id": "lift-platform" },
             "keyframes": [
-              { "time": 0, "position": [0, 0, 0] },
-              { "time": 60, "position": [0, 90, 0] },
-              { "time": 120, "position": [0, 0, 0] }
+              { "time": 0, "position": [-65, -74] },
+              { "time": 45, "position": [-65, -74] },
+              { "time": 135, "position": [-65, -154] },
+              { "time": 180, "position": [-65, -154] }
             ]
           }
         ]
       }
-    ]
+    ],
+    "effects": {
+      "pointLights": [
+        {
+          "id": "left-work-light",
+          "position": [-150, -10, -45],
+          "color": [0.28, 0.58, 1],
+          "intensity": 8500,
+          "range": 360,
+          "sourceRadius": 14
+        },
+        {
+          "id": "right-work-light",
+          "position": [150, -10, -45],
+          "color": [1, 0.48, 0.2],
+          "intensity": 7200,
+          "range": 320,
+          "sourceRadius": 14
+        }
+      ],
+      "fogVolumes": [
+        {
+          "id": "reactor-haze",
+          "position": [0, 90, 20],
+          "radius": 180,
+          "density": 0.0012,
+          "color": [0.08, 0.16, 0.24]
+        }
+      ],
+      "particleEmitters": [
+        {
+          "id": "lift-sparks",
+          "target": "lift-deck",
+          "shape": "box",
+          "position": [0, 0.4, 0],
+          "size": [0.8, 0.1, 0.6],
+          "color": [0.3, 0.7, 1, 0.6],
+          "colorEnd": [0.5, 0.8, 1, 0],
+          "rate": 5,
+          "velocity": [0, 8, 0],
+          "velocityJitter": [4, 5, 3],
+          "radius": [0.3, 0.8],
+          "lifetime": [0.3, 1.2],
+          "gravity": [0.1, 0.35],
+          "geometry": false,
+          "glowStrength": 2.2,
+          "shading": "emissive",
+          "opacityFadeOut": 0.7,
+          "nearFade": 0
+        }
+      ]
+    }
   }
 }

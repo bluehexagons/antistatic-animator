@@ -1,0 +1,224 @@
+{
+  "name": "Orbital Relay",
+  "order": 2,
+  "kind": "counterpick",
+  "reverbPreset": "hangar",
+  "anchors": [
+    { "x": 0, "y": -35, "weight": 0.5 },
+    { "x": -155, "y": 25, "weight": 0.24 },
+    { "x": 155, "y": 25, "weight": 0.24 }
+  ],
+  "entrances": [
+    { "x": -170, "y": 4, "face": true },
+    { "x": 170, "y": 4, "face": false }
+  ],
+  "spawns": [
+    { "x": -65, "y": 4, "face": true },
+    { "x": 65, "y": 4, "face": false }
+  ],
+  "blastLeft": -480,
+  "blastTop": -300,
+  "blastBottom": 350,
+  "blastRight": 480,
+  "symmetric": true,
+  "pivot": 0,
+  "lighting": {
+    "sunDirection": [0.42, -0.3, -0.86],
+    "sunColor": [0.78, 0.86, 1],
+    "sunIntensity": 1.15,
+    "ambientColor": [0.055, 0.085, 0.16],
+    "backgroundColor": [0.006, 0.01, 0.035],
+    "reflectionProbe": {
+      "positiveX": [0.08, 0.14, 0.28],
+      "negativeX": [0.04, 0.08, 0.19],
+      "positiveY": [0.14, 0.2, 0.38],
+      "negativeY": [0.015, 0.02, 0.055],
+      "positiveZ": [0.08, 0.12, 0.24],
+      "negativeZ": [0.04, 0.06, 0.15]
+    },
+    "fogNear": 700,
+    "fogFar": 5200,
+    "colorGrading": {
+      "tint": [0.9, 0.97, 1.12],
+      "saturation": 0.88,
+      "contrast": 1.14,
+      "exposure": -0.12,
+      "vignette": 0.2
+    }
+  },
+  "scene": {
+    "schemaVersion": 2,
+    "models": [
+      {
+        "id": "relay-deck",
+        "primitive": { "type": "box" },
+        "position": [0, 32, 0],
+        "size": [420, 30, 82],
+        "castsShadows": true
+      },
+      {
+        "id": "left-shuttle",
+        "primitive": { "type": "box" },
+        "position": [-175, -86, 0],
+        "size": [112, 12, 48]
+      },
+      {
+        "id": "right-shuttle",
+        "primitive": { "type": "box" },
+        "position": [175, -86, 0],
+        "size": [112, 12, 48]
+      },
+      {
+        "id": "signal-ring",
+        "primitive": { "type": "torus", "segments": 40, "rings": 14, "tubeRadius": 0.12 },
+        "position": [0, 122, 70],
+        "scale": [92, 92, 22],
+        "rotation": { "pitch": 0.55, "yaw": 0.2 },
+        "angularVelocity": [0.08, 0.22, 0.04]
+      },
+      {
+        "id": "relay-orb",
+        "primitive": { "type": "sphere", "segments": 24, "rings": 16 },
+        "position": [0, 122, 70],
+        "scale": [22, 22, 22]
+      }
+    ],
+    "collisionModel": {
+      "depth": 56,
+      "thickness": 7,
+      "z": 0,
+      "castsShadows": true
+    },
+    "collision": [
+      {
+        "id": "relay-floor",
+        "from": [-210, 17],
+        "to": [210, 17],
+        "flags": ["top", "solid", "leftGrabbable", "rightGrabbable", "blastZone"]
+      },
+      {
+        "id": "left-shuttle-platform",
+        "from": [-231, -92],
+        "to": [-119, -92],
+        "flags": ["top", "asymmetric"],
+        "model": "left-shuttle"
+      },
+      {
+        "id": "right-shuttle-platform",
+        "from": [119, -92],
+        "to": [231, -92],
+        "flags": ["top", "asymmetric"],
+        "model": "right-shuttle"
+      },
+      {
+        "id": "relay-underside",
+        "from": [-185, 55],
+        "to": [185, 55],
+        "flags": ["bottom", "solid"]
+      }
+    ],
+    "animations": [
+      {
+        "id": "shuttle-crossing",
+        "autoplay": true,
+        "loop": true,
+        "pingPong": true,
+        "randomStart": false,
+        "speed": 0.8,
+        "duration": 240,
+        "tracks": [
+          {
+            "target": { "kind": "collision", "id": "left-shuttle-platform" },
+            "keyframes": [
+              { "time": 0, "position": [-231, -92] },
+              { "time": 60, "position": [-231, -92] },
+              { "time": 180, "position": [-117, -145] },
+              { "time": 240, "position": [-117, -145] }
+            ]
+          },
+          {
+            "target": { "kind": "collision", "id": "right-shuttle-platform" },
+            "keyframes": [
+              { "time": 0, "position": [119, -92] },
+              { "time": 60, "position": [119, -92] },
+              { "time": 180, "position": [5, -145] },
+              { "time": 240, "position": [5, -145] }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "relay-drift",
+        "autoplay": true,
+        "loop": true,
+        "pingPong": true,
+        "randomStart": true,
+        "duration": 300,
+        "tracks": [
+          {
+            "target": { "kind": "model", "id": "relay-orb" },
+            "keyframes": [
+              { "time": 0, "position": [0, 122, 70] },
+              { "time": 150, "position": [0, 98, 70] },
+              { "time": 300, "position": [0, 122, 70] }
+            ]
+          }
+        ]
+      }
+    ],
+    "effects": {
+      "pointLights": [
+        {
+          "id": "relay-blue",
+          "position": [0, 70, 15],
+          "color": [0.15, 0.42, 1],
+          "intensity": 12500,
+          "range": 460,
+          "sourceRadius": 18
+        },
+        {
+          "id": "relay-magenta",
+          "position": [0, -155, 80],
+          "color": [0.85, 0.18, 0.72],
+          "intensity": 6500,
+          "range": 380,
+          "sourceRadius": 16
+        }
+      ],
+      "fogVolumes": [
+        {
+          "id": "relay-halo",
+          "position": [0, 105, 55],
+          "radius": 190,
+          "density": 0.001,
+          "color": [0.07, 0.12, 0.28]
+        }
+      ],
+      "particleEmitters": [
+        {
+          "id": "signal-motes",
+          "target": "signal-ring",
+          "shape": "ellipsoid",
+          "position": [0, 0, 0],
+          "size": [1.1, 1.1, 0.3],
+          "color": [0.18, 0.48, 1, 0.5],
+          "colorEnd": [0.86, 0.22, 1, 0],
+          "rate": 9,
+          "velocity": [0, -4, 0],
+          "velocityJitter": [6, 6, 3],
+          "radius": [0.25, 0.7],
+          "lifetime": [1.5, 4.5],
+          "geometry": false,
+          "lightProbability": 0.2,
+          "glowStrength": 2.8,
+          "shading": "emissive",
+          "opacityFadeIn": 0.12,
+          "opacityFadeOut": 0.65,
+          "scaleStart": 0.5,
+          "scaleEnd": 1.4,
+          "nearFade": 0
+        }
+      ]
+    }
+  }
+}

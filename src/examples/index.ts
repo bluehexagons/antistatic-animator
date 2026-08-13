@@ -1,3 +1,5 @@
+import emberForge from './ember-forge.json';
+import orbitalRelay from './orbital-relay.json';
 import practiceAnimation from './practice-fighter_anim.json';
 import practiceCharacter from './practice-fighter.json';
 import trainingPlatform from './training-platform.json';
@@ -21,7 +23,7 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
   {
     id: 'practice-fighter',
     name: 'Practice fighter',
-    description: 'A small rig with idle, jab, and sweep animations.',
+    description: 'A complete practice rig with movement, grounded attacks, an aerial, and a taunt.',
     files: [
       { path: 'app/characters/data/practice-fighter.json', content: json(practiceCharacter) },
       {
@@ -32,9 +34,21 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
   },
   {
     id: 'training-platform',
-    name: 'Training platform',
-    description: 'A moving stage with collision, models, and a looping animation.',
+    name: 'Lift laboratory',
+    description: 'An animated training stage with a moving collision platform and scene effects.',
     files: [{ path: 'app/assets/stages/training-platform.json', content: json(trainingPlatform) }],
+  },
+  {
+    id: 'ember-forge',
+    name: 'Ember forge',
+    description: 'A tournament layout showcasing lighting, atmosphere, fog, and particles.',
+    files: [{ path: 'app/assets/stages/ember-forge.json', content: json(emberForge) }],
+  },
+  {
+    id: 'orbital-relay',
+    name: 'Orbital relay',
+    description: 'A counterpick with paired moving platforms and simultaneous animation tracks.',
+    files: [{ path: 'app/assets/stages/orbital-relay.json', content: json(orbitalRelay) }],
   },
 ];
 
