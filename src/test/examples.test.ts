@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { EXAMPLE_PROJECTS, EXAMPLE_WORKSPACE_FILES } from '../examples';
 import { isCharacterDataFile } from '../app/file-names';
 import { lintAnimation } from '../animator/lint';
-import type { AnimationMap, EntityData } from '../animator/types';
+import { parseAnimationDocument, parseCharacterDocument } from '../animator/parsing';
 import { parseStageDocument } from '../stage/document';
 import { stageModelDisplayHalfExtents, stageModelDisplayPosition } from '../stage/view';
 
@@ -34,13 +34,13 @@ describe('bundled examples', () => {
   });
 
   it('gives the practice fighter varied, lint-clean gameplay animations', () => {
-    const character = JSON.parse(
+    const character = parseCharacterDocument(
       EXAMPLE_WORKSPACE_FILES.find((file) => file.path.endsWith('practice-fighter.json'))!.content
-    ) as EntityData;
-    const animations = JSON.parse(
+    );
+    const animations = parseAnimationDocument(
       EXAMPLE_WORKSPACE_FILES.find((file) => file.path.endsWith('practice-fighter_anim.json'))!
         .content
-    ) as AnimationMap;
+    );
     expect(Object.keys(animations)).toEqual(['idle', 'dash', 'jab', 'sweep', 'uair', 'taunt']);
     expect(animations.taunt.keyframes).toHaveLength(4);
     expect(animations.uair.type).toBe('aerial');

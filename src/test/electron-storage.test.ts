@@ -18,6 +18,7 @@ const installNodeAPI = (exists: boolean) => {
     value: {
       fs: {
         existsSync: vi.fn(() => exists),
+        isDirectory: vi.fn(() => exists),
         readdirSync: vi.fn((directory: string) =>
           directory.includes('assets/stages')
             ? ['ruins.json', 'notes.txt']
@@ -47,6 +48,12 @@ describe('ElectronStorage', () => {
 
     installNodeAPI(false);
     expect(new ElectronStorage('/missing-game').ready).toBe(false);
+  });
+
+  it('is not ready when the expected data path is a regular file', () => {
+    installNodeAPI(true);
+    vi.mocked(window.nodeAPI.fs.isDirectory!).mockReturnValue(false);
+    expect(new ElectronStorage('/game').ready).toBe(false);
   });
 
   it('returns an empty listing for a stale saved directory', async () => {

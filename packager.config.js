@@ -23,6 +23,7 @@ module.exports = {
     /^\/docs(?:\/|$)/,
     /^\/src\/test(?:\/|$)/,
     /^\/AGENTS\.md$/i,
+    /^\/package-lock\.json$/i,
   ],
   extraResource: [],
 };

@@ -7,9 +7,11 @@ const antistatic = new AntistaticProcessManager();
 
 type StorageResponse<T> = { ok: true; value: T } | { ok: false; error: string };
 type StorageIpcEvent = Electron.IpcMainEvent | Electron.IpcMainInvokeEvent;
+type StorageRoot = { requested: string; real?: string };
 
-const storageRoots = new Map<number, string>();
+const storageRoots = new Map<number, StorageRoot>();
 const storageWatchers = new Map<string, { sender: Electron.WebContents; watcher: fs.FSWatcher }>();
+let atomicWriteSequence = 0;
 
 const assertTrustedRenderer = (event: StorageIpcEvent): void => {
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -30,8 +32,8 @@ const storagePath = (event: StorageIpcEvent, value: unknown): string => {
   if (!root) throw new Error('storage root has not been selected');
   const candidate = path.resolve(value);
   const allowedDirectories = [
-    path.resolve(root, 'app/characters/data'),
-    path.resolve(root, 'app/assets/stages'),
+    path.resolve(root.requested, 'app/characters/data'),
+    path.resolve(root.requested, 'app/assets/stages'),
   ];
   if (
     !allowedDirectories.some(
@@ -40,6 +42,36 @@ const storagePath = (event: StorageIpcEvent, value: unknown): string => {
   ) {
     throw new Error('storage path is outside the selected project data directories');
   }
+  if (!root.real) {
+    try {
+      if (fs.statSync(root.requested).isDirectory()) root.real = fs.realpathSync(root.requested);
+    } catch {
+      // A missing/stale root may still be recreated by the user later.
+    }
+  }
+  if (root.real) {
+    let existing = candidate;
+    const missingSegments: string[] = [];
+    while (!fs.existsSync(existing)) {
+      const parent = path.dirname(existing);
+      if (parent === existing) break;
+      missingSegments.unshift(path.basename(existing));
+      existing = parent;
+    }
+    try {
+      const realExisting = fs.realpathSync(existing);
+      const realCandidate = path.join(realExisting, ...missingSegments);
+      const relative = path.relative(root.real, realCandidate);
+      if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+        throw new Error('storage path resolves outside the selected project');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('storage path resolves')) {
+        throw error;
+      }
+      throw new Error('unable to verify storage path');
+    }
+  }
   return candidate;
 };
 
@@ -47,7 +79,7 @@ const selectedRoot = (event: StorageIpcEvent, value: unknown): string => {
   assertTrustedRenderer(event);
   const requested = path.resolve(requireString(value, 'rootDir'));
   const selected = storageRoots.get(event.sender.id);
-  if (!selected || requested !== selected) {
+  if (!selected || requested !== selected.requested) {
     throw new Error('game root must match the selected storage project');
   }
   return requested;
@@ -62,7 +94,7 @@ const response = <T>(operation: () => T): StorageResponse<T> => {
 };
 
 const writeFileAtomic = (filename: string, content: string): void => {
-  const temporary = `${filename}.antistatic-animator-${Date.now()}-${process.pid}.tmp`;
+  const temporary = `${filename}.antistatic-animator-${Date.now()}-${process.pid}-${atomicWriteSequence++}.tmp`;
   let descriptor: number | undefined;
   try {
     fs.mkdirSync(path.dirname(filename), { recursive: true });
@@ -213,7 +245,15 @@ ipcMain.on('storage-set-root', (event, rootDir: unknown) => {
   event.returnValue = response(() => {
     assertTrustedRenderer(event);
     const root = requireString(rootDir, 'rootDir');
-    storageRoots.set(event.sender.id, path.resolve(root));
+    const requested = path.resolve(root);
+    let real: string | undefined;
+    try {
+      if (fs.statSync(requested).isDirectory()) real = fs.realpathSync(requested);
+    } catch {
+      // A previously selected directory may have been removed. Keep the
+      // logical path so the renderer can report an empty/stale source.
+    }
+    storageRoots.set(event.sender.id, { requested, real });
     return undefined;
   });
 });
@@ -224,6 +264,10 @@ ipcMain.on('storage-fs-exists', (event, filename: unknown) => {
 
 ipcMain.on('storage-fs-readdir', (event, directory: unknown) => {
   event.returnValue = response(() => fs.readdirSync(storagePath(event, directory)));
+});
+
+ipcMain.on('storage-fs-is-directory', (event, directory: unknown) => {
+  event.returnValue = response(() => fs.statSync(storagePath(event, directory)).isDirectory());
 });
 
 ipcMain.on('storage-fs-read', (event, filename: unknown, encoding: unknown) => {

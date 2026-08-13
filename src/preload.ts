@@ -80,6 +80,7 @@ contextBridge.exposeInMainWorld('nodeAPI', {
     setRoot: (rootDir: string): void => callSync<void>('storage-set-root', rootDir),
     existsSync: (filename: string): boolean => callSync('storage-fs-exists', filename),
     readdirSync: (directory: string): string[] => callSync('storage-fs-readdir', directory),
+    isDirectory: (directory: string): boolean => callSync('storage-fs-is-directory', directory),
     readFileSync: (filename: string, encoding: BufferEncoding): string =>
       callSync('storage-fs-read', filename, encoding),
     writeFileAtomic: (filename: string, content: string): void => {

@@ -42,6 +42,7 @@ export class ElectronStorage implements StorageBackend {
   private hasDataDir(dir: string): boolean {
     if (!dir) return false;
     try {
+      if (window.nodeAPI.fs.isDirectory) return window.nodeAPI.fs.isDirectory(dir);
       return window.nodeAPI.fs.existsSync(dir);
     } catch {
       return false;

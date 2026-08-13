@@ -105,11 +105,16 @@ export const createTools = (
     /**
      * Save current animation to file
      */
-    async save(): Promise<void> {
+    async save(): Promise<boolean> {
       const animFile = getAnimFile();
       const parsed = getParsed();
-      if (parsed) {
+      if (!parsed) return false;
+      try {
         await save(animFile, parsed);
+        return true;
+      } catch (error) {
+        console.error('Tools.save failed', error);
+        return false;
       }
     },
   };

@@ -27,6 +27,7 @@ declare global {
         setRoot?: (rootDir: string) => void;
         existsSync: (filename: string) => boolean;
         readdirSync: (directory: string) => string[];
+        isDirectory?: (directory: string) => boolean;
         readFileSync: (filename: string, encoding: BufferEncoding) => string;
         writeFileAtomic: (filename: string, content: string) => void;
         writeFileAtomicIfUnchanged?: (

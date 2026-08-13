@@ -82,8 +82,8 @@ current parity audit and known gaps.
 
 Automated via GitHub Actions:
 
-- `CI` workflow runs type-check, lint, tests, and build on `v*` tags
-  (and manual dispatch) — not on every commit
+- `CI` workflow runs type-check, lint, tests, and build on pushes and pull
+  requests targeting `main`, version tags, and manual dispatch
 - `Release` workflow publishes packages on `v*` tags
 
 ## Tools API
@@ -102,8 +102,8 @@ for (const [kf, slice] of window.Tools.insertBubble(3)) {
   slice[3] = 0;   // state
 }
 
-// Save current animation
-window.Tools.save();
+// Save current animation; resolves to true on success, false on failure
+await window.Tools.save();
 ```
 
 See `AGENTS.md` for detailed architecture and development guidance.

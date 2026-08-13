@@ -39,11 +39,19 @@ export const parseCharacterDocument = (source: string): EntityData => {
   }
   for (let index = 0; index < value.hurtbubbles.length; index++) {
     const bone = value.hurtbubbles[index];
-    if (!isRecord(bone) || typeof bone.name !== 'string') {
+    if (!isRecord(bone) || typeof bone.name !== 'string' || bone.name.trim() === '') {
       throw new Error(`Character hurtbubbles[${index}] must have a name`);
     }
-    if (!Number.isInteger(bone.i1) || !Number.isInteger(bone.i2)) {
+    if (
+      !Number.isInteger(bone.i1) ||
+      !Number.isInteger(bone.i2) ||
+      (bone.i1 as number) < 0 ||
+      (bone.i2 as number) < 0
+    ) {
       throw new Error(`Character hurtbubbles[${index}] must have integer endpoint indices`);
+    }
+    if (typeof bone.z !== 'number' || !Number.isFinite(bone.z)) {
+      throw new Error(`Character hurtbubbles[${index}] must have a finite z coordinate`);
     }
   }
   return value as EntityData;
@@ -58,7 +66,11 @@ export const parseAnimationDocument = (source: string): AnimationMap => {
     }
     for (let index = 0; index < animation.keyframes.length; index++) {
       const keyframe = animation.keyframes[index];
-      if (!isRecord(keyframe) || typeof keyframe.duration !== 'number') {
+      if (
+        !isRecord(keyframe) ||
+        typeof keyframe.duration !== 'number' ||
+        !Number.isFinite(keyframe.duration)
+      ) {
         throw new Error(`Animation "${name}" keyframe ${index} must have a numeric duration`);
       }
     }
