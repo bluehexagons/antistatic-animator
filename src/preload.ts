@@ -33,6 +33,11 @@ ipcRenderer.on('storage-watch-error', (_event, id: string, message: string) => {
   if (callback) callback.onError(new Error(message));
 });
 
+const gameExitListeners = new Set<() => void>();
+ipcRenderer.on('antistatic-game-exit', () => {
+  for (const listener of gameExitListeners) listener();
+});
+
 const watch = (
   filename: string,
   optionsOrListener?: BufferEncoding | WatchListener,
@@ -66,6 +71,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   launchAntistatic: (rootDir: string): Promise<AntistaticLaunchResult> =>
     ipcRenderer.invoke('launchAntistatic', rootDir),
   stopAntistatic: (): Promise<void> => ipcRenderer.invoke('stopAntistatic'),
+  onAntistaticGameExit: (listener: () => void): (() => void) => {
+    gameExitListeners.add(listener);
+    return () => gameExitListeners.delete(listener);
+  },
   startAntistaticAgentPlay: (options: AgentPlayOptions): Promise<AgentPlayReady> =>
     ipcRenderer.invoke('startAntistaticAgentPlay', options),
   requestAntistaticAgentPlay: (request: AgentPlayRequest): Promise<AgentPlayResponse> =>

@@ -180,6 +180,7 @@ export interface AnimatorContextType {
   dispatch: React.Dispatch<AppAction>;
   undo: () => void;
   redo: () => void;
+  clearHistory: () => void;
   canUndo: boolean;
   canRedo: boolean;
 }
@@ -297,6 +298,19 @@ export const AnimatorProvider: React.FC<AnimatorProviderProps> = ({ children }) 
     setVersion((v) => v + 1);
   }, [state]);
 
+  const clearHistory = useCallback(() => {
+    if (batchRef.current) {
+      clearTimeout(batchRef.current);
+      batchRef.current = null;
+    }
+    pendingRef.current = null;
+    historyRef.current = [];
+    futureRef.current = [];
+    // The next render after loading a document becomes the new undo baseline.
+    snapshotStale.current = true;
+    setVersion((v) => v + 1);
+  }, []);
+
   // Derive canUndo/canRedo from refs + pending state. We bump `version` via
   // setVersion whenever history/future stacks change (incl. inside setTimeout)
   // to force a re-render so consumers see current values.
@@ -306,7 +320,9 @@ export const AnimatorProvider: React.FC<AnimatorProviderProps> = ({ children }) 
   const canRedo = futureRef.current.length > 0;
 
   return (
-    <AnimatorContext.Provider value={{ state, dispatch, undo, redo, canUndo, canRedo }}>
+    <AnimatorContext.Provider
+      value={{ state, dispatch, undo, redo, clearHistory, canUndo, canRedo }}
+    >
       {children}
     </AnimatorContext.Provider>
   );

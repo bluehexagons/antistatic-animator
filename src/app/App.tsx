@@ -57,7 +57,15 @@ const ELECTRON_SOURCE_KEY = 'antistatic-dir';
 const LIVE_SYNC_KEY = 'antistatic-live-sync';
 
 const Shell: React.FC = () => {
-  const { state, dispatch, undo, redo, canUndo, canRedo } = useAnimator();
+  const {
+    state,
+    dispatch,
+    undo: undoState,
+    redo: redoState,
+    clearHistory,
+    canUndo,
+    canRedo,
+  } = useAnimator();
   useLibrary(); // subscribe
 
   // UI-only state
@@ -97,6 +105,7 @@ const Shell: React.FC = () => {
 
   const clearOpenFile = useCallback(() => {
     editRevision.current++;
+    clearHistory();
     setSelectedFile(null);
     setSelectedHitbubble(-1);
     setSaveDirty(false);
@@ -111,7 +120,38 @@ const Shell: React.FC = () => {
     dispatch({ type: 'SET_STAGE', payload: null });
     dispatch({ type: 'SET_STAGE_FILE', payload: '' });
     dispatch({ type: 'SET_STAGE_SELECTION', payload: { kind: 'stage' } });
-  }, [dispatch]);
+  }, [clearHistory, dispatch]);
+
+  const confirmDiscardChanges = useCallback(
+    () =>
+      !saveDirty ||
+      confirm('Discard unsaved edits? Any changes that have not been saved will be lost.'),
+    [saveDirty]
+  );
+
+  const undo = useCallback(() => {
+    if (!canUndo) return;
+    editRevision.current++;
+    undoState();
+    setSaveDirty(true);
+  }, [canUndo, undoState]);
+
+  const redo = useCallback(() => {
+    if (!canRedo) return;
+    editRevision.current++;
+    redoState();
+    setSaveDirty(true);
+  }, [canRedo, redoState]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!saveDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [saveDirty]);
 
   // Bootstrap: try to restore the previous Electron directory.
   useEffect(() => {
@@ -137,6 +177,11 @@ const Shell: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!gameAvailable || !window.electronAPI?.onAntistaticGameExit) return;
+    return window.electronAPI.onAntistaticGameExit(() => setGamePath(null));
+  }, [gameAvailable]);
+
   // Derive file list (only character files, not _anim).
   const files = useMemo(() => {
     return library
@@ -144,7 +189,7 @@ const Shell: React.FC = () => {
       .map((f) => f.name)
       .filter(isCharacterDataFile)
       .sort();
-  }, [library.size, library.label]); // re-evaluated when library changes via useLibrary
+  }, [library.version]); // re-evaluated when library changes via useLibrary
 
   const stageFiles = useMemo(
     () =>
@@ -153,7 +198,7 @@ const Shell: React.FC = () => {
         .map((file) => file.name)
         .filter(isStageDataFile)
         .sort(),
-    [library.size, library.label]
+    [library.version]
   );
 
   const liveSyncAvailable = mode === 'character' && library.kind === 'electron' && library.canSave;
@@ -209,8 +254,11 @@ const Shell: React.FC = () => {
   );
 
   const handleSelectFile = useCallback(
-    (file: string) => openCharacterFile(file),
-    [openCharacterFile]
+    (file: string) => {
+      if (file === selectedFile) return;
+      if (confirmDiscardChanges()) openCharacterFile(file);
+    },
+    [confirmDiscardChanges, openCharacterFile, selectedFile]
   );
 
   const openStageFile = useCallback(
@@ -232,12 +280,19 @@ const Shell: React.FC = () => {
     [clearOpenFile, dispatch]
   );
 
-  const handleSelectStageFile = useCallback((file: string) => openStageFile(file), [openStageFile]);
+  const handleSelectStageFile = useCallback(
+    (file: string) => {
+      if (file === state.stageFile) return;
+      if (confirmDiscardChanges()) openStageFile(file);
+    },
+    [confirmDiscardChanges, openStageFile, state.stageFile]
+  );
 
   const handleLoadExample = useCallback(
     async (id: string) => {
       const example = exampleById(id);
       if (!example) return;
+      if (!confirmDiscardChanges()) return;
       const previous = library.getBackend();
       try {
         const backend = new UploadStorage();
@@ -279,7 +334,7 @@ const Shell: React.FC = () => {
         alert(`Unable to load example: ${(err as Error).message ?? err}`);
       }
     },
-    [clearOpenFile, openCharacterFile, openStageFile]
+    [clearOpenFile, confirmDiscardChanges, openCharacterFile, openStageFile]
   );
 
   useEffect(() => {
@@ -375,6 +430,7 @@ const Shell: React.FC = () => {
   }, [state.stage, state.stageSelection, dispatch, onStageChange]);
 
   const handleCreateStage = useCallback(async () => {
+    if (!confirmDiscardChanges()) return;
     try {
       const name = prompt('Stage name', 'New Stage')?.trim();
       if (!name) return;
@@ -400,7 +456,7 @@ const Shell: React.FC = () => {
       console.error('stage creation failed', err);
       alert(`Unable to create stage: ${(err as Error).message ?? err}`);
     }
-  }, [clearOpenFile, dispatch]);
+  }, [clearOpenFile, confirmDiscardChanges, dispatch]);
 
   const onSelectBubble = useCallback(
     (i: number) => dispatch({ type: 'SET_SELECTED_BUBBLE', payload: i }),
@@ -507,18 +563,18 @@ const Shell: React.FC = () => {
         return next;
       });
       if (mode === 'stage' && state.stageFile) {
-        handleSelectStageFile(state.stageFile);
+        openStageFile(state.stageFile);
       } else if (mode === 'character' && selectedFile) {
-        handleSelectFile(selectedFile);
+        openCharacterFile(selectedFile);
       }
     } catch (err) {
       alert(`Reload failed: ${(err as Error).message ?? err}`);
     }
   }, [
     activeSourceNames,
-    handleSelectFile,
-    handleSelectStageFile,
     mode,
+    openCharacterFile,
+    openStageFile,
     saveDirty,
     selectedFile,
     state.stageFile,
@@ -534,6 +590,7 @@ const Shell: React.FC = () => {
       const backend = new ElectronStorage();
       const ok = await backend.pickDirectory();
       if (ok) {
+        if (!confirmDiscardChanges()) return;
         library.setBackend(backend);
         await library.refresh();
         clearOpenFile();
@@ -551,7 +608,7 @@ const Shell: React.FC = () => {
       console.error('directory selection failed', err);
       alert(`Unable to open directory: ${(err as Error).message ?? err}`);
     }
-  }, [clearOpenFile]);
+  }, [clearOpenFile, confirmDiscardChanges]);
 
   const handlePickFsAccess = useCallback(async () => {
     const previous = library.getBackend();
@@ -559,6 +616,7 @@ const Shell: React.FC = () => {
     try {
       const ok = await backend.pickRoot();
       if (ok) {
+        if (!confirmDiscardChanges()) return;
         library.setBackend(backend);
         await library.refresh();
         clearOpenFile();
@@ -573,7 +631,7 @@ const Shell: React.FC = () => {
       console.error(err);
       alert(`Unable to open folder: ${(err as Error).message ?? err}`);
     }
-  }, [clearOpenFile]);
+  }, [clearOpenFile, confirmDiscardChanges]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handlePickUpload = useCallback(() => {
@@ -583,6 +641,7 @@ const Shell: React.FC = () => {
   const handleUploadFiles = useCallback(
     async (files: File[]) => {
       if (!files.length) return;
+      if (!confirmDiscardChanges()) return;
       const previous = library.getBackend();
       const backend = new UploadStorage();
       try {
@@ -601,7 +660,7 @@ const Shell: React.FC = () => {
         alert(`Upload failed: ${(err as Error).message ?? err}`);
       }
     },
-    [clearOpenFile]
+    [clearOpenFile, confirmDiscardChanges]
   );
 
   const resetCamera = useCallback(() => {

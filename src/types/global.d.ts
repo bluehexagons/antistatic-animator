@@ -18,6 +18,7 @@ declare global {
       ) => Promise<Electron.OpenDialogReturnValue>;
       launchAntistatic: (rootDir: string) => Promise<AntistaticLaunchResult>;
       stopAntistatic: () => Promise<void>;
+      onAntistaticGameExit: (listener: () => void) => () => void;
       startAntistaticAgentPlay: (options: AgentPlayOptions) => Promise<AgentPlayReady>;
       requestAntistaticAgentPlay: (request: AgentPlayRequest) => Promise<AgentPlayResponse>;
       stopAntistaticAgentPlay: () => Promise<void>;

@@ -184,7 +184,9 @@ ipcMain.handle('showOpenDialog', (event, config) => {
 });
 
 ipcMain.handle('launchAntistatic', (event, rootDir: unknown) => {
-  return antistatic.launchGame(selectedRoot(event, rootDir));
+  return antistatic.launchGame(selectedRoot(event, rootDir), () => {
+    if (!event.sender.isDestroyed()) event.sender.send('antistatic-game-exit');
+  });
 });
 
 ipcMain.handle('stopAntistatic', (event) => {

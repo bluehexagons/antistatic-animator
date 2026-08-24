@@ -354,7 +354,7 @@ export class AntistaticProcessManager {
   private gamePath = '';
   private agentSession: AgentPlaySession | null = null;
 
-  async launchGame(rootDir: string): Promise<AntistaticLaunchResult> {
+  async launchGame(rootDir: string, onExit?: () => void): Promise<AntistaticLaunchResult> {
     if (this.gameProcess && isRunning(this.gameProcess)) {
       return { command: this.gamePath, path: this.gamePath };
     }
@@ -366,18 +366,35 @@ export class AntistaticProcessManager {
     });
     this.gameProcess = child;
     this.gamePath = launch.path;
+    let exitNotified = false;
+    const notifyExit = () => {
+      if (exitNotified) return;
+      exitNotified = true;
+      onExit?.();
+    };
     child.once('exit', () => {
+      notifyExit();
       if (this.gameProcess === child) {
         this.gameProcess = null;
         this.gamePath = '';
       }
     });
     child.once('error', () => {
+      notifyExit();
       if (this.gameProcess === child) {
         this.gameProcess = null;
         this.gamePath = '';
       }
     });
+    try {
+      await new Promise<void>((resolveSpawn, rejectSpawn) => {
+        child.once('spawn', resolveSpawn);
+        child.once('error', rejectSpawn);
+      });
+    } catch (error) {
+      await stopProcessTree(child);
+      throw error;
+    }
     child.unref();
     return { command: launch.command, path: launch.path };
   }
