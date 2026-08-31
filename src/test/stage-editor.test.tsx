@@ -142,6 +142,7 @@ describe('stage document operations', () => {
       knockback: 18,
       angle: 75,
       cooldown: 45,
+      meteor: true,
     };
     stage.scene.windZones = [
       { id: 'updraft', from: [-100, -280], to: [100, -40], wind: [0, -0.1] },
@@ -163,6 +164,8 @@ describe('stage document operations', () => {
     stage.scene.collision![0].hazard = { instantKO: true };
     expect(validateStageDocument(stage)).toEqual([]);
     stage.scene.collision![0].hazard = { damage: 1, instantKO: true } as never;
+    expect(validateStageDocument(stage).length).toBeGreaterThan(0);
+    stage.scene.collision![0].hazard = { damage: 1, meteor: true } as never;
     expect(validateStageDocument(stage).length).toBeGreaterThan(0);
   });
 

@@ -197,6 +197,7 @@
         "knockback": { "type": "number", "minimum": 0 },
         "angle": { "type": "number" },
         "cooldown": { "type": "integer", "minimum": 1 },
+        "meteor": { "const": true },
         "instantKO": { "const": true }
       },
       "oneOf": [
@@ -211,6 +212,15 @@
             {
               "required": ["knockback"],
               "properties": { "knockback": { "type": "number", "exclusiveMinimum": 0 } }
+            }
+          ],
+          "allOf": [
+            {
+              "if": { "required": ["meteor"] },
+              "then": {
+                "required": ["knockback"],
+                "properties": { "knockback": { "type": "number", "exclusiveMinimum": 0 } }
+              }
             }
           ]
         }

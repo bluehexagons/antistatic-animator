@@ -88,6 +88,7 @@ export type StageHazard =
       knockback?: number;
       angle?: number;
       cooldown?: number;
+      meteor?: true;
     };
 
 export interface StageWindZone {
