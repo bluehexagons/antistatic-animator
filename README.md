@@ -32,6 +32,7 @@ For local game hot reload and conflict handling, see
 npm run dev          # Vite dev server (hot reload)
 npm run build        # Build all
 npm start            # Run Electron app
+npm run check        # Full local validation gate
 npm run type-check   # TypeScript validation
 npm run lint         # Code quality checks
 npm run test:run     # Run the Vitest suite
@@ -40,6 +41,13 @@ npm run test:run     # Run the Vitest suite
 Set `ANTISTATIC_ANIMATOR_DEVTOOLS=1` when launching Electron to install React
 Developer Tools. Normal source builds skip the network-dependent extension
 installation.
+
+On an infra-tools agent VM, keep Vite on loopback and use T3 Code's
+environment-port preview for collaborative browser checks. When no
+collaborative preview is attached, use the managed Playwright fallback only
+after `infra-tools agent doctor --capability browser --json` succeeds. Routine
+browser evidence stays in infra-tools' private storage; put requested captures
+under ignored `local-artifacts/`.
 
 ## Features
 
@@ -75,7 +83,7 @@ current parity audit and known gaps.
 ## Contributing
 
 - Use conventional commits (`feat:`, `fix:`, `refactor:`, etc.)
-- Run `npm run lint` before committing
+- Run `npm run check` before committing
 - Pre-commit hooks run Oxlint and Oxfmt on staged source files
 
 ## Releases

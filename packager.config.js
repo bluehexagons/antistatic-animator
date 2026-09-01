@@ -11,6 +11,7 @@ module.exports = {
     /^\/\.vscode/,
     /^\/\.github/,
     /^\/coverage/,
+    /^\/local-artifacts/,
     /^\/release/,
     /^\/releases/,
     /tsconfig\.json/,

@@ -17,7 +17,12 @@ Except for `../antistatic`, the sister repos are MIT and/or Apache licensed.
 
 ## Build, Test, and Development Commands
 
+- The standard Linux host is an infra-tools-managed agent VM. Related
+  repositories live beside this checkout below `~/repos`. Run
+  `infra-tools agent doctor --capability development --json` only when the host
+  toolchain is in question; repository checks remain authoritative.
 - `npm install`: install dependencies. Requires Node `>=22.22.1`.
+- `npm run check`: run the complete local and CI validation gate.
 - `npm run dev`: start the Vite dev server for browser development.
 - `npm run dev:electron`: build all targets, then launch Electron.
 - `npm run build`: build Electron main, preload, and renderer bundles.
@@ -34,7 +39,18 @@ Use TypeScript and React function components. Keep domain operations in `src/ani
 
 ## Testing Guidelines
 
-Vitest is configured with `happy-dom` and `src/test/setup.ts`. Add tests under `src/test/` for reducer changes, animator operations, storage behavior, rendering smoke coverage, and schema/lint logic. Prefer focused tests for public helpers or user-visible behavior. Run `npm run test:run`, `npm run type-check`, and `npm run lint` before publishing changes.
+Vitest is configured with `happy-dom` and `src/test/setup.ts`. Add tests under
+`src/test/` for reducer changes, animator operations, storage behavior,
+rendering smoke coverage, and schema/lint logic. Prefer focused tests for public
+helpers or user-visible behavior. Run `npm run check` before publishing changes.
+
+For browser review, keep Vite bound to loopback. Prefer the collaborative T3
+preview and navigate to environment port 5173; if it is unavailable, verify
+the managed browser capability before using the VM-origin Playwright fallback.
+Routine browser artifacts stay in infra-tools' private bounded storage. Store
+only explicitly requested, shareable screenshots or recordings under ignored
+`local-artifacts/`. Use the Electron build for behavior that depends on native
+dialogs or filesystem integration.
 
 ## Commit & Collaboration Guidelines
 
