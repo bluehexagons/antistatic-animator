@@ -44,13 +44,14 @@ Vitest is configured with `happy-dom` and `src/test/setup.ts`. Add tests under
 rendering smoke coverage, and schema/lint logic. Prefer focused tests for public
 helpers or user-visible behavior. Run `npm run check` before publishing changes.
 
-For browser review, keep Vite bound to loopback. Prefer the collaborative T3
-preview and navigate to environment port 5173; if it is unavailable, verify
-the managed browser capability before using the VM-origin Playwright fallback.
-Routine browser artifacts stay in infra-tools' private bounded storage. Store
-only explicitly requested, shareable screenshots or recordings under ignored
-`local-artifacts/`. Use the Electron build for behavior that depends on native
-dialogs or filesystem integration.
+For loopback browser review, verify the managed browser capability and use
+VM-origin Playwright. T3's environment-port target is not a tunnel to VM
+loopback; use its collaborative preview only when the connected client can
+already reach the application or client-visible access was deliberately
+published. Routine browser artifacts stay in infra-tools' private bounded
+storage. Store only explicitly requested, shareable screenshots or recordings
+under ignored `local-artifacts/`. Use the Electron build for behavior that
+depends on native dialogs or filesystem integration.
 
 ## Commit & Collaboration Guidelines
 

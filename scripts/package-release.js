@@ -36,7 +36,7 @@ try {
     version = gitTag.substring(1); // Remove the 'v' prefix
     console.log(`Using version from git tag: ${version}`);
   }
-} catch (error) {
+} catch {
   // Git tag not available, use package.json version
 }
 

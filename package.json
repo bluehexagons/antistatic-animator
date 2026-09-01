@@ -36,10 +36,10 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "lint": "oxlint src --deny-warnings",
-    "lint:fix": "oxlint src --fix --deny-warnings",
-    "format": "oxfmt src package.json",
-    "format:check": "oxfmt --check src package.json",
+    "lint": "oxlint src scripts vite.config.mts packager.config.js --deny-warnings",
+    "lint:fix": "oxlint src scripts vite.config.mts packager.config.js --fix --deny-warnings",
+    "format": "oxfmt src scripts index.html package.json vite.config.mts packager.config.js",
+    "format:check": "oxfmt --check src scripts index.html package.json vite.config.mts packager.config.js",
     "prepare": "husky"
   },
   "dependencies": {
@@ -68,11 +68,11 @@
     "vitest": "^4.1.11"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "*.{js,mjs,ts,tsx}": [
       "oxlint --fix --deny-warnings",
       "oxfmt --no-error-on-unmatched-pattern"
     ],
-    "*.{json,css}": [
+    "*.{css,html,json}": [
       "oxfmt --no-error-on-unmatched-pattern"
     ]
   },

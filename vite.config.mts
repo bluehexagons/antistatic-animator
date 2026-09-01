@@ -3,12 +3,14 @@ import react from '@vitejs/plugin-react';
 import Ajv2020 from 'ajv/dist/2020.js';
 import standaloneCode from 'ajv/dist/standalone/index.js';
 import fs from 'fs';
+import { rewriteStandaloneRuntimeImports } from './scripts/stage-validator-module.mjs';
 
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
 const stageSchema = JSON.parse(fs.readFileSync('src/stage/stage.schema.json', 'utf-8'));
 
 const stageValidatorModuleId = 'virtual:stage-validator';
 const resolvedStageValidatorModuleId = `\0${stageValidatorModuleId}`;
+const frameAncestorsHeaders = { 'Content-Security-Policy': "frame-ancestors 'none';" };
 
 const createStageValidatorModule = (): string => {
   const ajv = new Ajv2020({
@@ -17,10 +19,7 @@ const createStageValidatorModule = (): string => {
     strictRequired: false,
     code: { source: true, esm: true },
   });
-  const source = standaloneCode(ajv, ajv.compile(stageSchema)).replace(
-    /const (\w+) = require\(("[^"]+")\)\.default;/g,
-    'import $1 from $2;'
-  );
+  const source = rewriteStandaloneRuntimeImports(standaloneCode(ajv, ajv.compile(stageSchema)));
   if (source.includes('require(')) {
     throw new Error('Generated stage validator contains an unsupported CommonJS dependency');
   }
@@ -52,5 +51,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    headers: frameAncestorsHeaders,
+  },
+  preview: {
+    headers: frameAncestorsHeaders,
   },
 });
