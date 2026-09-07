@@ -24,6 +24,7 @@ const mockDirHandle = (files: string[]): FsDirHandle => {
       createWritable: async (): Promise<FsWritable> => ({
         write: vi.fn(),
         close: vi.fn(),
+        abort: vi.fn(),
       }),
     })),
   };
@@ -76,6 +77,82 @@ describe('FsAccessStorage', () => {
     const storage = new FsAccessStorage();
     await expect(storage.read('x.json')).rejects.toThrow(/no directory selected/);
     await expect(storage.write('x.json', '{}')).rejects.toThrow(/no directory selected/);
+  });
+
+  it('aborts a failed write without committing partial content or hiding the error', async () => {
+    const handle = mockDirHandle(['carbon.json']);
+    const failure = new Error('disk full');
+    const writable = {
+      write: vi.fn().mockRejectedValue(failure),
+      close: vi.fn(),
+      abort: vi.fn().mockRejectedValue(new Error('stream already errored')),
+    };
+    vi.mocked(handle.getFileHandle).mockResolvedValue({
+      kind: 'file',
+      name: 'carbon.json',
+      getFile: vi.fn(),
+      createWritable: async () => writable,
+    });
+    window.showDirectoryPicker = vi.fn(async () => handle);
+    const storage = new FsAccessStorage();
+    await storage.pickRoot();
+
+    await expect(storage.write('carbon.json', '{}')).rejects.toBe(failure);
+    expect(writable.close).not.toHaveBeenCalled();
+    expect(writable.abort).toHaveBeenCalledOnce();
+  });
+
+  it('does not overwrite a file when the conflict check cannot read it', async () => {
+    const handle = mockDirHandle(['carbon.json']);
+    const failure = new DOMException('Cannot read file', 'NotReadableError');
+    vi.mocked(handle.getFileHandle).mockRejectedValueOnce(failure);
+    window.showDirectoryPicker = vi.fn(async () => handle);
+    const storage = new FsAccessStorage();
+    await storage.pickRoot();
+
+    await expect(storage.writeIfUnchanged('carbon.json', '{}')).rejects.toBe(failure);
+    expect(handle.getFileHandle).toHaveBeenCalledExactlyOnceWith('carbon.json');
+  });
+
+  it('allows a first save when the conflict check reports a missing file', async () => {
+    const handle = mockDirHandle([]);
+    vi.mocked(handle.getFileHandle).mockRejectedValueOnce(
+      new DOMException('Missing', 'NotFoundError')
+    );
+    window.showDirectoryPicker = vi.fn(async () => handle);
+    const storage = new FsAccessStorage();
+    await storage.pickRoot();
+
+    await expect(storage.writeIfUnchanged('carbon.json', '{}')).resolves.toBeUndefined();
+    expect(handle.getFileHandle).toHaveBeenLastCalledWith('carbon.json', { create: true });
+  });
+
+  it('creates a missing stage directory for the first guarded save', async () => {
+    const characters = mockDirHandle(['carbon.json']);
+    const stages = mockDirHandle([]);
+    vi.mocked(stages.getFileHandle).mockRejectedValueOnce(
+      new DOMException('Missing', 'NotFoundError')
+    );
+    const assets = mockDirHandle([]);
+    vi.mocked(assets.getDirectoryHandle).mockImplementation(async (name, options) => {
+      if (name === 'stages' && options?.create) return stages;
+      throw new DOMException('Missing', 'NotFoundError');
+    });
+    const characterRoot = mockDirHandle([]);
+    vi.mocked(characterRoot.getDirectoryHandle).mockResolvedValue(characters);
+    const app = mockDirHandle([]);
+    vi.mocked(app.getDirectoryHandle).mockImplementation(async (name) =>
+      name === 'assets' ? assets : characterRoot
+    );
+    const root = mockDirHandle([]);
+    vi.mocked(root.getDirectoryHandle).mockResolvedValue(app);
+    window.showDirectoryPicker = vi.fn(async () => root);
+    const storage = new FsAccessStorage();
+    await storage.pickRoot();
+
+    await expect(storage.writeIfUnchanged('stages/ruins.json', '{}')).resolves.toBeUndefined();
+    expect(assets.getDirectoryHandle).toHaveBeenLastCalledWith('stages', { create: true });
+    expect(stages.getFileHandle).toHaveBeenLastCalledWith('ruins.json', { create: true });
   });
 
   it('returns false from pickRoot when showDirectoryPicker is unavailable', async () => {

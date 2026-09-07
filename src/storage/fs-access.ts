@@ -31,6 +31,7 @@ export interface FsFileHandle extends FsHandle {
 export interface FsWritable {
   write(data: string | Blob | ArrayBuffer): Promise<void>;
   close(): Promise<void>;
+  abort(): Promise<void>;
 }
 
 declare global {
@@ -150,16 +151,24 @@ export class FsAccessStorage implements StorageBackend {
     const w = await file.createWritable();
     try {
       await w.write(content);
-    } finally {
       await w.close();
+    } catch (error) {
+      // Closing commits the temporary file. Abort a failed save and preserve
+      // its original error even if the stream has already errored.
+      await w.abort().catch(() => undefined);
+      throw error;
     }
   }
 
   async writeIfUnchanged(name: string, content: string, expectedContent?: string): Promise<void> {
+    // A repository can gain its first stage/character directory on save.
+    // Resolve it before distinguishing a missing file from a failed read.
+    await this.writableLocation(name);
     let current: string | undefined;
     try {
       current = await this.read(name);
-    } catch {
+    } catch (error) {
+      if (!(error instanceof DOMException) || error.name !== 'NotFoundError') throw error;
       // A missing file is a valid first save.
     }
     if (current !== expectedContent) throw new Error(`File changed externally: ${name}`);
