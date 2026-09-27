@@ -42,11 +42,11 @@ Set `ANTISTATIC_ANIMATOR_DEVTOOLS=1` when launching Electron to install React
 Developer Tools. Normal source builds skip the network-dependent extension
 installation.
 
-On an infra-tools agent VM, keep Vite on loopback and use managed Playwright
-after `infra-tools agent doctor --capability browser --json` succeeds. T3
+On a Basaltwater agent VM, keep Vite on loopback and use managed Playwright
+after `basaltw agent doctor --capability browser --json` succeeds. T3
 Code's environment-port target does not tunnel to VM loopback; reserve its
 collaborative preview for URLs the connected client can already reach. Routine
-browser evidence stays in infra-tools' private storage; put requested captures
+browser evidence stays in Basaltwater's private storage; put requested captures
 under ignored `local-artifacts/`.
 
 The meta CSP covers packaged `file:` and static web rendering. Vite development

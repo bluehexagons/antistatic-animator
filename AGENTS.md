@@ -17,9 +17,9 @@ Except for `../antistatic`, the sister repos are MIT and/or Apache licensed.
 
 ## Build, Test, and Development Commands
 
-- The standard Linux host is an infra-tools-managed agent VM. Related
+- The standard Linux host is a Basaltwater-managed agent VM. Related
   repositories live beside this checkout below `~/repos`. Run
-  `infra-tools agent doctor --capability development --json` only when the host
+  `basaltw agent doctor --capability development --json` only when the host
   toolchain is in question; repository checks remain authoritative.
 - `npm install`: install dependencies. Requires Node `>=22.22.1`.
 - `npm run check`: run the complete local and CI validation gate.
@@ -48,7 +48,7 @@ For loopback browser review, verify the managed browser capability and use
 VM-origin Playwright. T3's environment-port target is not a tunnel to VM
 loopback; use its collaborative preview only when the connected client can
 already reach the application or client-visible access was deliberately
-published. Routine browser artifacts stay in infra-tools' private bounded
+published. Routine browser artifacts stay in Basaltwater's private bounded
 storage. Store only explicitly requested, shareable screenshots or recordings
 under ignored `local-artifacts/`. Use the Electron build for behavior that
 depends on native dialogs or filesystem integration.
