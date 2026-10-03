@@ -14,6 +14,9 @@ npm start
 ```
 
 Open the Antistatic repository as the source and select **Stages**.
+For the browser upload path, use a disposable standalone stage JSON/JSONC file;
+it should appear under Stages without a repository-relative path. Saving
+downloads the edited file. Upload that download again for the reopen check.
 
 ## Checklist
 
@@ -34,6 +37,17 @@ Open the Antistatic repository as the source and select **Stages**.
   removed, and deletion must not strand an empty invalid animation.
 - Introduce an invalid value and confirm Issues explains it and save is refused.
   Restore it, save, reopen, and confirm JSONC comments and values round-trip.
+- Open **Hazard Lab** and select its collision entries. Set a friction override
+  to 0 and 1, then clear it to restore character friction. Enter a value outside
+  that range and confirm the previous value is kept with an explanation.
+- Edit the damage floor's damage, knockback, angle, and cooldown. Blank optional
+  fields should use the displayed runtime defaults; fractional or nonpositive
+  cooldowns must be rejected. Meteor launch requires positive knockback.
+- Switch a contact hazard between Damage / launch, Instant KO, and None. Instant
+  KO must save only `instantKO: true`; None must remove the hazard. Clearing all
+  positive damage/knockback values must produce an Issue and block saving.
+- Save and reopen the edited stage. Verify nested JSONC comments and unrelated
+  collision properties, wind zones, models, and effects remain intact.
 - Create a new stage and add every available scene-object type plus an animation
   track. Save it and run `npm run check:stages` in the game repository.
 

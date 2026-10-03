@@ -7,6 +7,7 @@
  */
 
 import { DATA_FILE_RE } from '../utils';
+import { parse } from 'jsonc-parser';
 import type { StorageBackend } from './types';
 
 export interface UploadContent {
@@ -47,7 +48,16 @@ export class UploadStorage implements StorageBackend {
       const normalizedPath = file.path.replaceAll('\\', '/');
       const basename = normalizedPath.split('/').pop();
       if (!basename || !DATA_FILE_RE.test(basename)) continue;
-      const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(normalizedPath);
+      const document: unknown = parse(file.content);
+      const standaloneStage =
+        document !== null &&
+        typeof document === 'object' &&
+        'name' in document &&
+        'scene' in document &&
+        document.scene !== null &&
+        typeof document.scene === 'object' &&
+        'schemaVersion' in document.scene;
+      const stageFile = /(?:^|\/)app\/assets\/stages\//i.test(normalizedPath) || standaloneStage;
       const name = stageFile ? `stages/${basename}` : basename;
       if (next.has(name)) {
         throw new Error(`Duplicate uploaded file name: ${name}`);

@@ -19,7 +19,12 @@ npm start
    Ctrl/Cmd+S, or enable **Live sync** for a local Antistatic checkout
 4. In stage mode, add collision, models, lights, fog, particles, and animations
    from the scene list. Drag positioned objects in the viewport and edit exact
-   values in the inspector/timeline.
+   values in the inspector/timeline. Select a collision to set its friction
+   override or author a damage/launch or instant-KO contact hazard.
+
+Standalone stage JSON/JSONC files are recognized when uploaded or dropped.
+Browser upload sources save by downloading a file; upload that download again
+to reopen the saved stage. Folder and Electron sources save to their source.
 
 For the stage editor and game-runtime acceptance pass, see
 [`docs/stage-authoring-qa.md`](docs/stage-authoring-qa.md).
@@ -60,6 +65,8 @@ send the same directive as an HTTP response header.
 - Scene-schema-v2 stage authoring with draggable collision, model/effect
   previews, structured inspection, stable-ID renaming, validation, and
   position-animation tracks
+- Guided collision friction and contact-hazard controls, with runtime units,
+  inherited defaults, and validation before saving
 - Knockback + smear gizmos, hurtbubble state colouring, z-depth tint
 - Onion-skin, bone-name labels, and a shield overlay
 - Engine-compatible terminal-frame playback, omitted-pose interpolation,

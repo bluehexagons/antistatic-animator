@@ -454,12 +454,41 @@ export const renderStageFile = (originalText: string | undefined, stage: StageDo
     return cleanOutput;
   }
   let output = originalText;
+  const update = (path: JSONC.JSONPath, before: unknown, after: unknown): void => {
+    if (JSON.stringify(before) === JSON.stringify(after)) return;
+    if (Array.isArray(before) && Array.isArray(after) && before.length === after.length) {
+      // Reordered/replaced stable-ID entries need a fresh array; retaining
+      // their old positions would attach comments to different scene objects.
+      const sameIds = before.every((item, index) => {
+        const next = after[index];
+        return !item?.id || !next?.id || item.id === next.id;
+      });
+      if (sameIds) {
+        before.forEach((item, index) => update([...path, index], item, after[index]));
+        return;
+      }
+    } else if (
+      before &&
+      after &&
+      typeof before === 'object' &&
+      typeof after === 'object' &&
+      !Array.isArray(before) &&
+      !Array.isArray(after)
+    ) {
+      const oldObject = before as Record<string, unknown>;
+      const newObject = after as Record<string, unknown>;
+      const keys = new Set([...Object.keys(oldObject), ...Object.keys(newObject)]);
+      for (const key of keys) update([...path, key], oldObject[key], newObject[key]);
+      return;
+    }
+    output = JSONC.applyEdits(output, JSONC.modify(output, path, after, { formattingOptions }));
+  };
   const keys = new Set([...Object.keys(original), ...Object.keys(stage)]);
   for (const key of keys) {
-    const before = original[key as keyof typeof original];
+    const before = original[key];
     const after = stage[key as keyof StageDocument];
     if (JSON.stringify(before) === JSON.stringify(after)) continue;
-    output = JSONC.applyEdits(output, JSONC.modify(output, [key], after, { formattingOptions }));
+    update([key], before, after);
   }
   return output.endsWith('\n') ? output : `${output}\n`;
 };

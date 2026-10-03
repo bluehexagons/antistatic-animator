@@ -27,6 +27,43 @@ describe('UploadStorage', () => {
     await expect(storage.read('stages/ruins.json')).resolves.toBe('{}');
   });
 
+  it('recognizes standalone JSONC stages after a browser download', async () => {
+    const storage = new UploadStorage();
+    const stage = '// stage note\n{"name":"Hazard Lab","scene":{"schemaVersion":2}}';
+    await storage.loadFiles([
+      new File([stage], 'hazardlab.jsonc'),
+      new File(['{"name":"carbon"}'], 'carbon.json'),
+      new File(['{"scene":{"keyframes":[]}}'], 'carbon_anim.json'),
+    ]);
+    await expect(storage.list()).resolves.toEqual([
+      'stages/hazardlab.jsonc',
+      'carbon.json',
+      'carbon_anim.json',
+    ]);
+    await expect(storage.read('stages/hazardlab.jsonc')).resolves.toBe(stage);
+  });
+
+  it('keeps unsupported stage versions in the stage namespace for validation', async () => {
+    const storage = new UploadStorage();
+    await storage.loadFiles([
+      new File(['{"name":"Future","scene":{"schemaVersion":99}}'], 'future.json'),
+    ]);
+    await expect(storage.list()).resolves.toEqual(['stages/future.json']);
+  });
+
+  it('rejects duplicate inferred stage names without replacing the current upload', async () => {
+    const storage = new UploadStorage();
+    await storage.loadFiles([new File(['{}'], 'carbon.json')]);
+    const stage = '{"name":"Stage","scene":{"schemaVersion":2}}';
+    await expect(
+      storage.loadContents([
+        { path: 'hazardlab.json', content: stage },
+        { path: 'app/assets/stages/hazardlab.json', content: stage },
+      ])
+    ).rejects.toThrow('Duplicate uploaded file name: stages/hazardlab.json');
+    await expect(storage.list()).resolves.toEqual(['carbon.json']);
+  });
+
   it('loads bundled example contents using the same local backend', async () => {
     const storage = new UploadStorage();
     await storage.loadContents(

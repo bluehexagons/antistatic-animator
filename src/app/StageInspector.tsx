@@ -13,6 +13,7 @@ import type {
 } from '../stage/types';
 import type { StageIssue } from '../stage/document';
 import { renameStageSceneItem } from '../stage/document';
+import { CollisionInteractions } from './stage/CollisionInteractions';
 
 interface StageInspectorProps {
   stage: StageDocument;
@@ -287,8 +288,16 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
   const collision = selection.kind === 'collision' ? (selectedObject as StageCollision) : null;
   const lighting = (stage.lighting ?? {}) as unknown as Obj;
   const collisionModel = (stage.scene.collisionModel ?? {}) as unknown as Obj;
+  const collisionPath = collision
+    ? `/scene/collision/${stage.scene.collision!.indexOf(collision)}`
+    : undefined;
   const selectedIssues = issues.filter(
-    (issue) => selection.kind === 'stage' || !selection.id || issue.path.includes(selection.id)
+    (issue) =>
+      selection.kind === 'stage' ||
+      !selection.id ||
+      issue.path.includes(selection.id) ||
+      (collisionPath &&
+        (issue.path === collisionPath || issue.path.startsWith(`${collisionPath}/`)))
   );
 
   return (
@@ -425,11 +434,17 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
                   }}
                 />
                 <CollisionFlags collision={collision} onChange={changed} />
+                <CollisionInteractions
+                  key={collision.id}
+                  collision={collision}
+                  onChange={changed}
+                />
               </>
             )}
             <PropertiesEditor
               obj={record}
               hideKeys={['id', 'position', 'from', 'to', 'flags', 'tracks']}
+              managedKeys={collision ? ['friction', 'hazard'] : undefined}
               onChange={changed}
             />
           </Section>

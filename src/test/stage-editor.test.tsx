@@ -124,6 +124,48 @@ describe('stage viewport framing', () => {
 });
 
 describe('stage document operations', () => {
+  it('preserves nested JSONC comments and unrelated fields while editing interactions', () => {
+    const stage = createStageDocument('Commented hazards');
+    stage.scene.collision![0].hazard = { damage: 12, knockback: 18, cooldown: 45 };
+    stage.scene.collision![0].properties = { authorNote: 'Keep this metadata' };
+    stage.scene.windZones = [
+      { id: 'updraft', from: [-100, -280], to: [100, -40], wind: [0, -0.1] },
+    ];
+    const source = `// file note\n${JSON.stringify(stage, null, 2)}`
+      .replace('"schemaVersion": 2,', '"schemaVersion": 2, // scene note')
+      .replace('"damage": 12,', '"damage": 12, // damage note')
+      .replace('"windZones": [', '// untouched wind note\n"windZones": [');
+    stage.scene.collision![0].friction = 0.995;
+    stage.scene.collision![0].hazard.damage = 18;
+    delete stage.scene.collision![0].hazard.cooldown;
+    const output = renderStageFile(source, stage);
+    expect(output).toContain('// file note');
+    expect(output).toContain('// scene note');
+    expect(output).toContain('// damage note');
+    expect(output).toContain('// untouched wind note');
+    expect(parseStageDocument(output).document).toEqual(stage);
+    expect(renderStageFile(output, stage)).toBe(output);
+  });
+
+  it('round-trips structural array edits without reassigning stable-ID comments', () => {
+    const stage = createStageDocument('Array edits');
+    addStageSceneItem(stage, 'collision');
+    const source = `// header\n${JSON.stringify(stage, null, 2)}`.replace(
+      '"id": "main-platform",',
+      '"id": "main-platform", // original platform note'
+    );
+    stage.scene.collision!.reverse();
+    const reordered = renderStageFile(source, stage);
+    expect(reordered).toContain('// header');
+    expect(reordered).not.toContain('// original platform note');
+    expect(parseStageDocument(reordered).document).toEqual(stage);
+    stage.scene.collision!.pop();
+    const removed = renderStageFile(reordered, stage);
+    expect(parseStageDocument(removed).document).toEqual(stage);
+    addStageSceneItem(stage, 'collision');
+    expect(parseStageDocument(renderStageFile(removed, stage)).document).toEqual(stage);
+  });
+
   it('creates and parses a schema-v2 stage', () => {
     const stage = createStageDocument('Fixture');
     expect(validateStageDocument(stage)).toEqual([]);

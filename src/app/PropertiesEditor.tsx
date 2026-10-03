@@ -23,6 +23,8 @@ interface PropertiesEditorProps {
   suggestions?: string[];
   /** Extra keys to hide (e.g. those already shown by dedicated controls). */
   hideKeys?: readonly string[];
+  /** Keys owned by dedicated controls: hide them and prevent generic additions. */
+  managedKeys?: readonly string[];
 }
 
 const inferType = (v: Value): 'string' | 'number' | 'bool' | 'array' | 'object' | 'other' => {
@@ -71,8 +73,12 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
   onChange,
   suggestions,
   hideKeys,
+  managedKeys,
 }) => {
-  const hidden = useMemo(() => new Set(hideKeys ?? []), [hideKeys]);
+  const hidden = useMemo(
+    () => new Set([...(hideKeys ?? []), ...(managedKeys ?? [])]),
+    [hideKeys, managedKeys]
+  );
   const editorId = useId();
   // Force re-render trigger for in-place mutations
   const [, bump] = useState(0);
@@ -221,10 +227,10 @@ export const PropertiesEditor: React.FC<PropertiesEditorProps> = ({
       ))}
       <AddProperty
         isKeyframe={isKeyframe}
-        existing={new Set(keys)}
+        existing={new Set([...keys, ...(managedKeys ?? [])])}
         suggestions={suggestions}
         onAdd={(name, type) => {
-          if (!name || objHas(obj, name)) return;
+          if (!name || objHas(obj, name) || managedKeys?.includes(name)) return;
           if (multichoice[name]) obj[name] = multichoice[name].default;
           else if (type === 'bool') obj[name] = true;
           else if (type === 'number') obj[name] = 0;

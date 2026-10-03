@@ -32,6 +32,10 @@ animation caching do not change the authoring format.
 - Failed saves no longer update the in-memory library cache.
 - Electron source files can be watched for external edits, and live sync can
   debounce-save animator edits for Antistatic's existing debug watcher.
+- Collision inspection supports friction overrides and damage/launch or
+  instant-KO hazards using the game's existing schema and simulation units.
+- Stage saves patch changed nested fields without rewriting the entire scene,
+  preserving comments on unrelated fields and stable-ID entries.
 
 ## Known Gaps
 
@@ -44,8 +48,11 @@ animation caching do not change the authoring format.
   stage live reload remains a game-side follow-up.
 - Stage `autoplay`, `randomStart`, stage coordinate scaling, and some runtime
   lighting/material transforms are preserved but not fully simulated.
-- JSONC saves preserve untouched document structure; replacing a nested object or
-  animation can still rewrite comments inside that replaced value.
+- Stage wind zones remain JSON-authored and preserved; dedicated inspector and
+  viewport controls remain future work.
+- JSONC saves preserve untouched document structure. Adding, removing, or
+  reordering array entries can still rewrite comments inside that array;
+  character saves can rewrite comments inside a changed animation.
 
 ## Maintenance
 
