@@ -22,6 +22,9 @@ Except for `../antistatic`, the sister repos are MIT and/or Apache licensed.
   `basaltw agent doctor --capability development --json` only when the host
   toolchain is in question; repository checks remain authoritative.
 - `npm install`: install dependencies. Requires Node `>=22.22.1`.
+- Select `.nvmrc` with `nvm use` before npm commands. On Basaltwater,
+  `basaltw node exec -- npm run check` selects the project runtime without
+  changing the host default; `basaltw node install` installs a missing pin.
 - `npm run check`: run the complete local and CI validation gate.
 - `npm run dev`: start the Vite dev server for browser development.
 - `npm run dev:electron`: build all targets, then launch Electron.
