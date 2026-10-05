@@ -237,12 +237,18 @@ describe('stage document operations', () => {
       },
     };
     stage.scene.effects = {
-      particleEmitters: [{ id: 'rain', target: model.id, velocityStretch: 3, rate: 12 }],
+      particleEmitters: [
+        { id: 'rain', target: model.id, sprite: 'soft', velocityStretch: 3, rate: 12 },
+        { id: 'bubbles', sprite: 'bubble', rate: 8 },
+      ],
     };
     expect(validateStageDocument(stage)).toEqual([]);
     const saved = renderStageFile('// preserved stage note\n' + JSON.stringify(stage), stage);
     expect(saved).toContain('// preserved stage note');
     expect(parseStageDocument(saved).document).toEqual(stage);
+    stage.scene.effects.particleEmitters![1].sprite = 'sphere' as never;
+    expect(validateStageDocument(stage).length).toBeGreaterThan(0);
+    stage.scene.effects.particleEmitters![1].sprite = 'bubble';
     stage.scene.effects.particleEmitters![0].velocityStretch = 65;
     expect(validateStageDocument(stage).some((issue) => issue.message.includes('<= 64'))).toBe(
       true

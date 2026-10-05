@@ -430,6 +430,7 @@
           "oneOf": [{ "$ref": "#/$defs/finiteNumber" }, { "$ref": "#/$defs/range" }]
         },
         "geometry": { "type": "boolean" },
+        "sprite": { "enum": ["diamond", "soft", "bubble"] },
         "lightProbability": { "type": "number", "minimum": 0, "maximum": 1 },
         "glowStrength": { "type": "number", "minimum": 0 },
         "shading": { "enum": ["lit", "emissive"] },

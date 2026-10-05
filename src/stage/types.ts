@@ -173,6 +173,7 @@ export interface StageParticleEmitter {
   lifetime?: NumberRange;
   gravity?: number | NumberRange;
   geometry?: boolean;
+  sprite?: 'diamond' | 'soft' | 'bubble';
   lightProbability?: number;
   glowStrength?: number;
   shading?: 'lit' | 'emissive';
