@@ -124,6 +124,38 @@ describe('stage viewport framing', () => {
 });
 
 describe('stage document operations', () => {
+  it('preserves authored skies when editing a stage and rejects invalid sky ranges', () => {
+    const stage = createStageDocument('Moonlit harbor');
+    stage.lighting = {
+      sky: {
+        zenithColor: [0.01, 0.02, 0.04],
+        horizonColor: [0.08, 0.1, 0.15],
+        groundColor: [0.02, 0.03, 0.05],
+        horizonHeight: -0.06,
+        gradientPower: 0.7,
+        sunDirection: [0.32, -0.24, 1],
+        sunColor: [0.5, 0.55, 0.62],
+        sunRadius: 1.2,
+        cloudColor: [0.07, 0.065, 0.095],
+        cloudCoverage: 0.38,
+        cloudScale: 2.5,
+        stars: 0.35,
+      },
+    };
+    const source = '// sky note\n' + JSON.stringify(stage);
+    stage.name = 'Open harbor';
+    addStageSceneItem(stage, 'model');
+    const saved = renderStageFile(source, stage);
+    const parsed = parseStageDocument(saved);
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.document?.lighting?.sky).toEqual(stage.lighting.sky);
+    expect(saved).toContain('// sky note');
+    stage.lighting.sky!.cloudCoverage = 2;
+    expect(validateStageDocument(stage)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: '/lighting/sky/cloudCoverage' })])
+    );
+  });
+
   it('preserves nested JSONC comments and unrelated fields while editing interactions', () => {
     const stage = createStageDocument('Commented hazards');
     stage.scene.collision![0].hazard = { damage: 12, knockback: 18, cooldown: 45 };

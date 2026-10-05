@@ -407,7 +407,12 @@
         "fogNear": { "type": "number" },
         "fogFar": { "type": "number" },
         "atmosphere": { "$ref": "#/$defs/atmosphere" },
-        "colorGrading": { "$ref": "#/$defs/colorGrading" }
+        "colorGrading": {
+          "$ref": "#/$defs/colorGrading"
+        },
+        "sky": {
+          "$ref": "#/$defs/sky"
+        }
       },
       "additionalProperties": false
     },
@@ -525,6 +530,60 @@
         }
       },
       "required": ["schemaVersion"],
+      "additionalProperties": false
+    },
+    "sky": {
+      "type": "object",
+      "properties": {
+        "zenithColor": {
+          "$ref": "#/$defs/vec3"
+        },
+        "horizonColor": {
+          "$ref": "#/$defs/vec3"
+        },
+        "groundColor": {
+          "$ref": "#/$defs/vec3"
+        },
+        "sunDirection": {
+          "$ref": "#/$defs/vec3"
+        },
+        "sunColor": {
+          "$ref": "#/$defs/vec3"
+        },
+        "cloudColor": {
+          "$ref": "#/$defs/vec3"
+        },
+        "horizonHeight": {
+          "type": "number",
+          "minimum": -0.5,
+          "maximum": 0.5
+        },
+        "gradientPower": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 4
+        },
+        "sunRadius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "cloudCoverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cloudScale": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 32
+        },
+        "stars": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        }
+      },
       "additionalProperties": false
     }
   }

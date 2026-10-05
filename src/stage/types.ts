@@ -236,6 +236,20 @@ export interface StageLighting {
   sunIntensity?: number;
   ambientColor?: Vec3;
   backgroundColor?: Vec3;
+  sky?: {
+    zenithColor?: Vec3;
+    horizonColor?: Vec3;
+    groundColor?: Vec3;
+    horizonHeight?: number;
+    gradientPower?: number;
+    sunDirection?: Vec3;
+    sunColor?: Vec3;
+    sunRadius?: number;
+    cloudColor?: Vec3;
+    cloudCoverage?: number;
+    cloudScale?: number;
+    stars?: number;
+  };
   reflectionProbe?: Partial<
     Record<'positiveX' | 'negativeX' | 'positiveY' | 'negativeY' | 'positiveZ' | 'negativeZ', Vec3>
   >;
