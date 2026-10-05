@@ -13,18 +13,28 @@ Development environments commonly have related repositories checked out next to 
 - `../easing`: the `@bluehexagons/easing` package. Check the main Antistatic repo for how it is imported when matching engine behavior.
 - `../trace`: the trace language used for in-game color math.
 
-Except for `../antistatic`, the sister repos are MIT and/or Apache licensed.
+Check each sister repository's license before borrowing code or data.
+Translations use CC-BY-SA-4.0; the listed easing and Trace packages use
+Apache-2.0 and MIT respectively.
 
 ## Build, Test, and Development Commands
 
-- The standard Linux host is a Basaltwater-managed agent VM. Related
-  repositories live beside this checkout below `~/repos`. Run
-  `basaltw agent doctor --capability development --json` only when the host
-  toolchain is in question; repository checks remain authoritative.
+- Linux development uses Basaltwater-managed CachyOS workstations and Debian
+  hosts. CachyOS covers interactive game/Animator/asset work; Debian also covers
+  game development, validation, builds, and services. Primary checkouts live
+  beside one another under `~/repos` or the configured `--agent-workspace` root.
+  Locate the actual primary checkouts with `git worktree list` when working in
+  an isolated worktree. See Antistatic's
+  [workspace guide](https://github.com/bluehexagons/antistatic/blob/main/docs/sister-repositories.md).
+  Diagnose CachyOS with `basaltw local cachyos-doctor --json`, or Debian with
+  `basaltw agent doctor --capability development --json`, when host tooling is
+  suspect. Repository checks remain authoritative and work without Basaltwater.
 - `npm install`: install dependencies. Requires Node `>=22.22.1`.
 - Select `.nvmrc` with `nvm use` before npm commands. On Basaltwater,
   `basaltw node exec -- npm run check` selects the project runtime without
-  changing the host default; `basaltw node install` installs a missing pin.
+  changing the host default; `basaltw node install` installs a missing pin and
+  prepares NVM on demand on CachyOS. Use ordinary NVM or compatible system Node
+  when Basaltwater is absent; each worktree needs its own `npm ci`.
 - `npm run check`: run the complete local and CI validation gate.
 - `npm run dev`: start the Vite dev server for browser development.
 - `npm run dev:electron`: build all targets, then launch Electron.
@@ -47,12 +57,15 @@ Vitest is configured with `happy-dom` and `src/test/setup.ts`. Add tests under
 rendering smoke coverage, and schema/lint logic. Prefer focused tests for public
 helpers or user-visible behavior. Run `npm run check` before publishing changes.
 
-For loopback browser review, verify the managed browser capability and use
-VM-origin Playwright. T3's environment-port target is not a tunnel to VM
-loopback; use its collaborative preview only when the connected client can
-already reach the application or client-visible access was deliberately
-published. Routine browser artifacts stay in Basaltwater's private bounded
-storage. Store only explicitly requested, shareable screenshots or recordings
+For browser review, prefer T3 Code's collaborative preview when its automation
+tools are available; inspect preview status and open it before navigating. Keep
+Vite on loopback and verify that the connected client can reach the URL. T3's
+environment-port target does not tunnel to a remote host's loopback. On Debian,
+managed Playwright is another option when T3 preview is unavailable and
+`basaltw agent doctor --capability browser --json` succeeds. CachyOS does not
+provide that managed browser bundle. Routine managed-browser artifacts stay in
+Basaltwater's private bounded storage. Store only explicitly requested,
+shareable screenshots or recordings
 under ignored `local-artifacts/`. Use the Electron build for behavior that
 depends on native dialogs or filesystem integration.
 

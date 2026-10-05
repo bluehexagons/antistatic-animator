@@ -5,7 +5,8 @@ Animation and stage editor for Antistatic. Built with Electron + React.
 ## Quick Start
 
 ```bash
-npm install
+nvm use             # Select the committed .nvmrc when using NVM
+npm ci
 npm run build
 npm start
 ```
@@ -47,10 +48,21 @@ Set `ANTISTATIC_ANIMATOR_DEVTOOLS=1` when launching Electron to install React
 Developer Tools. Normal source builds skip the network-dependent extension
 installation.
 
-On a Basaltwater agent VM, keep Vite on loopback and use managed Playwright
-after `basaltw agent doctor --capability browser --json` succeeds. T3
-Code's environment-port target does not tunnel to VM loopback; reserve its
-collaborative preview for URLs the connected client can already reach. Routine
+Linux development supports CachyOS workstations and Debian hosts. Keep this
+checkout beside `antistatic` under `~/repos`, or the workspace root selected
+with Basaltwater's `--agent-workspace`. See the game's
+[workspace guide](https://github.com/bluehexagons/antistatic/blob/main/docs/sister-repositories.md).
+Each worktree needs its own dependencies. With Basaltwater, `basaltw node install`
+installs a missing project pin (preparing NVM on demand on CachyOS), and
+`basaltw node exec -- npm run check` selects it per command. Ordinary NVM or
+compatible system Node works independently of Basaltwater.
+
+Keep Vite on loopback. Prefer available T3 Code collaborative preview tools and
+open the preview before navigating; the connected client must reach the URL.
+Its environment-port target does not tunnel to a remote host's loopback.
+Debian's managed Playwright is another option when T3 preview is unavailable
+and `basaltw agent doctor --capability browser --json` succeeds. CachyOS does
+not install that managed browser bundle. Routine managed
 browser evidence stays in Basaltwater's private storage; put requested captures
 under ignored `local-artifacts/`.
 
