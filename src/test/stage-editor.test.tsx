@@ -243,6 +243,43 @@ describe('stage document operations', () => {
     expect(validateStageDocument(stage).length).toBeGreaterThan(0);
   });
 
+  it('preserves and validates shared model palettes through ordinary stage saves', () => {
+    const stage = createStageDocument('Palettes');
+    addStageSceneItem(stage, 'model');
+    stage.scene.palettes = {
+      orbital: {
+        colors: {
+          armor: { rgba: [0.7, 0.6, 0.5, 1] },
+          edge: {
+            rgba: [0.9, 0.4, 0.1, 1],
+            material: { emissiveColor: 'palette', emissiveStrength: 0.05 },
+          },
+        },
+        material: { detail: 'brushed', detailMapping: 'box', roughness: 0.6 },
+      },
+    };
+    const model = stage.scene.models![0];
+    model.palette = 'orbital';
+    model.paletteSlots = { PrimitiveDefault: 'edge' };
+    model.paletteOverrides = { colors: { edge: { rgba: [0.3, 0.8, 0.5, 1] } } };
+    expect(validateStageDocument(stage)).toEqual([]);
+    const saved = renderStageFile('// palette note\n' + JSON.stringify(stage), stage);
+    expect(saved).toContain('// palette note');
+    expect(parseStageDocument(saved).document).toEqual(stage);
+    model.palette = 'unknown';
+    expect(
+      validateStageDocument(stage).some((issue) => issue.message.includes('unknown palette'))
+    ).toBe(true);
+    model.palette = stage.scene.palettes.orbital;
+    model.paletteSlots.PrimitiveDefault = 'missing';
+    expect(
+      validateStageDocument(stage).some((issue) => issue.message.includes('unknown palette color'))
+    ).toBe(true);
+    model.paletteSlots.PrimitiveDefault = 'edge';
+    model.palette.colors.edge.rgba[0] = 2;
+    expect(validateStageDocument(stage).length).toBeGreaterThan(0);
+  });
+
   it('preserves regional optical materials and directional stage particles through saves', () => {
     const stage = createStageDocument('Surfaces');
     addStageSceneItem(stage, 'model');

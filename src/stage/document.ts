@@ -72,6 +72,31 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
   collectIds('effects/particleEmitters', stage.scene.effects?.particleEmitters);
   collectIds('animations', stage.scene.animations);
 
+  for (const model of stage.scene.models ?? []) {
+    if (model.palette === undefined) continue;
+    const palette =
+      typeof model.palette === 'string'
+        ? Object.hasOwn(stage.scene.palettes ?? {}, model.palette)
+          ? stage.scene.palettes![model.palette]
+          : undefined
+        : model.palette;
+    if (!palette) {
+      issues.push({
+        path: `/scene/models/${model.id}/palette`,
+        message: `unknown palette "${model.palette}"`,
+      });
+      continue;
+    }
+    const colors = { ...palette.colors, ...model.paletteOverrides?.colors };
+    for (const [slot, color] of Object.entries(model.paletteSlots ?? {})) {
+      if (!Object.hasOwn(colors, color))
+        issues.push({
+          path: `/scene/models/${model.id}/paletteSlots/${slot}`,
+          message: `unknown palette color "${color}"`,
+        });
+    }
+  }
+
   for (const collision of stage.scene.collision ?? []) {
     const directions = collision.flags.filter((flag) =>
       ['left', 'right', 'top', 'bottom'].includes(flag)

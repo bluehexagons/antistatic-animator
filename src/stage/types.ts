@@ -85,6 +85,9 @@ export interface StageModel {
   angularVelocity?: Vec3;
   material?: StageMaterial;
   materialSlots?: Record<string, StageMaterial>;
+  palette?: string | StageModelPalette;
+  paletteSlots?: Record<string, string>;
+  paletteOverrides?: Partial<StageModelPalette>;
   particleCollider?:
     | false
     | 'mesh'
@@ -96,6 +99,21 @@ export interface StageModel {
         rotation?: StageModel['rotation'];
         twoSided?: boolean;
       };
+}
+
+/** Sparse finishes shared with character palettes; colors use linear RGB. */
+export type StagePaletteMaterial = Omit<
+  StageMaterial,
+  'file' | 'name' | 'recolor' | 'specularIor' | 'emissive' | 'attenuationColor' | 'subsurfaceColor'
+> & {
+  emissiveColor?: Vec3 | 'palette';
+  attenuationColor?: Vec3 | 'palette';
+  subsurfaceColor?: Vec3 | 'palette';
+};
+
+export interface StageModelPalette {
+  colors: Record<string, { rgba: Vec4; material?: StagePaletteMaterial }>;
+  material?: StagePaletteMaterial;
 }
 
 export type StageCollisionFlag =
@@ -213,6 +231,7 @@ export interface StageAnimation {
 export interface StageScene {
   schemaVersion: typeof STAGE_SCENE_SCHEMA_VERSION;
   models?: StageModel[];
+  palettes?: Record<string, StageModelPalette>;
   collision?: StageCollision[];
   windZones?: StageWindZone[];
   collisionModel?: {

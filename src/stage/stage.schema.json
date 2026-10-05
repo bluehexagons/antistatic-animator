@@ -226,11 +226,41 @@
           "type": "object",
           "propertyNames": { "minLength": 1 },
           "additionalProperties": { "$ref": "#/$defs/material" }
+        },
+        "palette": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "$ref": "#/$defs/palette"
+            }
+          ]
+        },
+        "paletteSlots": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "paletteOverrides": {
+          "$ref": "#/$defs/paletteOverrides"
         }
       },
       "required": ["id"],
       "oneOf": [{ "required": ["name"] }, { "required": ["primitive"] }],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "dependentRequired": {
+        "palette": ["paletteSlots"],
+        "paletteSlots": ["palette"],
+        "paletteOverrides": ["palette"]
+      }
     },
     "collision": {
       "type": "object",
@@ -527,6 +557,15 @@
             "particleEmitters": { "type": "array", "items": { "$ref": "#/$defs/particleEmitter" } }
           },
           "additionalProperties": false
+        },
+        "palettes": {
+          "type": "object",
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/palette"
+          }
         }
       },
       "required": ["schemaVersion"],
@@ -582,6 +621,233 @@
           "type": "number",
           "minimum": 0,
           "maximum": 4
+        }
+      },
+      "additionalProperties": false
+    },
+    "paletteMaterial": {
+      "type": "object",
+      "properties": {
+        "metallic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "roughness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ambientOcclusion": {
+          "type": "number",
+          "minimum": 0
+        },
+        "clearcoat": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "clearcoatRoughness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "transmission": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ior": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "thickness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65504
+        },
+        "attenuationColor": {
+          "oneOf": [
+            {
+              "const": "palette"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          ]
+        },
+        "attenuationDistance": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 65504
+        },
+        "abbeNumber": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "subsurfaceWeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "subsurfaceRadius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 65504
+        },
+        "subsurfaceColor": {
+          "oneOf": [
+            {
+              "const": "palette"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          ]
+        },
+        "emissiveStrength": {
+          "type": "number",
+          "minimum": 0
+        },
+        "detail": {
+          "enum": [
+            null,
+            "weave",
+            "brushed",
+            "hammered",
+            "bands",
+            "stone",
+            "aggregate",
+            "mineral",
+            "ore",
+            "slate",
+            "ceramic",
+            "patina",
+            "basalt"
+          ]
+        },
+        "detailRotation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "detailOffsetU": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "detailOffsetV": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "detailScale": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 8
+        },
+        "detailNormalScale": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "detailMapping": {
+          "enum": ["auto", "uv", "box"]
+        },
+        "emissiveColor": {
+          "oneOf": [
+            {
+              "const": "palette"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "paletteColor": {
+      "type": "object",
+      "properties": {
+        "rgba": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "material": {
+          "$ref": "#/$defs/paletteMaterial"
+        }
+      },
+      "required": ["rgba"],
+      "additionalProperties": false
+    },
+    "palette": {
+      "type": "object",
+      "properties": {
+        "colors": {
+          "type": "object",
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/paletteColor"
+          }
+        },
+        "material": {
+          "$ref": "#/$defs/paletteMaterial"
+        }
+      },
+      "required": ["colors"],
+      "additionalProperties": false
+    },
+    "paletteOverrides": {
+      "type": "object",
+      "properties": {
+        "colors": {
+          "type": "object",
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/paletteColor"
+          }
+        },
+        "material": {
+          "$ref": "#/$defs/paletteMaterial"
         }
       },
       "additionalProperties": false
