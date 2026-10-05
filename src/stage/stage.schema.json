@@ -122,8 +122,41 @@
         "clearcoat": { "type": "number", "minimum": 0, "maximum": 1 },
         "clearcoatRoughness": { "type": "number", "minimum": 0, "maximum": 1 },
         "specularIor": { "type": "number", "exclusiveMinimum": 0 },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "transmission": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ior": { "type": "number", "minimum": 1, "maximum": 4 },
+        "thickness": { "type": "number", "minimum": 0, "maximum": 65504 },
+        "attenuationColor": { "$ref": "#/$defs/vec3" },
+        "attenuationDistance": { "type": "number", "minimum": 0.0001, "maximum": 65504 },
+        "abbeNumber": { "type": "number", "minimum": 0, "maximum": 100 },
+        "subsurfaceWeight": { "type": "number", "minimum": 0, "maximum": 1 },
+        "subsurfaceRadius": { "type": "number", "minimum": 0, "maximum": 65504 },
+        "subsurfaceColor": { "$ref": "#/$defs/vec3" },
         "emissive": { "$ref": "#/$defs/vec3" },
         "emissiveStrength": { "type": "number", "minimum": 0 },
+        "detail": {
+          "enum": [
+            null,
+            "weave",
+            "brushed",
+            "hammered",
+            "bands",
+            "stone",
+            "aggregate",
+            "mineral",
+            "ore",
+            "slate",
+            "ceramic",
+            "patina",
+            "basalt"
+          ]
+        },
+        "detailRotation": { "type": "number", "minimum": 0, "maximum": 360 },
+        "detailOffsetU": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detailOffsetV": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detailScale": { "type": "number", "minimum": 0.25, "maximum": 8 },
+        "detailNormalScale": { "type": "number", "minimum": 0, "maximum": 2 },
+        "detailMapping": { "enum": ["auto", "uv", "box"] },
         "recolor": {
           "type": "object",
           "properties": {
@@ -137,6 +170,44 @@
       "required": ["file", "name"],
       "additionalProperties": false
     },
+    "particleCollider": {
+      "oneOf": [
+        {
+          "const": false
+        },
+        {
+          "const": "mesh"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "primitive": {
+              "$ref": "#/$defs/primitive"
+            },
+            "scale": {
+              "$ref": "#/$defs/vec3"
+            },
+            "position": {
+              "$ref": "#/$defs/vec3"
+            },
+            "rotation": {
+              "$ref": "#/$defs/rotation"
+            },
+            "twoSided": {
+              "type": "boolean"
+            }
+          },
+          "not": {
+            "required": ["name", "primitive"]
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "model": {
       "type": "object",
       "properties": {
@@ -144,12 +215,18 @@
         "name": { "type": "string", "minLength": 1 },
         "primitive": { "$ref": "#/$defs/primitive" },
         "castsShadows": { "type": "boolean" },
+        "particleCollider": { "$ref": "#/$defs/particleCollider" },
         "scale": { "$ref": "#/$defs/vec3" },
         "size": { "$ref": "#/$defs/vec3" },
         "position": { "$ref": "#/$defs/vec3" },
         "rotation": { "$ref": "#/$defs/rotation" },
         "angularVelocity": { "$ref": "#/$defs/vec3" },
-        "material": { "$ref": "#/$defs/material" }
+        "material": { "$ref": "#/$defs/material" },
+        "materialSlots": {
+          "type": "object",
+          "propertyNames": { "minLength": 1 },
+          "additionalProperties": { "$ref": "#/$defs/material" }
+        }
       },
       "required": ["id"],
       "oneOf": [{ "required": ["name"] }, { "required": ["primitive"] }],
@@ -363,7 +440,8 @@
         "scaleEnd": { "type": "number", "minimum": 0 },
         "windInfluence": { "type": "number", "minimum": 0, "maximum": 1 },
         "inheritWind": { "type": "boolean" },
-        "nearFade": { "type": "number", "minimum": 0 }
+        "nearFade": { "type": "number", "minimum": 0 },
+        "velocityStretch": { "type": "number", "minimum": 0, "maximum": 64 }
       },
       "required": ["id"],
       "additionalProperties": false

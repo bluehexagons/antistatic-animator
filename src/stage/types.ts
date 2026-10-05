@@ -31,6 +31,36 @@ export interface StageMaterial {
   clearcoat?: number;
   clearcoatRoughness?: number;
   specularIor?: number;
+  opacity?: number;
+  transmission?: number;
+  ior?: number;
+  thickness?: number;
+  attenuationColor?: Vec3;
+  attenuationDistance?: number;
+  abbeNumber?: number;
+  subsurfaceWeight?: number;
+  subsurfaceRadius?: number;
+  subsurfaceColor?: Vec3;
+  detail?:
+    | null
+    | 'weave'
+    | 'brushed'
+    | 'hammered'
+    | 'bands'
+    | 'stone'
+    | 'aggregate'
+    | 'mineral'
+    | 'ore'
+    | 'slate'
+    | 'ceramic'
+    | 'patina'
+    | 'basalt';
+  detailScale?: number;
+  detailNormalScale?: number;
+  detailMapping?: 'auto' | 'uv' | 'box';
+  detailRotation?: number;
+  detailOffsetU?: number;
+  detailOffsetV?: number;
   emissive?: Vec3;
   emissiveStrength?: number;
   recolor?: { name: string; rgba: Vec4 };
@@ -54,6 +84,18 @@ export interface StageModel {
   rotation?: Vec4 | { pitch?: number; yaw?: number; roll?: number };
   angularVelocity?: Vec3;
   material?: StageMaterial;
+  materialSlots?: Record<string, StageMaterial>;
+  particleCollider?:
+    | false
+    | 'mesh'
+    | {
+        name?: string;
+        primitive?: StageModel['primitive'];
+        scale?: Vec3;
+        position?: Vec3;
+        rotation?: StageModel['rotation'];
+        twoSided?: boolean;
+      };
 }
 
 export type StageCollisionFlag =
@@ -142,6 +184,7 @@ export interface StageParticleEmitter {
   windInfluence?: number;
   inheritWind?: boolean;
   nearFade?: number;
+  velocityStretch?: number;
 }
 
 export interface StageAnimationKeyframe {

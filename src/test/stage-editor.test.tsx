@@ -211,6 +211,44 @@ describe('stage document operations', () => {
     expect(validateStageDocument(stage).length).toBeGreaterThan(0);
   });
 
+  it('preserves regional optical materials and directional stage particles through saves', () => {
+    const stage = createStageDocument('Surfaces');
+    addStageSceneItem(stage, 'model');
+    const model = stage.scene.models![0];
+    model.particleCollider = false;
+    model.materialSlots = {
+      StageFacadeInset: {
+        file: 'stage_facades.mtl',
+        name: 'StageFacadeInset',
+        transmission: 0.7,
+        opacity: 1,
+        ior: 1.46,
+        thickness: 3,
+        attenuationColor: [0.3, 0.7, 0.9],
+        attenuationDistance: 24,
+        abbeNumber: 55,
+        subsurfaceWeight: 0.2,
+        subsurfaceRadius: 2,
+        subsurfaceColor: [0.4, 0.8, 1],
+        detail: 'mineral',
+        detailMapping: 'box',
+        detailOffsetU: 0.4,
+        detailNormalScale: 0.05,
+      },
+    };
+    stage.scene.effects = {
+      particleEmitters: [{ id: 'rain', target: model.id, velocityStretch: 3, rate: 12 }],
+    };
+    expect(validateStageDocument(stage)).toEqual([]);
+    const saved = renderStageFile('// preserved stage note\n' + JSON.stringify(stage), stage);
+    expect(saved).toContain('// preserved stage note');
+    expect(parseStageDocument(saved).document).toEqual(stage);
+    stage.scene.effects.particleEmitters![0].velocityStretch = 65;
+    expect(validateStageDocument(stage).some((issue) => issue.message.includes('<= 64'))).toBe(
+      true
+    );
+  });
+
   it('rejects structurally invalid documents before rendering', () => {
     const parsed = parseStageDocument('{ "name": "Incomplete" }');
     expect(parsed.document).toBeNull();
