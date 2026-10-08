@@ -1,20 +1,20 @@
 # Codebase Sync
 
-## Audit
+## Current baseline
 
-Last checked: 2026-08-13
+Checked 2026-10-08 against:
 
-- Animator repository: `db2bd1e` (`main` baseline)
-- Antistatic repository: `4991d3ca` (`main`)
-- Easing package: `v0.5.1`
+- Animator repository: `9ec430c` (`main`, package `0.2.0`)
+- Antistatic repository: `687ba112` (`main`, package `0.10.17`)
+- Easing dependency: `v0.5.1` (the immutable version used by both packages)
 - Reference paths: `../antistatic/app/src/game/animation.ts`,
   `../antistatic/app/src/game/bubbles.ts`, `../antistatic/app/src/game/stage.ts`,
   and `../antistatic/docs/schemas/stage.schema.json`
 
-The stage scene schema copy is current with Antistatic's schema v2. Animation
-enum names, hurtbubble states, hitbubble types, and hitbubble flag bits also
-match the current game code. Recent game changes to rollback, netplay, and
-animation caching do not change the authoring format.
+The Animator's stage schema copy parses identically to Antistatic's schema v2.
+Animation enum names, hurtbubble states, hitbubble types, and hitbubble flag
+bits match the current game sources. Recent animation lifecycle and stage
+runtime changes do not change these authoring contracts.
 
 ## Parity Implemented
 
@@ -44,6 +44,8 @@ animation caching do not change the authoring format.
 - Audio fields can be edited but audio assets are not discovered or played.
 - Runtime handler functions are not executed in the editor. Handler validation
   remains advisory because character-specific handlers are loaded by the game.
+- Modified keyframes are marked in the timeline, but the sidebar has no
+  per-animation dirty badges.
 - Antistatic's current debug watcher reloads character data, not stage files;
   stage live reload remains a game-side follow-up.
 - Stage `autoplay`, `randomStart`, stage coordinate scaling, and some runtime
@@ -61,6 +63,6 @@ When Antistatic changes animation or stage authoring data:
 1. Compare the relevant runtime loader and schema files with this repository.
 2. Copy only small, clearly separated MIT/Apache-compatible helpers when needed.
 3. Add a focused test for each changed runtime rule and update this document's
-   audit commit and date.
+   baseline and date.
 4. Run `npm run type-check`, `npm run lint`, `npm run test:run`, and
    `npm run build`.
