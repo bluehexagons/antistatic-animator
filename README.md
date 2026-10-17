@@ -41,7 +41,18 @@ npm start            # Run Electron app
 npm run check        # Full local validation gate
 npm run type-check   # TypeScript validation
 npm run lint         # Code quality checks
-npm run test:run     # Run the Vitest suite
+npm test             # Run the Vitest suite once (test:run is an alias)
+npm run test:watch   # Watch tests during interactive development
+```
+
+Tests use two workers and compact dots, with failure details and final counts.
+Pass a file or `-t` name filter to narrow a rerun; use `--reporter=verbose`
+for every case name, or `--maxWorkers=1` to serialize files. To retain timings
+and failure context alongside the compact output:
+
+```bash
+npm test -- src/test/stage-editor.test.tsx -t 'collision' --reporter=verbose
+npm test -- --reporter=dot --reporter=json --outputFile=local-artifacts/tests.json
 ```
 
 Set `ANTISTATIC_ANIMATOR_DEVTOOLS=1` when launching Electron to install React

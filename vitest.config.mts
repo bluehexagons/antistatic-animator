@@ -5,6 +5,8 @@ import { stageValidatorPlugin } from './vite.config.mts';
 export default defineConfig({
   plugins: [stageValidatorPlugin],
   test: {
+    maxWorkers: 2,
+    reporters: ['dot'],
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],

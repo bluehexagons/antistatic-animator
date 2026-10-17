@@ -29,7 +29,7 @@ Apache-2.0 and MIT respectively.
   Diagnose CachyOS with `basaltw local cachyos-doctor --json`, or Debian with
   `basaltw agent doctor --capability development --json`, when host tooling is
   suspect. Repository checks remain authoritative and work without Basaltwater.
-- `npm install`: install dependencies. Requires Node `>=22.22.1`.
+- `npm ci`: install locked dependencies. Requires Node `>=22.22.1`.
 - Select `.nvmrc` with `nvm use` before npm commands. On Basaltwater,
   `basaltw node exec -- npm run check` selects the project runtime without
   changing the host default; `basaltw node install` installs a missing pin and
@@ -42,7 +42,8 @@ Apache-2.0 and MIT respectively.
 - `npm start`: run Electron from the current `dist/` output.
 - `npm run type-check`: run TypeScript validation without emitting files.
 - `npm run lint`: run Oxlint over `src/` with warnings denied.
-- `npm run test:run`: run the Vitest suite once.
+- `npm test` (also `npm run test:run`): run the Vitest suite once.
+- `npm run test:watch`: watch tests during interactive development.
 - `npm run format:check`: verify Oxfmt formatting.
 - `npm run dist`: package the Electron app with `@electron/packager`.
 

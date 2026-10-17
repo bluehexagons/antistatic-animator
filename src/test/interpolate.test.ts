@@ -2,7 +2,7 @@
  * Tests for pose interpolation between keyframes.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { interpolatedPose } from '../animator/operations/interpolate';
 import type { Animation } from '../animator/types';
 
@@ -64,9 +64,18 @@ describe('interpolatedPose', () => {
         { duration: 10, hurtbubbles: [10, 20, 5, 1, 15, 25, 6, 1] },
       ],
     };
-    const pose = interpolatedPose(anim, 0, 5);
-    expect(pose).toBe(anim.keyframes[0].hurtbubbles);
-    expect(pose?.length).toBe(4);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const pose = interpolatedPose(anim, 0, 5);
+      expect(pose).toBe(anim.keyframes[0].hurtbubbles);
+      expect(pose?.length).toBe(4);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('hurtbubble count (4) differs from target keyframe (8)')
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('holds omitted poses and uses the terminal keyframe as the destination', () => {
