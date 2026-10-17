@@ -1,7 +1,8 @@
-const { version } = require('./package.json');
+const { name, version } = require('./package.json');
 
 module.exports = {
-  name: 'Antistatic Animator',
+  name,
+  executableName: name,
   appVersion: version,
   // Uncomment and add icon when available
   // icon: './assets/icon',
