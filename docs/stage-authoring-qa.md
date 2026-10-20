@@ -66,8 +66,7 @@ downloads the edited file. Upload that download again for the reopen check.
   material/position tracks while retaining unrelated objects and tracks.
 - In game, verify attachment transforms, original textures/palettes, animated
   emission, point-light calibration, bloom, and final shading. The authoring
-  schema is additive scene v2; reconcile it with the canonical game schema
-  before combined validation.
+  schema is additive scene v2 and matches the canonical game schema.
 - Drag anchors, entrances, and spawns; edit their exact coordinates, weights,
   and facing in the inspector.
 - Rename and delete referenced models/collision. References should update or be
@@ -94,7 +93,7 @@ does not show the hitbox outside its active window and that the smear remains
 anchored to the named bubble. The final animation keyframe should be visible as
 the terminal pose but should not add to the playable frame count.
 
-Finish with the game-side checklist at `../antistatic/docs/qa/stage-authoring.md`
+Finish with the game-side checklist at `../antistatic/docs/qa/authoring.md`
 to verify runtime collision, effects, and visual parity.
 
 ## Game preview integration boundary
@@ -107,8 +106,15 @@ material track stores `target.kind = "material"`, `id`, `materialSlot`, and
 `property` (`emissive` or `emissiveStrength`), with `{time, value}` keyframes.
 Existing position tracks retain `{time, position}`.
 
-The existing Live Sync availability gate in `App.tsx` currently enables only
-character documents. A future stage integration can reuse the stage change/save
-boundary and the game’s existing reload/preview path. Animator does not enable
-stage Live Sync or add a renderer/transport here. Bloom normalization and the
-runtime's final output remain game-owned.
+Electron Local sources expose Live Sync for stage documents through the same
+validated save boundary. Invalid documents and external conflicts pause live
+saves. The game's offline Training preview consumes those files without
+replacing gameplay state; see [Live Updates](live-updates.md). Bloom normalization
+and final rendering remain game-owned.
+
+With Live Sync enabled, change the current stage's emission and bloom in a
+disposable game checkout and confirm the rendered preview updates. Introduce an
+Issue and confirm no autosave dialog interrupts editing; resolve it and confirm
+the preview resumes. Edit collision and verify gameplay stays unchanged until
+restarting the stage. Disable Live Reload and leave Training to verify preview
+cleanup, then exercise the existing external-file conflict flow.

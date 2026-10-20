@@ -427,6 +427,16 @@
       },
       "additionalProperties": false
     },
+    "bloom": {
+      "type": "object",
+      "properties": {
+        "strength": { "type": "number", "minimum": 0, "maximum": 8, "default": 1.35 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 64, "default": 1.12 },
+        "knee": { "type": "number", "minimum": 0, "maximum": 64, "default": 0.72 },
+        "radius": { "type": "number", "minimum": 0.25, "maximum": 4, "default": 1 }
+      },
+      "additionalProperties": false
+    },
     "colorGrading": {
       "type": "object",
       "properties": {
@@ -438,6 +448,24 @@
       },
       "additionalProperties": false
     },
+    "sky": {
+      "type": "object",
+      "properties": {
+        "zenithColor": { "$ref": "#/$defs/vec3" },
+        "horizonColor": { "$ref": "#/$defs/vec3" },
+        "groundColor": { "$ref": "#/$defs/vec3" },
+        "sunDirection": { "$ref": "#/$defs/vec3" },
+        "sunColor": { "$ref": "#/$defs/vec3" },
+        "cloudColor": { "$ref": "#/$defs/vec3" },
+        "horizonHeight": { "type": "number", "minimum": -0.5, "maximum": 0.5 },
+        "gradientPower": { "type": "number", "minimum": 0.1, "maximum": 4 },
+        "sunRadius": { "type": "number", "minimum": 0, "maximum": 10 },
+        "cloudCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "cloudScale": { "type": "number", "minimum": 0.25, "maximum": 32 },
+        "stars": { "type": "number", "minimum": 0, "maximum": 4 }
+      },
+      "additionalProperties": false
+    },
     "lighting": {
       "type": "object",
       "properties": {
@@ -446,28 +474,15 @@
         "sunIntensity": { "type": "number", "minimum": 0 },
         "ambientColor": { "$ref": "#/$defs/vec3" },
         "backgroundColor": { "$ref": "#/$defs/vec3" },
+        "sky": { "$ref": "#/$defs/sky" },
         "reflectionProbe": { "$ref": "#/$defs/reflectionProbe" },
         "environmentMap": { "type": "string" },
         "environmentRotation": { "type": "number" },
         "fogNear": { "type": "number" },
         "fogFar": { "type": "number" },
         "atmosphere": { "$ref": "#/$defs/atmosphere" },
-        "colorGrading": {
-          "$ref": "#/$defs/colorGrading"
-        },
-        "sky": {
-          "$ref": "#/$defs/sky"
-        },
-        "bloom": {
-          "type": "object",
-          "properties": {
-            "strength": { "type": "number", "minimum": 0, "maximum": 8, "default": 1.35 },
-            "threshold": { "type": "number", "minimum": 0, "maximum": 64, "default": 1.12 },
-            "knee": { "type": "number", "minimum": 0, "maximum": 64, "default": 0.72 },
-            "radius": { "type": "number", "minimum": 0.25, "maximum": 4, "default": 1 }
-          },
-          "additionalProperties": false
-        }
+        "colorGrading": { "$ref": "#/$defs/colorGrading" },
+        "bloom": { "$ref": "#/$defs/bloom" }
       },
       "additionalProperties": false
     },
@@ -542,14 +557,14 @@
       "required": ["target", "keyframes"],
       "additionalProperties": false
     },
-    "emissionNumber": { "type": "number", "minimum": 0, "maximum": 65504 },
-    "emissionRGB": {
+    "emissionScalar": { "type": "number", "minimum": 0, "maximum": 65504 },
+    "emissionColor": {
       "type": "array",
-      "items": { "$ref": "#/$defs/emissionNumber" },
+      "items": { "$ref": "#/$defs/emissionScalar" },
       "minItems": 3,
       "maxItems": 3
     },
-    "materialEmissionTrack": {
+    "materialAnimationTrack": {
       "type": "object",
       "properties": {
         "target": {
@@ -558,64 +573,65 @@
             "kind": { "const": "material" },
             "id": { "$ref": "#/$defs/id" },
             "materialSlot": { "$ref": "#/$defs/id" },
-            "property": { "const": "emissive" }
+            "property": { "enum": ["emissive", "emissiveStrength"] }
           },
           "required": ["kind", "id", "materialSlot", "property"],
           "additionalProperties": false
         },
         "keyframes": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "type": "object",
             "properties": {
               "time": { "type": "number", "minimum": 0 },
-              "value": { "$ref": "#/$defs/emissionRGB" }
+              "value": {
+                "oneOf": [{ "$ref": "#/$defs/emissionScalar" }, { "$ref": "#/$defs/emissionColor" }]
+              }
             },
             "required": ["time", "value"],
             "additionalProperties": false
-          }
-        }
-      },
-      "required": ["target", "keyframes"],
-      "additionalProperties": false
-    },
-    "materialStrengthTrack": {
-      "type": "object",
-      "properties": {
-        "target": {
-          "type": "object",
-          "properties": {
-            "kind": { "const": "material" },
-            "id": { "$ref": "#/$defs/id" },
-            "materialSlot": { "$ref": "#/$defs/id" },
-            "property": { "const": "emissiveStrength" }
           },
-          "required": ["kind", "id", "materialSlot", "property"],
-          "additionalProperties": false
-        },
-        "keyframes": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "properties": {
-              "time": { "type": "number", "minimum": 0 },
-              "value": { "$ref": "#/$defs/emissionNumber" }
-            },
-            "required": ["time", "value"],
-            "additionalProperties": false
-          }
+          "minItems": 1
         }
       },
       "required": ["target", "keyframes"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "target": { "type": "object", "properties": { "property": { "const": "emissive" } } }
+            }
+          },
+          "then": {
+            "properties": {
+              "keyframes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": { "value": { "$ref": "#/$defs/emissionColor" } }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "keyframes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": { "value": { "$ref": "#/$defs/emissionScalar" } }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "animationTrack": {
       "oneOf": [
         { "$ref": "#/$defs/positionAnimationTrack" },
-        { "$ref": "#/$defs/materialEmissionTrack" },
-        { "$ref": "#/$defs/materialStrengthTrack" }
+        { "$ref": "#/$defs/materialAnimationTrack" }
       ]
     },
     "animation": {
@@ -670,60 +686,6 @@
         }
       },
       "required": ["schemaVersion"],
-      "additionalProperties": false
-    },
-    "sky": {
-      "type": "object",
-      "properties": {
-        "zenithColor": {
-          "$ref": "#/$defs/vec3"
-        },
-        "horizonColor": {
-          "$ref": "#/$defs/vec3"
-        },
-        "groundColor": {
-          "$ref": "#/$defs/vec3"
-        },
-        "sunDirection": {
-          "$ref": "#/$defs/vec3"
-        },
-        "sunColor": {
-          "$ref": "#/$defs/vec3"
-        },
-        "cloudColor": {
-          "$ref": "#/$defs/vec3"
-        },
-        "horizonHeight": {
-          "type": "number",
-          "minimum": -0.5,
-          "maximum": 0.5
-        },
-        "gradientPower": {
-          "type": "number",
-          "minimum": 0.1,
-          "maximum": 4
-        },
-        "sunRadius": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 10
-        },
-        "cloudCoverage": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "cloudScale": {
-          "type": "number",
-          "minimum": 0.25,
-          "maximum": 32
-        },
-        "stars": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 4
-        }
-      },
       "additionalProperties": false
     },
     "paletteMaterial": {

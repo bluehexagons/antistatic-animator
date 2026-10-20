@@ -201,7 +201,7 @@ const Shell: React.FC = () => {
     [library.version]
   );
 
-  const liveSyncAvailable = mode === 'character' && library.kind === 'electron' && library.canSave;
+  const liveSyncAvailable = library.kind === 'electron' && library.canSave;
 
   const activeSourceNames = useMemo(() => {
     const names = mode === 'stage' ? [state.stageFile] : [selectedFile ?? '', state.animFile];
@@ -539,9 +539,12 @@ const Shell: React.FC = () => {
 
   useEffect(() => {
     if (!liveSync || !liveSyncAvailable || !saveDirty || externalChange) return;
+    // Keep incomplete stage edits in the editor; Issues explains them without
+    // interrupting every keystroke with an autosave error dialog.
+    if (mode === 'stage' && (!state.stage || validateStageDocument(state.stage).length > 0)) return;
     const timer = setTimeout(() => void handleSave(), 250);
     return () => clearTimeout(timer);
-  }, [externalChange, handleSave, liveSync, liveSyncAvailable, saveDirty]);
+  }, [externalChange, handleSave, liveSync, liveSyncAvailable, mode, saveDirty, state.stage]);
 
   const handleToggleLiveSync = useCallback(() => {
     setLiveSync((enabled) => {
