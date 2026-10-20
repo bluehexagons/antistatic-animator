@@ -53,15 +53,20 @@ export const stageAuthoredEmission = (
   const binding = Object.entries(model.paletteSlots ?? {}).find(
     ([name]) => name.trim() === slot.trim()
   )?.[1];
-  const color = binding
-    ? Object.hasOwn(model.paletteOverrides?.colors ?? {}, binding)
+  const baseColor =
+    binding && Object.hasOwn(palette?.colors ?? {}, binding) ? palette!.colors[binding] : undefined;
+  const overrideColor =
+    binding && Object.hasOwn(model.paletteOverrides?.colors ?? {}, binding)
       ? model.paletteOverrides!.colors![binding]
-      : Object.hasOwn(palette?.colors ?? {}, binding)
-        ? palette!.colors[binding]
-        : undefined
-    : undefined;
+      : undefined;
+  const color = overrideColor ?? baseColor;
   const finish = color
-    ? { ...palette?.material, ...model.paletteOverrides?.material, ...color.material }
+    ? {
+        ...palette?.material,
+        ...model.paletteOverrides?.material,
+        ...baseColor?.material,
+        ...overrideColor?.material,
+      }
     : undefined;
   const rgb =
     finish?.emissiveColor === 'palette' ? (color?.rgba.slice(0, 3) as Vec3) : finish?.emissiveColor;
@@ -84,7 +89,9 @@ export const stageSourceTransform = (
   if (model.primitive?.type !== 'box' || model.angularVelocity?.some((value) => value !== 0))
     return undefined;
   const scale = (model.size ?? [1, 1, 1]).map(
-    (value, axis) => value * (model.scale?.[axis] ?? 1) * (axis === 1 ? -1 : 1)
+    (value, axis) =>
+      // Model.build reflects Y; the stage prefab reflects local Z before TRS.
+      value * (model.scale?.[axis] ?? 1) * (axis === 0 ? 1 : -1)
   );
   if (scale.some((value) => !Number.isFinite(value) || value === 0)) return undefined;
   const rotation = model.rotation;

@@ -14,7 +14,7 @@ import {
   removeStageSceneItem,
 } from '../stage/document';
 import { evaluateStageAnimation, sampleStageMaterial } from '../stage/animation';
-import { BLOOM_DEFAULTS, stageSourceTransform } from '../stage/emission';
+import { BLOOM_DEFAULTS, stageAuthoredEmission, stageSourceTransform } from '../stage/emission';
 import type { StageDocument, StageMaterialTrack } from '../stage/types';
 
 const fixture = (): StageDocument => {
@@ -163,6 +163,24 @@ describe('material emission scene v2 contract', () => {
     expect(preview.collision.get('main-platform')?.from).toEqual([-200, 0]);
   });
 
+  it('preserves per-color palette finishes through sparse instance color overrides', () => {
+    const stage = fixture();
+    const model = stage.scene.models![1];
+    stage.scene.palettes!.untouched.colors.paint.material = {
+      emissiveColor: 'palette',
+      emissiveStrength: 2,
+    };
+    model.paletteOverrides = {
+      material: { emissiveStrength: 4 },
+      colors: { paint: { rgba: [0.5, 0.6, 0.7, 1] } },
+    };
+    expect(stageAuthoredEmission(stage, model, 'Base')).toEqual({
+      emissive: [0.5, 0.6, 0.7],
+      emissiveStrength: 2,
+    });
+    model.paletteOverrides.colors!.paint.material = { emissiveStrength: 3 };
+    expect(stageAuthoredEmission(stage, model, 'Base').emissiveStrength).toBe(3);
+  });
   it('keeps track identities distinct, rejects duplicates and maintains rename/delete references', () => {
     const stage = fixture();
     stage.scene.animations![0].tracks.push({
@@ -235,13 +253,34 @@ describe('material emission scene v2 contract', () => {
     stage.lighting = { bloom: { [key]: value } };
     expect(validateStageDocument(stage).length).toBeGreaterThan(0);
   });
+  it.each([{ yaw: 0.5 }, [0, Math.SQRT1_2, 0, Math.SQRT1_2] as [number, number, number, number]])(
+    'matches the game prefab reflection for a rotated local Z offset: %j',
+    (rotation) => {
+      const model = fixture().scene.models![0];
+      model.rotation = rotation;
+      model.scale = [1, 1, 1];
+      const offset: [number, number, number] = [1, 2, 3];
+      // The game applies TRS * diag(1, 1, -1), including reflected model Y.
+      const transform = stageSourceTransform(model)!;
+      transform
+        .forward(offset)
+        .forEach((value, index) => expect(value).toBeCloseTo([-2, -26, 28][index]));
+      transform
+        .inverse([-2, -26, 28])
+        .forEach((value, index) => expect(value).toBeCloseTo(offset[index]));
+      model.scale = [-1, 1, -1];
+      stageSourceTransform(model)!
+        .forward(offset)
+        .forEach((value, index) => expect(value).toBeCloseTo([22, -26, 32][index]));
+    }
+  );
   it('inverts a resolved scaled/rotated attachment and refuses unknown imported bounds or singular scales', () => {
     const stage = fixture();
     const transform = stageSourceTransform(stage.scene.models![0])!;
     const world = transform.forward([1, 2, 3]);
     expect(world[0]).toBeCloseTo(16);
     expect(world[1]).toBeCloseTo(-16);
-    expect(world[2]).toBeCloseTo(42);
+    expect(world[2]).toBeCloseTo(18);
     transform.inverse(world).forEach((value, index) => expect(value).toBeCloseTo([1, 2, 3][index]));
     expect(stageSourceTransform(stage.scene.models![1])).toBeUndefined();
     stage.scene.models![0].scale = [0, 1, 1];
