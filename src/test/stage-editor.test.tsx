@@ -286,7 +286,7 @@ describe('stage document operations', () => {
     const model = stage.scene.models![0];
     model.particleCollider = false;
     model.materialSlots = {
-      StageFacadeInset: {
+      PrimitiveDefault: {
         file: 'stage_facades.mtl',
         name: 'StageFacadeInset',
         transmission: 0.7,

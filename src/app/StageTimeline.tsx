@@ -49,7 +49,10 @@ const initialTrack = (stage: StageDocument, target: Target): StageAnimationTrack
     const emission = model
       ? stageAuthoredEmission(stage, model, target.materialSlot)
       : { emissive: [0, 0, 0] as Vec3, emissiveStrength: 1 };
-    return { target: { ...target }, keyframes: [{ time: 0, value: emission[target.property] }] };
+    return {
+      target: { ...target, id: target.id.trim(), materialSlot: target.materialSlot.trim() },
+      keyframes: [{ time: 0, value: emission[target.property] }],
+    };
   }
   return {
     target: { ...target },
@@ -103,7 +106,12 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
   const customMode = newTarget === 'custom-material';
   const chosenNewTarget: Target | undefined = customMode
     ? customModelId && customSlot.trim()
-      ? { kind: 'material', id: customModelId, materialSlot: customSlot, property: customProperty }
+      ? {
+          kind: 'material',
+          id: customModelId,
+          materialSlot: customSlot.trim(),
+          property: customProperty,
+        }
       : undefined
     : (availableTargets.find((target) => targetValue(target) === newTarget) ?? availableTargets[0]);
   const canAddTrack =

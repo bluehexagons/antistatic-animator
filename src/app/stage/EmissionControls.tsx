@@ -92,7 +92,7 @@ export const MaterialEmissionControls: React.FC<{
     Object.keys(model.materialSlots ?? {}).find((name) => name.trim() === requestedSlot.trim()) ??
     (model.primitive && requestedSlot.trim() === 'PrimitiveDefault'
       ? 'PrimitiveDefault'
-      : requestedSlot);
+      : requestedSlot.trim());
   const material = targetSlot
     ? Object.hasOwn(model.materialSlots ?? {}, targetSlot)
       ? model.materialSlots![targetSlot]
@@ -143,7 +143,7 @@ export const MaterialEmissionControls: React.FC<{
                 className="btn ghost"
                 disabled={!newSlot.trim()}
                 onClick={() => {
-                  setSlot(newSlot);
+                  setSlot(newSlot.trim());
                   setNewSlot('');
                 }}
               >
@@ -343,7 +343,8 @@ export const SourceLightControls: React.FC<{
               defaultValue={source.materialSlot}
               onBlur={(event) => {
                 if (event.target.value.trim()) {
-                  source.materialSlot = event.target.value;
+                  source.materialSlot = event.target.value.trim();
+                  event.target.value = source.materialSlot;
                   onChange();
                 } else event.target.value = source.materialSlot;
               }}

@@ -72,7 +72,22 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
   collectIds('effects/particleEmitters', stage.scene.effects?.particleEmitters);
   collectIds('animations', stage.scene.animations);
 
+  const checkMaterialSlot = (slot: string, primitive: boolean, path: string) => {
+    if (slot !== slot.trim()) {
+      issues.push({ path, message: 'source material slots must not have surrounding whitespace' });
+    } else if (primitive && slot !== 'PrimitiveDefault') {
+      issues.push({
+        path,
+        message: `unknown primitive material slot "${slot}"; expected "PrimitiveDefault"`,
+      });
+    }
+  };
   for (const model of stage.scene.models ?? []) {
+    for (const field of ['materialSlots', 'paletteSlots'] as const) {
+      for (const slot of Object.keys(model[field] ?? {})) {
+        checkMaterialSlot(slot, !!model.primitive, `/scene/models/${model.id}/${field}/${slot}`);
+      }
+    }
     if (model.palette === undefined) continue;
     const palette =
       typeof model.palette === 'string'
@@ -121,12 +136,9 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
     const model = stage.scene.models?.find((item) => item.id.trim() === source.model.trim());
     if (!model) {
       issues.push({ path: `${path}/model`, message: `unknown model "${source.model}"` });
-    } else if (model.primitive && source.materialSlot.trim() !== 'PrimitiveDefault') {
+    } else {
       // Imported mesh slot inventories live in assets, which the editor does not load.
-      issues.push({
-        path: `${path}/materialSlot`,
-        message: `unknown primitive material slot "${source.materialSlot}"; expected "PrimitiveDefault"`,
-      });
+      checkMaterialSlot(source.materialSlot.trim(), !!model.primitive, `${path}/materialSlot`);
     }
   }
   for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
@@ -180,14 +192,16 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
       }
       if (isStageMaterialTrack(track)) {
         const model = stage.scene.models?.find((item) => item.id.trim() === track.target.id.trim());
-        if (model?.primitive && track.target.materialSlot.trim() !== 'PrimitiveDefault') {
-          issues.push({
-            path: `/scene/animations/${animation.id}/tracks`,
-            message: 'primitive material tracks require PrimitiveDefault',
-          });
+        if (model) {
+          checkMaterialSlot(
+            track.target.materialSlot,
+            !!model.primitive,
+            `/scene/animations/${animation.id}/tracks`
+          );
         }
       }
       const times = new Set<number>();
+      let previousTime = -Infinity;
       const dimensions = track.target.kind === 'model' ? 3 : 2;
       for (const keyframe of track.keyframes) {
         lastKeyframeTime = Math.max(lastKeyframeTime, keyframe.time);
@@ -202,8 +216,14 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
             path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
             message: `duplicate keyframe time ${keyframe.time}`,
           });
+        } else if (materialTrack && keyframe.time < previousTime) {
+          issues.push({
+            path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
+            message: 'material keyframe times must be in increasing order',
+          });
         }
         times.add(keyframe.time);
+        previousTime = keyframe.time;
       }
     }
     if (animation.duration !== undefined && animation.duration < lastKeyframeTime + 1) {

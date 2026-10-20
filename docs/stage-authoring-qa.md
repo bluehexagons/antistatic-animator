@@ -73,6 +73,11 @@ downloads the edited file. Upload that download again for the reopen check.
   removed, and deletion must not strand an empty invalid animation.
 - Introduce an invalid value and confirm Issues explains it and save is refused.
   Restore it, save, reopen, and confirm JSONC comments and values round-trip.
+- Import a material track with descending keyframe times and confirm Issues
+  blocks saving until they are ordered. A primitive accepts only the original
+  `PrimitiveDefault` slot in material overrides and palette bindings. Enter a
+  padded imported slot in the emission inspector, attached-light field, and
+  timeline; newly authored references must save without surrounding whitespace.
 - Open **Hazard Lab** and select its collision entries. Set a friction override
   to 0 and 1, then clear it to restore character friction. Enter a value outside
   that range and confirm the previous value is kept with an explanation.

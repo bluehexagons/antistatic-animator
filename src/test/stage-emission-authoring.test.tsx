@@ -91,8 +91,8 @@ const fixture = (): StageDocument => {
             property: 'emissive',
           },
           keyframes: [
-            { time: 10, value: [2, 4, 6] },
             { time: 0, value: [0, 0, 0] },
+            { time: 10, value: [2, 4, 6] },
           ],
         },
         {
@@ -238,8 +238,47 @@ describe('material emission scene v2 contract', () => {
     track(stage).target.id = 'missing';
     expect(validateStageDocument(stage)[0].message).toContain('unknown material');
     track(stage).target.id = 'lamp';
-    track(stage).keyframes[0].time = 0;
+    track(stage).keyframes[1].time = 0;
     expect(validateStageDocument(stage)[0].message).toContain('duplicate keyframe time');
+  });
+  it.each([0, 1])('rejects descending emission keyframe times for track %s', (index) => {
+    const stage = fixture();
+    track(stage, index).keyframes.reverse();
+    expect(
+      validateStageDocument(stage).some((issue) => issue.message.includes('increasing order'))
+    ).toBe(true);
+    expect(
+      parseStageDocument(renderStageFile(undefined, stage)).issues.some((issue) =>
+        issue.message.includes('increasing order')
+      )
+    ).toBe(true);
+  });
+  it.each(['materialSlots', 'paletteSlots'] as const)('rejects unknown primitive %s', (field) => {
+    const stage = fixture();
+    const model = stage.scene.models![0];
+    if (field === 'materialSlots') model.materialSlots!.Unknown = structuredClone(model.material!);
+    else {
+      model.palette = 'untouched';
+      model.paletteSlots = { Unknown: 'paint' };
+    }
+    expect(
+      validateStageDocument(stage).some(
+        (issue) =>
+          issue.path.includes(`/${field}/Unknown`) && issue.message.includes('PrimitiveDefault')
+      )
+    ).toBe(true);
+  });
+  it('rejects padded slots in imported overrides, bindings and tracks', () => {
+    const stage = fixture();
+    const model = stage.scene.models![1];
+    model.materialSlots![' Padded '] = structuredClone(model.material!);
+    model.paletteSlots![' Padded '] = 'paint';
+    track(stage).target.id = model.id;
+    track(stage).target.materialSlot = ' Padded ';
+    const paths = validateStageDocument(stage)
+      .filter((issue) => issue.message.includes('whitespace'))
+      .map((issue) => issue.path);
+    expect(paths).toHaveLength(3);
   });
   it.each([
     ['strength', -1],
@@ -377,7 +416,7 @@ describe('dedicated emission authoring controls', () => {
     await mount(<Inspector stage={stage} kind="model" id="mesh" />);
     await edit(
       container.querySelector('[aria-label="Original material slot"]')!,
-      'Authored Original'
+      '  Authored Original  '
     );
     await click('Edit slot');
     await click('Create slot override from whole material');
@@ -409,6 +448,10 @@ describe('dedicated emission authoring controls', () => {
     const stage = fixture();
     const models = structuredClone(stage.scene.models);
     await mount(<Inspector stage={stage} kind="pointLight" id="source" />);
+    await edit(labeled('Source slot'), ' PrimitiveDefault ');
+    expect(stage.scene.effects!.pointLights![0].emissionSource!.materialSlot).toBe(
+      'PrimitiveDefault'
+    );
     await edit(labeled('Local position z'), '-4');
     await edit(labeled('Source radius'), '5');
     await edit(labeled('range'), '0');
@@ -541,7 +584,7 @@ describe('dedicated emission authoring controls', () => {
     await choose(container.querySelector('[aria-label="New track target"]')!, 'custom-material');
     await edit(
       container.querySelector('[aria-label="Original slot for new material track"]')!,
-      'Original Light Panel'
+      '  Original Light Panel  '
     );
     await click('Add track');
     expect(track(stage).target).toEqual({
