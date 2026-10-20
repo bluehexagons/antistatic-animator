@@ -364,7 +364,7 @@
           "type": "object",
           "properties": {
             "model": { "$ref": "#/$defs/id" },
-            "materialSlot": { "type": "string", "minLength": 1 },
+            "materialSlot": { "$ref": "#/$defs/id" },
             "localPosition": { "$ref": "#/$defs/vec3" }
           },
           "required": ["model", "materialSlot"],
