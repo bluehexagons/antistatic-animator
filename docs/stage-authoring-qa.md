@@ -116,5 +116,5 @@ With Live Sync enabled, change the current stage's emission and bloom in a
 disposable game checkout and confirm the rendered preview updates. Introduce an
 Issue and confirm no autosave dialog interrupts editing; resolve it and confirm
 the preview resumes. Edit collision and verify gameplay stays unchanged until
-restarting the stage. Disable Live Reload and leave Training to verify preview
+restarting the game. Disable Live Reload and leave Training to verify preview
 cleanup, then exercise the existing external-file conflict flow.
