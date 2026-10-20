@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { StageInspector } from '../app/StageInspector';
 import { StageSceneViewer } from '../app/StageSceneViewer';
 import {
+  addStageSceneItem,
   createStageDocument,
   parseStageDocument,
   removeStageSceneItem,
@@ -43,7 +44,119 @@ const fixture = (): StageDocument => {
   return stage;
 };
 
+const whitespaceFixture = (): StageDocument => {
+  const stage = fixture();
+  stage.scene.models![0].id = ' lamp ';
+  stage.scene.collision![0].model = '\tlamp ';
+  stage.scene.effects!.pointLights![0].emissionSource!.model = ' lamp\n';
+  stage.scene.effects!.pointLights![0].emissionSource!.materialSlot = ' PrimitiveDefault\t';
+  stage.scene.effects!.particleEmitters = [{ id: 'sparks', target: 'lamp\t' }];
+  stage.scene.animations = [
+    {
+      id: 'pulse',
+      tracks: [
+        { target: { kind: 'model', id: '\nlamp' }, keyframes: [{ time: 0, position: [0, 0, 0] }] },
+      ],
+    },
+  ];
+  return stage;
+};
+
 describe('emission-linked point light documents', () => {
+  it.each([
+    ['lamp', ' lamp ', 'PrimitiveDefault'],
+    [' lamp ', 'lamp', 'PrimitiveDefault'],
+    [' lamp ', '\tlamp\n', ' PrimitiveDefault\t'],
+  ])(
+    'validates trimmed IDs and slots, preserving authored strings through saves: %j',
+    (id, model, materialSlot) => {
+      const stage = fixture();
+      stage.scene.models![0].id = id;
+      stage.scene.effects!.pointLights![0].emissionSource = { model, materialSlot };
+      const source = `// lighting note\n${JSON.stringify(stage, null, 2)}\n`.replace(
+        '"intensity": 500,',
+        '"intensity": 500, // calibration note'
+      );
+      const parsed = parseStageDocument(source);
+      expect(parsed).toEqual({ document: stage, issues: [] });
+      expect(validateStageDocument(parsed.document)).toEqual([]);
+      expect(renderStageFile(source, parsed.document!)).toBe(source);
+      parsed.document!.scene.effects!.pointLights![0].intensity = 750;
+      const saved = renderStageFile(source, parsed.document!);
+      expect(saved).toContain('// calibration note');
+      const roundTrip = parseStageDocument(saved);
+      expect(roundTrip).toEqual({ document: parsed.document, issues: [] });
+      expect(roundTrip.document!.scene.models![0].id).toBe(id);
+      expect(roundTrip.document!.scene.effects!.pointLights![0].emissionSource).toEqual({
+        model,
+        materialSlot,
+      });
+    }
+  );
+
+  it('renames all canonical model references to the trimmed new ID and round-trips them', () => {
+    const stage = whitespaceFixture();
+    const original = renderStageFile(undefined, stage);
+    expect(validateStageDocument(stage)).toEqual([]);
+    const renamed = renameStageSceneItem(stage, { kind: 'model', id: 'lamp' }, '\tnew-lamp ');
+    expect(renamed).toEqual({ kind: 'model', id: 'new-lamp' });
+    expect(stage.scene.models![0].id).toBe('new-lamp');
+    expect(stage.scene.collision![0].model).toBe('new-lamp');
+    expect(stage.scene.effects!.particleEmitters![0].target).toBe('new-lamp');
+    expect(stage.scene.animations![0].tracks[0].target.id).toBe('new-lamp');
+    expect(stage.scene.effects!.pointLights![0].emissionSource).toMatchObject({
+      model: 'new-lamp',
+      materialSlot: ' PrimitiveDefault\t',
+      localPosition: [1, -2, 3],
+    });
+    expect(parseStageDocument(renderStageFile(original, stage))).toEqual({
+      document: stage,
+      issues: [],
+    });
+  });
+
+  it('removes canonical model dependents before save without leaving dangling references', () => {
+    const stage = whitespaceFixture();
+    const original = renderStageFile(undefined, stage);
+    expect(removeStageSceneItem(stage, { kind: 'model', id: '\tlamp\n' })).toBe(true);
+    expect(stage.scene.models).toEqual([]);
+    expect(stage.scene.collision![0]).not.toHaveProperty('model');
+    expect(stage.scene.effects!.particleEmitters![0]).not.toHaveProperty('target');
+    expect(stage.scene.animations).toEqual([]);
+    expect(stage.scene.effects!.pointLights!.map((light) => light.id)).toEqual(['standalone']);
+    expect(parseStageDocument(renderStageFile(original, stage))).toEqual({
+      document: stage,
+      issues: [],
+    });
+  });
+
+  it('rejects duplicate canonical model IDs and avoids them on rename or creation', () => {
+    const stage = whitespaceFixture();
+    stage.scene.models!.push({ id: ' model-0 ', primitive: { type: 'box' } });
+    const original = structuredClone(stage);
+    const selection = { kind: 'model' as const, id: ' lamp ' };
+    expect(renameStageSceneItem(stage, selection, 'model-0')).toEqual(selection);
+    expect(stage).toEqual(original);
+    expect(addStageSceneItem(stage, 'model')).toEqual({ kind: 'model', id: 'model-1' });
+    expect(validateStageDocument(stage)).toEqual([]);
+    stage.scene.models!.push({ id: '\tlamp', primitive: { type: 'box' } });
+    expect(validateStageDocument(stage)).toContainEqual({
+      path: '/scene/models',
+      message: 'duplicate id "lamp"',
+    });
+  });
+
+  it('canonicalizes the ID and references when explicitly renaming to the same trimmed ID', () => {
+    const stage = whitespaceFixture();
+    expect(renameStageSceneItem(stage, { kind: 'model', id: ' lamp ' }, ' lamp\t')).toEqual({
+      kind: 'model',
+      id: 'lamp',
+    });
+    expect(stage.scene.models![0].id).toBe('lamp');
+    expect(stage.scene.effects!.pointLights![0].emissionSource!.model).toBe('lamp');
+    expect(validateStageDocument(stage)).toEqual([]);
+  });
+
   it('parses, edits and saves exact source coordinates and calibration without baking transforms', () => {
     const stage = fixture();
     const source = `// lighting note\n${JSON.stringify(stage, null, 2)}`;

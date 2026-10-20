@@ -58,9 +58,9 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
   const collectIds = (kind: string, values: { id: string }[] | undefined) => {
     const ids = new Set<string>();
     for (const value of values ?? []) {
-      if (ids.has(value.id))
-        issues.push({ path: `/scene/${kind}`, message: `duplicate id "${value.id}"` });
-      ids.add(value.id);
+      const id = value.id.trim();
+      if (ids.has(id)) issues.push({ path: `/scene/${kind}`, message: `duplicate id "${id}"` });
+      ids.add(id);
     }
     return ids;
   };
@@ -107,7 +107,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
         message: 'must have exactly one surface direction',
       });
     }
-    if (collision.model && !modelIds.has(collision.model)) {
+    if (collision.model && !modelIds.has(collision.model.trim())) {
       issues.push({
         path: `/scene/collision/${collision.id}/model`,
         message: `unknown model "${collision.model}"`,
@@ -118,10 +118,10 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
     const source = light.emissionSource;
     if (!source) continue;
     const path = `/scene/effects/pointLights/${light.id}/emissionSource`;
-    const model = stage.scene.models?.find((item) => item.id === source.model);
+    const model = stage.scene.models?.find((item) => item.id.trim() === source.model.trim());
     if (!model) {
       issues.push({ path: `${path}/model`, message: `unknown model "${source.model}"` });
-    } else if (model.primitive && source.materialSlot !== 'PrimitiveDefault') {
+    } else if (model.primitive && source.materialSlot.trim() !== 'PrimitiveDefault') {
       // Imported mesh slot inventories live in assets, which the editor does not load.
       issues.push({
         path: `${path}/materialSlot`,
@@ -130,7 +130,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
     }
   }
   for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
-    if (emitter.target && !modelIds.has(emitter.target)) {
+    if (emitter.target && !modelIds.has(emitter.target.trim())) {
       issues.push({
         path: `/scene/effects/particleEmitters/${emitter.id}/target`,
         message: `unknown model "${emitter.target}"`,
@@ -153,7 +153,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
     const targets = new Set<string>();
     let lastKeyframeTime = 0;
     for (const track of animation.tracks) {
-      const targetKey = `${track.target.kind}:${track.target.id}`;
+      const targetKey = `${track.target.kind}:${track.target.id.trim()}`;
       if (targets.has(targetKey)) {
         issues.push({
           path: `/scene/animations/${animation.id}/tracks`,
@@ -162,7 +162,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
       }
       targets.add(targetKey);
       const ids = track.target.kind === 'model' ? modelIds : collisionIds;
-      if (!ids.has(track.target.id)) {
+      if (!ids.has(track.target.id.trim())) {
         issues.push({
           path: `/scene/animations/${animation.id}/tracks`,
           message: `unknown ${track.target.kind} "${track.target.id}"`,
@@ -246,7 +246,7 @@ export const createStageDocument = (name = 'New Stage'): StageDocument => ({
 });
 
 const idFor = (prefix: string, existing: { id: string }[] | undefined): string => {
-  const ids = new Set((existing ?? []).map((item) => item.id));
+  const ids = new Set((existing ?? []).map((item) => item.id.trim()));
   let index = 0;
   while (ids.has(`${prefix}-${index}`)) index++;
   return `${prefix}-${index}`;
@@ -361,8 +361,9 @@ export const addStageSceneItem = (
 
 export const removeStageSceneItem = (stage: StageDocument, selection: StageSelection): boolean => {
   if (selection.kind === 'stage' || !selection.id) return false;
+  const id = selection.id.trim();
   const remove = <T extends { id: string }>(items: T[] | undefined) => {
-    const index = items?.findIndex((item) => item.id === selection.id) ?? -1;
+    const index = items?.findIndex((item) => item.id.trim() === id) ?? -1;
     if (index < 0 || !items) return false;
     items.splice(index, 1);
     return true;
@@ -372,19 +373,19 @@ export const removeStageSceneItem = (stage: StageDocument, selection: StageSelec
       const removed = remove(stage.scene.models);
       if (!removed) return false;
       for (const collision of stage.scene.collision ?? []) {
-        if (collision.model === selection.id) delete collision.model;
+        if (collision.model?.trim() === id) delete collision.model;
       }
       for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
-        if (emitter.target === selection.id) delete emitter.target;
+        if (emitter.target?.trim() === id) delete emitter.target;
       }
       if (stage.scene.effects?.pointLights) {
         stage.scene.effects.pointLights = stage.scene.effects.pointLights.filter(
-          (light) => light.emissionSource?.model !== selection.id
+          (light) => light.emissionSource?.model.trim() !== id
         );
       }
       for (const animation of stage.scene.animations ?? []) {
         animation.tracks = animation.tracks.filter(
-          (track) => track.target.kind !== 'model' || track.target.id !== selection.id
+          (track) => track.target.kind !== 'model' || track.target.id.trim() !== id
         );
       }
       stage.scene.animations = stage.scene.animations?.filter(
@@ -397,7 +398,7 @@ export const removeStageSceneItem = (stage: StageDocument, selection: StageSelec
       if (!removed) return false;
       for (const animation of stage.scene.animations ?? []) {
         animation.tracks = animation.tracks.filter(
-          (track) => track.target.kind !== 'collision' || track.target.id !== selection.id
+          (track) => track.target.kind !== 'collision' || track.target.id.trim() !== id
         );
       }
       stage.scene.animations = stage.scene.animations?.filter(
@@ -422,35 +423,39 @@ export const renameStageSceneItem = (
   requestedId: string
 ): StageSelection => {
   const nextId = requestedId.trim();
-  if (selection.kind === 'stage' || !selection.id || !nextId || nextId === selection.id)
-    return selection;
-  const item = stageSceneItems(stage).find(
-    (entry) => entry.selection.kind === selection.kind && entry.selection.id === selection.id
+  if (selection.kind === 'stage' || !selection.id || !nextId) return selection;
+  const oldId = selection.id.trim();
+  const items = stageSceneItems(stage);
+  const item = items.find(
+    (entry) => entry.selection.kind === selection.kind && entry.selection.id?.trim() === oldId
   );
-  const duplicate = stageSceneItems(stage).some(
-    (entry) => entry.selection.kind === selection.kind && entry.selection.id === nextId
+  const duplicate = items.some(
+    (entry) =>
+      entry !== item &&
+      entry.selection.kind === selection.kind &&
+      entry.selection.id?.trim() === nextId
   );
   if (!item || duplicate) return selection;
 
-  const oldId = selection.id;
   const rename = <T extends { id: string }>(items: T[] | undefined) => {
-    const target = items?.find((entry) => entry.id === oldId);
+    const target = items?.find((entry) => entry.id.trim() === oldId);
     if (target) target.id = nextId;
   };
   switch (selection.kind) {
     case 'model':
       rename(stage.scene.models);
       for (const collision of stage.scene.collision ?? [])
-        if (collision.model === oldId) collision.model = nextId;
+        if (collision.model?.trim() === oldId) collision.model = nextId;
       for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
-        if (emitter.target === oldId) emitter.target = nextId;
+        if (emitter.target?.trim() === oldId) emitter.target = nextId;
       }
       for (const light of stage.scene.effects?.pointLights ?? []) {
-        if (light.emissionSource?.model === oldId) light.emissionSource.model = nextId;
+        if (light.emissionSource?.model.trim() === oldId) light.emissionSource.model = nextId;
       }
       for (const animation of stage.scene.animations ?? []) {
         for (const track of animation.tracks) {
-          if (track.target.kind === 'model' && track.target.id === oldId) track.target.id = nextId;
+          if (track.target.kind === 'model' && track.target.id.trim() === oldId)
+            track.target.id = nextId;
         }
       }
       break;
@@ -458,7 +463,7 @@ export const renameStageSceneItem = (
       rename(stage.scene.collision);
       for (const animation of stage.scene.animations ?? []) {
         for (const track of animation.tracks) {
-          if (track.target.kind === 'collision' && track.target.id === oldId)
+          if (track.target.kind === 'collision' && track.target.id.trim() === oldId)
             track.target.id = nextId;
         }
       }
