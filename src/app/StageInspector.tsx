@@ -5,6 +5,7 @@ import type {
   StageCollisionFlag,
   StageDocument,
   StagePointLight,
+  StageModel,
   StageSelection,
   StageSpawn,
   CameraAnchor,
@@ -14,6 +15,11 @@ import type {
 } from '../stage/types';
 import type { StageIssue } from '../stage/document';
 import { renameStageSceneItem } from '../stage/document';
+import {
+  BloomControls,
+  MaterialEmissionControls,
+  SourceLightControls,
+} from './stage/EmissionControls';
 import { CollisionInteractions } from './stage/CollisionInteractions';
 
 interface StageInspectorProps {
@@ -366,6 +372,8 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
           <Section title="Lighting">
             <PropertiesEditor
               obj={lighting}
+              hideKeys={['bloom']}
+              managedKeys={['bloom']}
               suggestions={[
                 'sunDirection',
                 'sunColor',
@@ -384,6 +392,9 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
                 changed();
               }}
             />
+          </Section>
+          <Section title="Bloom">
+            <BloomControls stage={stage} onChange={changed} />
           </Section>
           <Section title="Collision model">
             <PropertiesEditor
@@ -412,15 +423,6 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
                 }}
               />
             </div>
-            {emissionSource && (
-              <div className="stageIssue clean">
-                Emission source: {String(emissionSource.model ?? '')} /{' '}
-                {String(emissionSource.materialSlot ?? '')}. Position and color follow the source
-                material in game; the viewport handle is hidden. Local position uses exact mesh
-                coordinates (default [0, 0, 0]). Intensity scales source emission strength; range
-                and sourceRadius stay in world units.
-              </div>
-            )}
             {position && (
               <>
                 <VectorEditor
@@ -466,17 +468,52 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
             )}
             <PropertiesEditor
               obj={record}
-              hideKeys={['id', 'position', 'from', 'to', 'flags', 'tracks']}
+              hideKeys={[
+                'id',
+                'position',
+                'from',
+                'to',
+                'flags',
+                'tracks',
+                ...(selection.kind === 'model' ? ['material', 'materialSlots'] : []),
+                ...(selection.kind === 'pointLight'
+                  ? ['emissionSource', 'intensity', 'range', 'sourceRadius']
+                  : []),
+              ]}
               managedKeys={
                 emissionSource
-                  ? ['position', 'color']
+                  ? ['position', 'color', 'emissionSource', 'intensity', 'range', 'sourceRadius']
                   : collision
                     ? ['friction', 'hazard']
-                    : undefined
+                    : selection.kind === 'model'
+                      ? ['material', 'materialSlots']
+                      : selection.kind === 'pointLight'
+                        ? ['emissionSource', 'intensity', 'range', 'sourceRadius']
+                        : undefined
               }
               onChange={changed}
             />
           </Section>
+          {selection.kind === 'model' && (
+            <Section title="Emission">
+              <MaterialEmissionControls
+                key={selection.id}
+                stage={stage}
+                model={selectedObject as StageModel}
+                onChange={changed}
+              />
+            </Section>
+          )}
+          {selection.kind === 'pointLight' && (
+            <Section title="Light">
+              <SourceLightControls
+                key={selection.id}
+                stage={stage}
+                light={selectedObject as StagePointLight}
+                onChange={changed}
+              />
+            </Section>
+          )}
           {selection.kind === 'animation' && (
             <Section title="Tracks" count={(selectedObject as { tracks: unknown[] }).tracks.length}>
               <div className="stageIssue clean">

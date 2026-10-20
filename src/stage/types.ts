@@ -225,10 +225,32 @@ export interface StageAnimationKeyframe {
   position: Vec2 | Vec3;
 }
 
-export interface StageAnimationTrack {
+export interface StagePositionTrack {
   target: { kind: 'collision' | 'model'; id: string };
   keyframes: StageAnimationKeyframe[];
 }
+
+export interface StageMaterialKeyframe {
+  time: number;
+  value: Vec3 | number;
+  position?: never;
+}
+
+export interface StageMaterialTrack {
+  target: {
+    kind: 'material';
+    id: string;
+    /** Original source slot, never the replacement material name. */
+    materialSlot: string;
+    property: 'emissive' | 'emissiveStrength';
+  };
+  keyframes: StageMaterialKeyframe[];
+}
+
+export type StageAnimationTrack = StagePositionTrack | StageMaterialTrack;
+
+export const isStageMaterialTrack = (track: StageAnimationTrack): track is StageMaterialTrack =>
+  track.target.kind === 'material';
 
 export interface StageAnimation {
   id: string;
@@ -263,6 +285,7 @@ export interface StageScene {
 }
 
 export interface StageLighting {
+  bloom?: { strength?: number; threshold?: number; knee?: number; radius?: number };
   sunDirection?: Vec3;
   sunColor?: Vec3;
   sunIntensity?: number;

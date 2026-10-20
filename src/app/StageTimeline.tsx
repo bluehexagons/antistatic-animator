@@ -1,6 +1,18 @@
-import React, { useEffect, useRef } from 'react';
-import { sampleStagePosition, stageAnimationDuration } from '../stage/animation';
-import type { StageDocument, StageSelection, Vec2, Vec3 } from '../stage/types';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  sampleStagePosition,
+  sampleStageMaterial,
+  stageAnimationDuration,
+} from '../stage/animation';
+import type {
+  StageAnimationTrack,
+  StageDocument,
+  StageSelection,
+  Vec2,
+  Vec3,
+} from '../stage/types';
+import { isStageMaterialTrack } from '../stage/types';
+import { EMISSION_MAX, stageAuthoredEmission, stageMaterialSlots } from '../stage/emission';
 
 interface StageTimelineProps {
   stage: StageDocument;
@@ -23,8 +35,27 @@ const initialPosition = (
   return [...(stage.scene.collision?.find((collision) => collision.id === id)?.from ?? [0, 0])];
 };
 
-const targetValue = (target: { kind: 'model' | 'collision'; id: string }) =>
-  JSON.stringify([target.kind, target.id]);
+type Target = StageAnimationTrack['target'];
+const targetValue = (target: Target) =>
+  JSON.stringify(
+    target.kind === 'material'
+      ? [target.kind, target.id.trim(), target.materialSlot.trim(), target.property]
+      : [target.kind, target.id.trim()]
+  );
+
+const initialTrack = (stage: StageDocument, target: Target): StageAnimationTrack => {
+  if (target.kind === 'material') {
+    const model = stage.scene.models?.find((item) => item.id.trim() === target.id.trim());
+    const emission = model
+      ? stageAuthoredEmission(stage, model, target.materialSlot)
+      : { emissive: [0, 0, 0] as Vec3, emissiveStrength: 1 };
+    return { target: { ...target }, keyframes: [{ time: 0, value: emission[target.property] }] };
+  }
+  return {
+    target: { ...target },
+    keyframes: [{ time: 0, position: initialPosition(stage, target.kind, target.id) }],
+  };
+};
 
 export const StageTimeline: React.FC<StageTimelineProps> = ({
   stage,
@@ -35,25 +66,49 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
   onPlayingChange,
   onChange,
 }) => {
+  const [newTarget, setNewTarget] = useState('');
+  const [customModel, setCustomModel] = useState('');
+  const [customSlot, setCustomSlot] = useState('');
+  const [customProperty, setCustomProperty] = useState<'emissive' | 'emissiveStrength'>('emissive');
   const animation =
     selection.kind === 'animation'
       ? stage.scene.animations?.find((item) => item.id === selection.id)
       : undefined;
-  const targets = [
+  const targets: Target[] = [
     ...(stage.scene.models ?? []).map((model) => ({ kind: 'model' as const, id: model.id })),
     ...(stage.scene.collision ?? []).map((collision) => ({
       kind: 'collision' as const,
       id: collision.id,
     })),
+    ...(stage.scene.models ?? []).flatMap((model) =>
+      stageMaterialSlots(stage, model).flatMap((materialSlot) =>
+        (['emissive', 'emissiveStrength'] as const).map((property) => ({
+          kind: 'material' as const,
+          id: model.id,
+          materialSlot,
+          property,
+        }))
+      )
+    ),
   ];
   const duration = animation ? stageAnimationDuration(animation) : 1;
   const lastFrame = Math.max(0, duration - 1);
-  const hasAvailableTarget = targets.some(
+  const availableTargets = targets.filter(
     (target) =>
-      !animation?.tracks.some(
-        (track) => track.target.kind === target.kind && track.target.id === target.id
-      )
+      !animation?.tracks.some((track) => targetValue(track.target) === targetValue(target))
   );
+  const importedModels = (stage.scene.models ?? []).filter((model) => !model.primitive);
+  const customModelId =
+    importedModels.find((model) => model.id === customModel)?.id ?? importedModels[0]?.id;
+  const customMode = newTarget === 'custom-material';
+  const chosenNewTarget: Target | undefined = customMode
+    ? customModelId && customSlot.trim()
+      ? { kind: 'material', id: customModelId, materialSlot: customSlot, property: customProperty }
+      : undefined
+    : (availableTargets.find((target) => targetValue(target) === newTarget) ?? availableTargets[0]);
+  const canAddTrack =
+    !!chosenNewTarget &&
+    !animation?.tracks.some((track) => targetValue(track.target) === targetValue(chosenNewTarget));
   const frameRef = useRef(frame);
   const directionRef = useRef(1);
   frameRef.current = frame;
@@ -107,24 +162,12 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
   }
 
   const addTrack = () => {
-    const target = targets.find(
-      (candidate) =>
-        !animation.tracks.some(
-          (track) => track.target.kind === candidate.kind && track.target.id === candidate.id
-        )
-    );
+    const target = chosenNewTarget;
     if (!target) return;
-    if (
-      animation.tracks.some(
-        (track) => track.target.kind === target.kind && track.target.id === target.id
-      )
-    ) {
+    if (animation.tracks.some((track) => targetValue(track.target) === targetValue(target))) {
       return;
     }
-    animation.tracks.push({
-      target: { ...target },
-      keyframes: [{ time: 0, position: initialPosition(stage, target.kind, target.id) }],
-    });
+    animation.tracks.push(initialTrack(stage, target));
     onChange();
   };
 
@@ -187,14 +230,65 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
         </label>
         <span className="grow" />
         <span className="stats">{animation.tracks.length} tracks</span>
-        <button className="btn" disabled={!hasAvailableTarget} onClick={addTrack}>
+        <select
+          aria-label="New track target"
+          value={
+            customMode ? 'custom-material' : chosenNewTarget ? targetValue(chosenNewTarget) : ''
+          }
+          onChange={(event) => setNewTarget(event.target.value)}
+          disabled={!availableTargets.length && !importedModels.length}
+        >
+          {!availableTargets.length && <option value="">All known targets animated</option>}
+          {!!importedModels.length && (
+            <option value="custom-material">Material: other imported source slot…</option>
+          )}
+          {availableTargets.map((target) => (
+            <option key={targetValue(target)} value={targetValue(target)}>
+              {target.kind}: {target.id}
+              {target.kind === 'material'
+                ? ` / ${target.materialSlot} / ${target.property}`
+                : ' / position'}
+            </option>
+          ))}
+        </select>
+        {customMode && (
+          <div className="stageCustomTrack">
+            <select
+              aria-label="Model for new material track"
+              value={customModelId ?? ''}
+              onChange={(event) => setCustomModel(event.target.value)}
+            >
+              {importedModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.id}
+                </option>
+              ))}
+            </select>
+            <input
+              aria-label="Original slot for new material track"
+              placeholder="Original mesh slot name"
+              value={customSlot}
+              onChange={(event) => setCustomSlot(event.target.value)}
+            />
+            <select
+              aria-label="Property for new material track"
+              value={customProperty}
+              onChange={(event) => setCustomProperty(event.target.value as typeof customProperty)}
+            >
+              <option value="emissive">Linear RGB</option>
+              <option value="emissiveStrength">Strength</option>
+            </select>
+          </div>
+        )}
+        <button className="btn" disabled={!canAddTrack} onClick={addTrack}>
           Add track
         </button>
       </div>
       <div className="stageTrackList">
         {animation.tracks.length === 0 && (
           <div className="stageTimelineEmpty">
-            Add a model or collision track to begin animating.
+            Add a position or material emission track. For an imported slot absent from the list,
+            choose “other imported source slot” and enter its original asset name.
           </div>
         )}
         {animation.tracks.map((track, trackIndex) => (
@@ -204,22 +298,50 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
                 aria-label={`Target for track ${trackIndex + 1}`}
                 value={targetValue(track.target)}
                 onChange={(event) => {
-                  const [kind, id] = JSON.parse(event.target.value) as [
-                    'model' | 'collision',
-                    string,
-                  ];
-                  track.target = { kind, id };
-                  const dimensions = kind === 'model' ? 3 : 2;
-                  track.keyframes = track.keyframes.map((keyframe) => ({
-                    ...keyframe,
-                    position: initialPosition(stage, kind, id).slice(0, dimensions) as Vec2 | Vec3,
-                  }));
+                  const target = targets.find(
+                    (candidate) => targetValue(candidate) === event.target.value
+                  );
+                  if (
+                    !target ||
+                    animation.tracks.some(
+                      (other, index) =>
+                        index !== trackIndex && targetValue(other.target) === targetValue(target)
+                    )
+                  )
+                    return;
+                  const replacement = initialTrack(stage, target);
+                  // Keep times when retargeting, resetting values to the new target's authored state.
+                  animation.tracks[trackIndex] = isStageMaterialTrack(replacement)
+                    ? {
+                        ...replacement,
+                        keyframes: track.keyframes.map((keyframe) => ({
+                          time: keyframe.time,
+                          value: structuredClone(replacement.keyframes[0].value),
+                        })),
+                      }
+                    : {
+                        ...replacement,
+                        keyframes: track.keyframes.map((keyframe) => ({
+                          time: keyframe.time,
+                          position: [...replacement.keyframes[0].position] as Vec2 | Vec3,
+                        })),
+                      };
                   onChange();
                 }}
               >
                 {targets.map((target) => (
-                  <option key={targetValue(target)} value={targetValue(target)}>
+                  <option
+                    key={targetValue(target)}
+                    value={targetValue(target)}
+                    disabled={animation.tracks.some(
+                      (other, index) =>
+                        index !== trackIndex && targetValue(other.target) === targetValue(target)
+                    )}
+                  >
                     {target.kind}: {target.id}
+                    {target.kind === 'material'
+                      ? ` / ${target.materialSlot} / ${target.property}`
+                      : ' / position'}
                   </option>
                 ))}
               </select>
@@ -247,21 +369,55 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
                       step="1"
                       value={keyframe.time}
                       onChange={(event) => {
-                        keyframe.time = Math.max(0, Number(event.target.value) || 0);
+                        const time = Number(event.target.value);
+                        if (
+                          !Number.isFinite(time) ||
+                          time < 0 ||
+                          track.keyframes.some(
+                            (other, index) => index !== keyframeIndex && other.time === time
+                          )
+                        )
+                          return;
+                        keyframe.time = time;
                         track.keyframes.sort((a, b) => a.time - b.time);
                         onChange();
                       }}
                     />
                   </label>
-                  {keyframe.position.map((component, componentIndex) => (
+                  {(isStageMaterialTrack(track)
+                    ? Array.isArray(track.keyframes[keyframeIndex].value)
+                      ? (track.keyframes[keyframeIndex].value as Vec3)
+                      : [track.keyframes[keyframeIndex].value as number]
+                    : track.keyframes[keyframeIndex].position
+                  ).map((component, componentIndex) => (
                     <label key={componentIndex}>
-                      {'xyz'[componentIndex]}
+                      {isStageMaterialTrack(track)
+                        ? track.target.property === 'emissive'
+                          ? 'RGB'[componentIndex]
+                          : 'strength'
+                        : 'xyz'[componentIndex]}
                       <input
                         type="number"
                         step="any"
                         value={component}
+                        min={isStageMaterialTrack(track) ? 0 : undefined}
+                        max={isStageMaterialTrack(track) ? EMISSION_MAX : undefined}
+                        aria-label={`Track ${trackIndex + 1} keyframe ${keyframeIndex + 1} component ${componentIndex + 1}`}
                         onChange={(event) => {
-                          keyframe.position[componentIndex] = Number(event.target.value) || 0;
+                          const value = Number(event.target.value);
+                          if (
+                            !Number.isFinite(value) ||
+                            (isStageMaterialTrack(track) && (value < 0 || value > EMISSION_MAX))
+                          )
+                            return;
+                          if (isStageMaterialTrack(track)) {
+                            const key = track.keyframes[keyframeIndex];
+                            if (Array.isArray(key.value))
+                              key.value = key.value.map((old, index) =>
+                                index === componentIndex ? value : old
+                              ) as Vec3;
+                            else key.value = value;
+                          } else track.keyframes[keyframeIndex].position[componentIndex] = value;
                           onChange();
                         }}
                       />
@@ -284,14 +440,24 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
               <button
                 type="button"
                 className="btn ghost"
+                disabled={track.keyframes.some((keyframe) => keyframe.time === frame)}
                 onClick={() => {
-                  const position =
-                    sampleStagePosition(track.keyframes, frame) ??
-                    initialPosition(stage, track.target.kind, track.target.id);
-                  track.keyframes.push({
-                    time: frame,
-                    position: [...position] as Vec2 | Vec3,
-                  });
+                  if (
+                    !Number.isFinite(frame) ||
+                    frame < 0 ||
+                    track.keyframes.some((keyframe) => keyframe.time === frame)
+                  )
+                    return;
+                  if (isStageMaterialTrack(track)) {
+                    const value = sampleStageMaterial(track.keyframes, frame);
+                    if (value !== undefined)
+                      track.keyframes.push({ time: frame, value: structuredClone(value) });
+                  } else {
+                    const position =
+                      sampleStagePosition(track.keyframes, frame) ??
+                      initialPosition(stage, track.target.kind, track.target.id);
+                    track.keyframes.push({ time: frame, position: [...position] as Vec2 | Vec3 });
+                  }
                   track.keyframes.sort((a, b) => a.time - b.time);
                   onChange();
                 }}

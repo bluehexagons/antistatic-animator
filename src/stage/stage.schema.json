@@ -457,6 +457,16 @@
         },
         "sky": {
           "$ref": "#/$defs/sky"
+        },
+        "bloom": {
+          "type": "object",
+          "properties": {
+            "strength": { "type": "number", "minimum": 0, "maximum": 8, "default": 1.35 },
+            "threshold": { "type": "number", "minimum": 0, "maximum": 64, "default": 1.12 },
+            "knee": { "type": "number", "minimum": 0, "maximum": 64, "default": 0.72 },
+            "radius": { "type": "number", "minimum": 0.25, "maximum": 4, "default": 1 }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -511,7 +521,7 @@
       "required": ["time", "position"],
       "additionalProperties": false
     },
-    "animationTrack": {
+    "positionAnimationTrack": {
       "type": "object",
       "properties": {
         "target": {
@@ -531,6 +541,82 @@
       },
       "required": ["target", "keyframes"],
       "additionalProperties": false
+    },
+    "emissionNumber": { "type": "number", "minimum": 0, "maximum": 65504 },
+    "emissionRGB": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/emissionNumber" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "materialEmissionTrack": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "material" },
+            "id": { "$ref": "#/$defs/id" },
+            "materialSlot": { "$ref": "#/$defs/id" },
+            "property": { "const": "emissive" }
+          },
+          "required": ["kind", "id", "materialSlot", "property"],
+          "additionalProperties": false
+        },
+        "keyframes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "time": { "type": "number", "minimum": 0 },
+              "value": { "$ref": "#/$defs/emissionRGB" }
+            },
+            "required": ["time", "value"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["target", "keyframes"],
+      "additionalProperties": false
+    },
+    "materialStrengthTrack": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "material" },
+            "id": { "$ref": "#/$defs/id" },
+            "materialSlot": { "$ref": "#/$defs/id" },
+            "property": { "const": "emissiveStrength" }
+          },
+          "required": ["kind", "id", "materialSlot", "property"],
+          "additionalProperties": false
+        },
+        "keyframes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "time": { "type": "number", "minimum": 0 },
+              "value": { "$ref": "#/$defs/emissionNumber" }
+            },
+            "required": ["time", "value"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["target", "keyframes"],
+      "additionalProperties": false
+    },
+    "animationTrack": {
+      "oneOf": [
+        { "$ref": "#/$defs/positionAnimationTrack" },
+        { "$ref": "#/$defs/materialEmissionTrack" },
+        { "$ref": "#/$defs/materialStrengthTrack" }
+      ]
     },
     "animation": {
       "type": "object",

@@ -31,16 +31,43 @@ downloads the edited file. Upload that download again for the reopen check.
 - Drag collision segments and endpoints. Resize models, fog, particle volumes,
   point-light range, and blast bounds. Pan with middle/right drag and zoom with
   the wheel.
-- Open a stage with an emission-linked point light. Select it in the sidebar;
-  confirm the inspector labels its source and explains the hidden viewport
-  handle. World `position`/`color` additions must have no effect. Edit its
-  `emissionSource` JSON (including `localPosition`) and intensity, save and
-  reopen, and confirm exact source coordinates and calibration are preserved.
-- Rename its source model and confirm the light's reference follows. Delete the
-  model and confirm its linked lights are also removed while standalone lights
-  remain. In game, verify the light follows animated/rotated/scaled source
-  geometry and uses the source emission color/strength; the SVG proxy does not
-  simulate illumination or exact attachment transforms.
+- Select a model and use **Emission** to edit linear RGB and strength on its
+  whole material, then select an original source slot and edit only that
+  override. `PrimitiveDefault` is the primitive slot; imported mesh names must
+  match the original asset, not the replacement finish name. Creating a finish
+  requires its existing game material file/name. Confirm the original texture
+  references, palette bindings, other finish fields, and other models survive.
+- Select a point light and switch **Source mode** to Material emission. Set its
+  model, original source slot, local position, intensity, range, and source
+  radius using the dedicated fields. World position/color must not be added
+  while attached. Drag a static box's attached offset handle, including a
+  rotated/scaled box; it must change only localPosition. Imported meshes,
+  spinning models, and other unresolved transforms show an attachment proxy
+  at the model origin and keep numeric offset editing available.
+- Edit emission and source settings and confirm the SVG's emission swatches,
+  strength indication, and source markers update. These are authoring aids;
+  the viewport does not simulate PBR shading, texture emission, or bloom.
+- Under stage settings, author **Bloom** strength/threshold/knee/radius, then
+  clear fields to restore defaults 1.35/1.12/0.72/1. Check bounds 0..8,
+  0..64, 0..64, and 0.25..4 respectively. Save and reopen.
+- Select an animation and choose material RGB or strength in **New track
+  target**, using the model's original source slot. Add both alongside a model
+  or collision position track. For an imported slot without a static override,
+  choose **other imported source slot** and enter its original asset name; this
+  must not create a replacement material or change texture references. Edit
+  values, add a second keyframe, scrub, and
+  play. Check independent interpolation and source-marker feedback without
+  modifying the model's base material values. Duplicate target/property/slot
+  combinations and keyframe times must be blocked; different properties and
+  different source slots may coexist.
+- Undo/redo material, source, bloom, and keyframe edits; save and reopen with
+  JSONC comments intact. Rename source models and confirm all light and material
+  animation references follow. Deleting a model must remove its light and
+  material/position tracks while retaining unrelated objects and tracks.
+- In game, verify attachment transforms, original textures/palettes, animated
+  emission, point-light calibration, bloom, and final shading. The authoring
+  schema is additive scene v2; reconcile it with the canonical game schema
+  before combined validation.
 - Drag anchors, entrances, and spawns; edit their exact coordinates, weights,
   and facing in the inspector.
 - Rename and delete referenced models/collision. References should update or be
@@ -69,3 +96,19 @@ the terminal pose but should not add to the playable frame count.
 
 Finish with the game-side checklist at `../antistatic/docs/qa/stage-authoring.md`
 to verify runtime collision, effects, and visual parity.
+
+## Game preview integration boundary
+
+Stage edits already flow through `App.onStageChange` into `SET_STAGE` history,
+validation, and `renderStageFile` for save. `evaluateStageAnimation` exposes
+sampled emission by model ID and original source slot in `preview.materials`;
+this is a read-only SVG preview result, not a second saved document. The additive
+material track stores `target.kind = "material"`, `id`, `materialSlot`, and
+`property` (`emissive` or `emissiveStrength`), with `{time, value}` keyframes.
+Existing position tracks retain `{time, position}`.
+
+The existing Live Sync availability gate in `App.tsx` currently enables only
+character documents. A future stage integration can reuse the stage change/save
+boundary and the game’s existing reload/preview path. Animator does not enable
+stage Live Sync or add a renderer/transport here. Bloom normalization and the
+runtime's final output remain game-owned.

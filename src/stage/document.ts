@@ -12,7 +12,7 @@ import type {
   StageSelection,
   StageSelectionKind,
 } from './types';
-import { STAGE_SCENE_SCHEMA_VERSION } from './types';
+import { isStageMaterialTrack, STAGE_SCENE_SCHEMA_VERSION } from './types';
 
 export interface StageIssue {
   path: string;
@@ -153,7 +153,17 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
     const targets = new Set<string>();
     let lastKeyframeTime = 0;
     for (const track of animation.tracks) {
-      const targetKey = `${track.target.kind}:${track.target.id.trim()}`;
+      const materialTrack = isStageMaterialTrack(track);
+      const targetKey = JSON.stringify(
+        materialTrack
+          ? [
+              'material',
+              track.target.id.trim(),
+              track.target.materialSlot.trim(),
+              track.target.property,
+            ]
+          : [track.target.kind, track.target.id.trim()]
+      );
       if (targets.has(targetKey)) {
         issues.push({
           path: `/scene/animations/${animation.id}/tracks`,
@@ -161,18 +171,27 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
         });
       }
       targets.add(targetKey);
-      const ids = track.target.kind === 'model' ? modelIds : collisionIds;
+      const ids = track.target.kind === 'collision' ? collisionIds : modelIds;
       if (!ids.has(track.target.id.trim())) {
         issues.push({
           path: `/scene/animations/${animation.id}/tracks`,
           message: `unknown ${track.target.kind} "${track.target.id}"`,
         });
       }
+      if (isStageMaterialTrack(track)) {
+        const model = stage.scene.models?.find((item) => item.id.trim() === track.target.id.trim());
+        if (model?.primitive && track.target.materialSlot.trim() !== 'PrimitiveDefault') {
+          issues.push({
+            path: `/scene/animations/${animation.id}/tracks`,
+            message: 'primitive material tracks require PrimitiveDefault',
+          });
+        }
+      }
       const times = new Set<number>();
       const dimensions = track.target.kind === 'model' ? 3 : 2;
       for (const keyframe of track.keyframes) {
         lastKeyframeTime = Math.max(lastKeyframeTime, keyframe.time);
-        if (keyframe.position.length !== dimensions) {
+        if (!materialTrack && keyframe.position.length !== dimensions) {
           issues.push({
             path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
             message: `${track.target.kind} keyframes must have exactly ${dimensions} coordinates`,
@@ -385,7 +404,9 @@ export const removeStageSceneItem = (stage: StageDocument, selection: StageSelec
       }
       for (const animation of stage.scene.animations ?? []) {
         animation.tracks = animation.tracks.filter(
-          (track) => track.target.kind !== 'model' || track.target.id.trim() !== id
+          (track) =>
+            (track.target.kind !== 'model' && track.target.kind !== 'material') ||
+            track.target.id.trim() !== id
         );
       }
       stage.scene.animations = stage.scene.animations?.filter(
@@ -454,7 +475,10 @@ export const renameStageSceneItem = (
       }
       for (const animation of stage.scene.animations ?? []) {
         for (const track of animation.tracks) {
-          if (track.target.kind === 'model' && track.target.id.trim() === oldId)
+          if (
+            (track.target.kind === 'model' || track.target.kind === 'material') &&
+            track.target.id.trim() === oldId
+          )
             track.target.id = nextId;
         }
       }

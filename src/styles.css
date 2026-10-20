@@ -2761,3 +2761,75 @@ button.btn.ghost:hover {
     transition-duration: 0.01ms !important;
   }
 }
+
+.stageEmissionVector {
+  margin: 8px 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  min-width: 0;
+}
+.stageEmissionVector legend {
+  color: var(--fg-mute);
+  font-size: 11px;
+}
+.stageEmissionSwatch {
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  margin: 8px 0;
+}
+.stageSlotEntry {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+.stageSlotEntry input {
+  min-width: 0;
+  flex: 1;
+}
+.stageInteractions details {
+  margin-top: 10px;
+}
+.stageInteractions summary {
+  cursor: pointer;
+  color: var(--fg-mute);
+  font-size: 11px;
+}
+
+.stageTimeline .timelineHeader {
+  flex-wrap: wrap;
+}
+.stageTimeline .timelineHeader > select {
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 260px;
+}
+.stageViewerLegend {
+  max-width: calc(100% - 20px);
+}
+.stageTimeline .timelineHeader > select {
+  background: var(--bg-0);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 4px;
+  font: var(--font-mono);
+}
+.stageCustomTrack {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.stageCustomTrack input,
+.stageCustomTrack select {
+  min-width: 0;
+  flex: 1 1 90px;
+  background: var(--bg-0);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 4px;
+  font: var(--font-mono);
+}

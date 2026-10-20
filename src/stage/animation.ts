@@ -1,10 +1,21 @@
-import type { StageAnimation, StageAnimationKeyframe, StageDocument, Vec2, Vec3 } from './types';
+import type {
+  StageAnimation,
+  StageAnimationKeyframe,
+  StageMaterialKeyframe,
+  StageDocument,
+  Vec2,
+  Vec3,
+} from './types';
+import { isStageMaterialTrack } from './types';
+import { stageAuthoredEmission } from './emission';
 import { stageModelDisplayPosition } from './view';
 
 export interface StageAnimationPreview {
   /** Positions converted into the stage viewer's authored collision coordinate space. */
   models: Map<string, Vec3>;
   collision: Map<string, { from: Vec2; to: Vec2 }>;
+  /** Model ID -> original source slot -> sampled authored emission. Does not mutate the document. */
+  materials: Map<string, Map<string, { emissive: Vec3; emissiveStrength: number }>>;
 }
 
 export const stageAnimationDuration = (animation: StageAnimation): number => {
@@ -35,15 +46,60 @@ export const sampleStagePosition = (
   ) as Vec2 | Vec3;
 };
 
+export const sampleStageMaterial = (
+  keyframes: StageMaterialKeyframe[],
+  frame: number
+): Vec3 | number | undefined => {
+  if (!keyframes.length) return undefined;
+  const sorted = [...keyframes].sort((a, b) => a.time - b.time);
+  const nextIndex = sorted.findIndex((keyframe) => keyframe.time >= frame);
+  const previous =
+    nextIndex <= 0
+      ? nextIndex < 0
+        ? sorted[sorted.length - 1]
+        : sorted[0]
+      : sorted[nextIndex - 1];
+  const next = nextIndex < 0 ? previous : sorted[nextIndex];
+  const progress = Math.max(
+    0,
+    Math.min(1, (frame - previous.time) / (next.time - previous.time || 1))
+  );
+  if (typeof previous.value === 'number' && typeof next.value === 'number')
+    return previous.value + (next.value - previous.value) * progress;
+  if (Array.isArray(previous.value) && Array.isArray(next.value)) {
+    const end = next.value;
+    return previous.value.map((value, index) => value + (end[index] - value) * progress) as Vec3;
+  }
+  return undefined;
+};
+
 export const evaluateStageAnimation = (
   stage: StageDocument,
   animation: StageAnimation | undefined,
   frame: number
 ): StageAnimationPreview => {
-  const preview: StageAnimationPreview = { models: new Map(), collision: new Map() };
+  const preview: StageAnimationPreview = {
+    models: new Map(),
+    collision: new Map(),
+    materials: new Map(),
+  };
   if (!animation) return preview;
 
   for (const track of animation.tracks) {
+    if (isStageMaterialTrack(track)) {
+      const model = stage.scene.models?.find((item) => item.id.trim() === track.target.id.trim());
+      const value = sampleStageMaterial(track.keyframes, frame);
+      if (!model || value === undefined) continue;
+      const slots = preview.materials.get(model.id) ?? new Map();
+      preview.materials.set(model.id, slots);
+      const slot = track.target.materialSlot.trim();
+      const emission = slots.get(slot) ?? stageAuthoredEmission(stage, model, slot);
+      if (track.target.property === 'emissive' && Array.isArray(value)) emission.emissive = value;
+      if (track.target.property === 'emissiveStrength' && typeof value === 'number')
+        emission.emissiveStrength = value;
+      slots.set(slot, emission);
+      continue;
+    }
     const position = sampleStagePosition(track.keyframes, frame);
     if (!position) continue;
     if (track.target.kind === 'model') {

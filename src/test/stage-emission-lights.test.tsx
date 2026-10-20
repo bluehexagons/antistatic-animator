@@ -261,6 +261,8 @@ const setText = async (input: HTMLInputElement, value: string) => {
 };
 
 const propertyInput = (name: string) => {
+  const accessible = container.querySelector<HTMLInputElement>(`[aria-label="${name}"]`);
+  if (accessible) return accessible;
   const label = [...container.querySelectorAll('label')].find((item) => item.textContent === name);
   return label ? (document.getElementById(label.htmlFor) as HTMLInputElement) : null;
 };
@@ -277,8 +279,8 @@ describe('emission-linked light authoring', () => {
         onChange={vi.fn()}
       />
     );
-    expect(container.textContent).toContain('Emission source: lamp / PrimitiveDefault');
-    expect(container.textContent).toContain('viewport handle is hidden');
+    expect(propertyInput('Source slot')?.value).toBe('PrimitiveDefault');
+    expect(container.textContent).toContain('attached offset handle');
     expect(container.querySelector('[aria-label="position x"]')).toBeNull();
     expect(propertyInput('color')).toBeNull();
     const name = container.querySelector<HTMLInputElement>('[aria-label="Property name"]')!;
@@ -289,10 +291,13 @@ describe('emission-linked light authoring', () => {
       );
       expect(stage.scene.effects!.pointLights![0]).not.toHaveProperty(key);
     }
-    await setText(
-      propertyInput('emissionSource')!,
-      '{"model":"lamp","materialSlot":"PrimitiveDefault","localPosition":[-1,2,-3]}'
-    );
+    for (const [axis, value] of [
+      ['x', '-1'],
+      ['y', '2'],
+      ['z', '-3'],
+    ]) {
+      await setText(propertyInput(`Local position ${axis}`)!, value);
+    }
     await setText(propertyInput('intensity')!, '800');
     const light = stage.scene.effects!.pointLights![0];
     expect(light.emissionSource?.localPosition).toEqual([-1, 2, -3]);
@@ -313,29 +318,21 @@ describe('emission-linked light authoring', () => {
         onChange={vi.fn()}
       />
     );
-    await setText(
-      container.querySelector<HTMLInputElement>('[aria-label="Property name"]')!,
-      'emissionSource'
-    );
-    const type = container.querySelector<HTMLSelectElement>('[aria-label="Property type"]')!;
+    const modeLabel = [...container.querySelectorAll('label')].find(
+      (label) => label.textContent === 'Source mode'
+    )!;
+    const mode = document.getElementById(modeLabel.htmlFor) as HTMLSelectElement;
     await act(() => {
-      type.value = 'object';
-      type.dispatchEvent(new Event('change', { bubbles: true }));
+      mode.value = 'material';
+      mode.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    await act(() =>
-      container.querySelector<HTMLButtonElement>('[aria-label="Add property"]')!.click()
-    );
-    await setText(
-      propertyInput('emissionSource')!,
-      '{"model":"lamp","materialSlot":"PrimitiveDefault"}'
-    );
     expect(light.emissionSource?.model).toBe('lamp');
     expect(light).not.toHaveProperty('position');
     expect(light).not.toHaveProperty('color');
     expect(validateStageDocument(stage)).toEqual([]);
   });
 
-  it('hides linked light handles and prevents a stale world drag from writing position after attachment', async () => {
+  it('shows attached offset handles and prevents a stale world drag from writing position after attachment', async () => {
     const stage = fixture();
     stage.scene.collision = [];
     const changed = vi.fn();
@@ -355,8 +352,12 @@ describe('emission-linked light authoring', () => {
     Object.assign(svg, { setPointerCapture: vi.fn(), hasPointerCapture: () => false });
     const handle = container.querySelector('circle[cx="100"][cy="200"][r="5"]')!;
     expect(handle).toBeTruthy();
-    // Only the standalone light has its two circles; the selected attached light has no range handle.
-    expect(container.querySelectorAll('circle')).toHaveLength(2);
+    expect(
+      container.querySelector('[data-light="glow"] [aria-label="Attached offset for glow"]')
+    ).toBeTruthy();
+    expect(container.querySelector('[data-light="glow"]')?.getAttribute('data-source-proxy')).toBe(
+      'false'
+    );
     await act(() =>
       handle.dispatchEvent(
         new PointerEvent('pointerdown', {
@@ -385,7 +386,11 @@ describe('emission-linked light authoring', () => {
     );
     expect(light).not.toHaveProperty('position');
     await act(() => root.render(content()));
-    expect(container.querySelectorAll('circle')).toHaveLength(0);
+    expect(
+      container.querySelector(
+        '[data-light="standalone"] [aria-label="Attached offset for standalone"]'
+      )
+    ).toBeTruthy();
     expect(validateStageDocument(stage)).toEqual([]);
   });
 });

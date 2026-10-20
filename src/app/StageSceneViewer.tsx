@@ -1,5 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { CameraState } from '../animator/context/AnimatorContext';
+import {
+  emissionSwatch,
+  stageAuthoredEmission,
+  stageMaterialSlots,
+  stageSourceTransform,
+} from '../stage/emission';
 import { evaluateStageAnimation } from '../stage/animation';
 import {
   cameraForStageBounds,
@@ -28,6 +34,7 @@ const selected = (selection: StageSelection, kind: StageSelection['kind'], id: s
 
 type DragHandle =
   | 'move'
+  | 'source-offset'
   | 'collision-from'
   | 'collision-to'
   | 'fog-radius'
@@ -58,10 +65,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const preview = useMemo(
-    () => evaluateStageAnimation(stage, previewAnimation, previewFrame),
-    [stage, previewAnimation, previewFrame]
-  );
+  const preview = evaluateStageAnimation(stage, previewAnimation, previewFrame);
   const dragRef = useRef<{
     mode: 'none' | 'pan' | 'object';
     startX: number;
@@ -71,6 +75,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
     positions?: Vec2[] | Vec3[];
     handle?: DragHandle;
     values?: number[];
+    sourceModel?: string;
   }>({ mode: 'none', startX: 0, startY: 0, camera });
 
   useEffect(() => {
@@ -123,7 +128,16 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       }
       case 'pointLight': {
         const item = stage.scene.effects?.pointLights?.find((value) => value.id === target.id);
-        return item && !item.emissionSource ? [[...(item.position ?? [0, 0, 0])]] : [];
+        if (item?.emissionSource) {
+          const model = stage.scene.models?.find(
+            (value) => value.id.trim() === item.emissionSource.model.trim()
+          );
+          const transform = model && stageSourceTransform(model);
+          return transform
+            ? [transform.forward(item.emissionSource.localPosition ?? [0, 0, 0])]
+            : [];
+        }
+        return item ? [[...(item.position ?? [0, 0, 0])]] : [];
       }
       case 'fogVolume': {
         const item = stage.scene.effects?.fogVolumes?.find((value) => value.id === target.id);
@@ -201,8 +215,27 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       }
       case 'pointLight': {
         const item = stage.scene.effects?.pointLights?.find((value) => value.id === target.id);
-        if (item && handle === 'light-range') item.range = Math.max(0, values[0] + dx / 0.12);
-        else if (item && !item.emissionSource && positions[0])
+        if (
+          item?.emissionSource &&
+          handle === 'source-offset' &&
+          positions[0] &&
+          dragRef.current.sourceModel === item.emissionSource.model
+        ) {
+          const model = stage.scene.models?.find(
+            (value) => value.id.trim() === item.emissionSource.model.trim()
+          );
+          const transform = model && stageSourceTransform(model);
+          if (transform) {
+            const start = positions[0] as Vec3;
+            item.emissionSource.localPosition = transform.inverse([
+              start[0] + dx * (stage.scaleX || 1),
+              start[1] + dy * (stage.scaleY || 1),
+              start[2],
+            ]);
+          }
+        } else if (item && handle === 'light-range')
+          item.range = Math.max(0.0001, values[0] + dx / 0.12);
+        else if (item && handle === 'move' && !item.emissionSource && positions[0])
           item.position = move3(positions[0] as Vec3);
         break;
       }
@@ -248,6 +281,11 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       positions: snapshotPositions(target),
       handle,
       values,
+      sourceModel:
+        target.kind === 'pointLight'
+          ? stage.scene.effects?.pointLights?.find((light) => light.id === target.id)
+              ?.emissionSource?.model
+          : undefined,
     };
     svgRef.current?.setPointerCapture(event.pointerId);
   };
@@ -397,9 +435,27 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
             stageModelDisplayPosition(stage, model.position ?? [0, 0, 0]);
           const dimensions = stageModelDisplayHalfExtents(stage, model);
           const active = selected(selection, 'model', model.id);
+          const emissions = (
+            stageMaterialSlots(stage, model).length ? stageMaterialSlots(stage, model) : ['']
+          ).map(
+            (slot) =>
+              preview.materials.get(model.id)?.get(slot.trim()) ??
+              stageAuthoredEmission(stage, model, slot)
+          );
+          const emission = emissions.sort(
+            (a, b) =>
+              Math.max(...b.emissive) * b.emissiveStrength -
+              Math.max(...a.emissive) * a.emissiveStrength
+          )[0];
+          const emitting = Math.max(...emission.emissive) * emission.emissiveStrength > 0;
+          const swatch = emitting
+            ? emissionSwatch(emission.emissive, emission.emissiveStrength)
+            : 'var(--accent)';
           return (
             <g
               key={model.id}
+              data-model={model.id}
+              data-emission-strength={emission.emissiveStrength}
               onPointerDown={(event) => beginObjectDrag(event, { kind: 'model', id: model.id })}
             >
               <rect
@@ -407,13 +463,28 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
                 y={toY(position[1] - dimensions[1])}
                 width={Math.max(8, dimensions[0] * 2 * camera.scale)}
                 height={Math.max(8, dimensions[1] * 2 * camera.scale)}
-                fill="var(--accent)"
-                fillOpacity={active ? 0.3 : 0.1}
-                stroke="var(--accent)"
+                fill={swatch}
+                fillOpacity={
+                  emitting
+                    ? Math.min(
+                        0.85,
+                        0.18 +
+                          Math.log2(
+                            1 + Math.max(...emission.emissive) * emission.emissiveStrength
+                          ) *
+                            0.12
+                      )
+                    : active
+                      ? 0.3
+                      : 0.1
+                }
+                stroke={swatch}
                 strokeOpacity={active ? 1 : 0.45}
               />
               <text x={toX(position[0]) + 5} y={toY(position[1]) - 6} className="stageObjectLabel">
                 {model.id}
+                {!model.primitive ? ' · imported mesh proxy' : ''}
+                {emitting ? ` · emission ×${Number(emission.emissiveStrength.toFixed(2))}` : ''}
               </text>
               {active && model.size && (
                 <rect
@@ -568,10 +639,35 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           );
         })}
         {(stage.scene.effects?.pointLights ?? []).map((light) => {
-          // Exact attachment transforms and original mesh slots require game assets.
-          // Keep these lights selectable in the sidebar without a misleading world handle.
-          if (light.emissionSource) return null;
-          const position = light.position ?? [0, 0, 0];
+          const source = light.emissionSource;
+          const model =
+            source && stage.scene.models?.find((item) => item.id.trim() === source.model.trim());
+          const transform = model && stageSourceTransform(model);
+          const world = transform?.forward(source?.localPosition ?? [0, 0, 0]);
+          const base = model && stageModelDisplayPosition(stage, model.position ?? [0, 0, 0]);
+          const animated = model && preview.models.get(model.id);
+          const position = source
+            ? world
+              ? [
+                  world[0] / (stage.scaleX || 1) + (animated ? animated[0] - base[0] : 0),
+                  world[1] / (stage.scaleY || 1) + (animated ? animated[1] - base[1] : 0),
+                  world[2],
+                ]
+              : (animated ?? base)
+            : (light.position ?? [0, 0, 0]);
+          if (!position) return null;
+          const emission =
+            model && source
+              ? (preview.materials.get(model.id)?.get(source.materialSlot.trim()) ??
+                stageAuthoredEmission(stage, model, source.materialSlot))
+              : undefined;
+          const color = emission
+            ? emissionSwatch(emission.emissive, emission.emissiveStrength)
+            : emissionSwatch(light.color ?? [1, 1, 1], 1);
+          const energy =
+            (light.intensity ?? 1) *
+            (emission ? emission.emissiveStrength * Math.max(...emission.emissive) : 1);
+          const opacity = Math.min(0.4, 0.04 + Math.log2(1 + Math.max(0, energy)) * 0.025);
           const active = selected(selection, 'pointLight', light.id);
           const displayRadius = Math.max(
             10,
@@ -580,21 +676,52 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           return (
             <g
               key={light.id}
+              data-light={light.id}
+              data-source-proxy={!!source && !transform}
               onPointerDown={(event) =>
-                beginObjectDrag(event, { kind: 'pointLight', id: light.id })
+                source && !transform
+                  ? (event.stopPropagation(), onSelect({ kind: 'pointLight', id: light.id }))
+                  : beginObjectDrag(
+                      event,
+                      { kind: 'pointLight', id: light.id },
+                      source ? 'source-offset' : 'move'
+                    )
               }
             >
               <circle
                 cx={toX(position[0])}
                 cy={toY(position[1])}
                 r={displayRadius}
-                fill="var(--accent-warm)"
-                fillOpacity={active ? 0.2 : 0.07}
-                stroke="var(--accent-warm)"
+                fill={color}
+                fillOpacity={opacity}
+                stroke={color}
+                strokeDasharray={source && !transform ? '4 4' : undefined}
                 strokeOpacity={active ? 1 : 0.45}
                 pointerEvents="stroke"
               />
-              <circle cx={toX(position[0])} cy={toY(position[1])} r={5} fill="var(--accent-warm)" />
+              <circle
+                cx={toX(position[0])}
+                cy={toY(position[1])}
+                r={5}
+                fill={color}
+                stroke="var(--accent-warm)"
+                aria-label={source ? `Attached offset for ${light.id}` : `Light ${light.id}`}
+              />
+              <title>
+                {source
+                  ? `${light.id}: ${source.model} / ${source.materialSlot}. ${transform ? 'Attached local-offset handle' : 'Attachment proxy at model origin; exact mesh transform unavailable'}`
+                  : light.id}
+              </title>
+              {source && (
+                <text
+                  x={toX(position[0]) + 9}
+                  y={toY(position[1]) + 13}
+                  className="stageObjectLabel"
+                  pointerEvents="none"
+                >
+                  {transform ? 'attached offset' : 'attachment proxy'}
+                </text>
+              )}
               {active && (
                 <circle
                   cx={toX(position[0]) + displayRadius}
@@ -663,7 +790,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
         ))}
       </svg>
       <div className="stageViewerLegend">
-        collision · models · lights · fog · particles · spawns
+        SVG authoring proxy · emission swatches and source markers · no PBR shading or bloom
       </div>
     </div>
   );

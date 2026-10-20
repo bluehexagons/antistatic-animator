@@ -3,6 +3,7 @@ import type { StageCollision } from '../../stage/types';
 
 interface NumberFieldProps {
   label: string;
+  displayLabel?: string;
   value?: number;
   placeholder: string;
   min?: number;
@@ -11,8 +12,9 @@ interface NumberFieldProps {
   onCommit: (value: number | undefined) => void;
 }
 
-const NumberField: React.FC<NumberFieldProps> = ({
+export const NumberField: React.FC<NumberFieldProps> = ({
   label,
+  displayLabel,
   value,
   placeholder,
   min,
@@ -56,11 +58,12 @@ const NumberField: React.FC<NumberFieldProps> = ({
     <div>
       <div className="propRow">
         <label htmlFor={id} title={label}>
-          {label}
+          {displayLabel ?? label}
         </label>
         <input
           id={id}
           type="number"
+          aria-label={label}
           step={integer ? 1 : 'any'}
           min={min}
           max={max}
