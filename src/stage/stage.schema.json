@@ -360,6 +360,16 @@
       "type": "object",
       "properties": {
         "id": { "$ref": "#/$defs/id" },
+        "emissionSource": {
+          "type": "object",
+          "properties": {
+            "model": { "$ref": "#/$defs/id" },
+            "materialSlot": { "type": "string", "minLength": 1 },
+            "localPosition": { "$ref": "#/$defs/vec3" }
+          },
+          "required": ["model", "materialSlot"],
+          "additionalProperties": false
+        },
         "position": { "$ref": "#/$defs/vec3" },
         "color": { "$ref": "#/$defs/vec3" },
         "intensity": { "type": "number", "minimum": 0 },
@@ -368,6 +378,11 @@
         "castsShadows": { "type": "boolean" }
       },
       "required": ["id"],
+      "dependentSchemas": {
+        "emissionSource": {
+          "not": { "anyOf": [{ "required": ["position"] }, { "required": ["color"] }] }
+        }
+      },
       "additionalProperties": false
     },
     "fogVolume": {

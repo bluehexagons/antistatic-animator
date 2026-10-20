@@ -31,6 +31,16 @@ downloads the edited file. Upload that download again for the reopen check.
 - Drag collision segments and endpoints. Resize models, fog, particle volumes,
   point-light range, and blast bounds. Pan with middle/right drag and zoom with
   the wheel.
+- Open a stage with an emission-linked point light. Select it in the sidebar;
+  confirm the inspector labels its source and explains the hidden viewport
+  handle. World `position`/`color` additions must have no effect. Edit its
+  `emissionSource` JSON (including `localPosition`) and intensity, save and
+  reopen, and confirm exact source coordinates and calibration are preserved.
+- Rename its source model and confirm the light's reference follows. Delete the
+  model and confirm its linked lights are also removed while standalone lights
+  remain. In game, verify the light follows animated/rotated/scaled source
+  geometry and uses the source emission color/strength; the SVG proxy does not
+  simulate illumination or exact attachment transforms.
 - Drag anchors, entrances, and spawns; edit their exact coordinates, weights,
   and facing in the inspector.
 - Rename and delete referenced models/collision. References should update or be

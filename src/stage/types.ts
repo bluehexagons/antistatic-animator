@@ -158,12 +158,25 @@ export interface StageWindZone {
   wind: Vec2;
 }
 
+/** Uses the original mesh material slot name, or PrimitiveDefault for a primitive. */
+export interface StageLightEmissionSource {
+  model: string;
+  materialSlot: string;
+  /** Exact mesh coordinates transformed by model.transform, without a Y/Z flip. Defaults to zero. */
+  localPosition?: Vec3;
+}
+
 export interface StagePointLight {
   id: string;
+  /** Derives world position and emission color from a model; excludes position and color. */
+  emissionSource?: StageLightEmissionSource;
   position?: Vec3;
   color?: Vec3;
+  /** Authored calibration multiplied by the source material's emission strength when linked. */
   intensity?: number;
+  /** World units, unaffected by source model scale. */
   range?: number;
+  /** World units, unaffected by source model scale. */
   sourceRadius?: number;
   castsShadows?: boolean;
 }

@@ -4,6 +4,7 @@ import type {
   StageCollision,
   StageCollisionFlag,
   StageDocument,
+  StagePointLight,
   StageSelection,
   StageSpawn,
   CameraAnchor,
@@ -252,6 +253,13 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
 }) => {
   const [, refresh] = useState(0);
   const changed = () => {
+    if (selection.kind === 'pointLight') {
+      const light = stage.scene.effects?.pointLights?.find((item) => item.id === selection.id);
+      if (light?.emissionSource) {
+        delete light.position;
+        delete light.color;
+      }
+    }
     refresh((value) => value + 1);
     onChange();
   };
@@ -283,8 +291,14 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
   }
 
   const record = selectedObject as unknown as Obj;
+  const emissionSource =
+    selection.kind === 'pointLight'
+      ? (selectedObject as StagePointLight).emissionSource
+      : undefined;
   const position =
-    'position' in selectedObject ? (selectedObject.position as Vec3 | undefined) : undefined;
+    !emissionSource && 'position' in selectedObject
+      ? (selectedObject.position as Vec3 | undefined)
+      : undefined;
   const collision = selection.kind === 'collision' ? (selectedObject as StageCollision) : null;
   const lighting = (stage.lighting ?? {}) as unknown as Obj;
   const collisionModel = (stage.scene.collisionModel ?? {}) as unknown as Obj;
@@ -398,6 +412,15 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
                 }}
               />
             </div>
+            {emissionSource && (
+              <div className="stageIssue clean">
+                Emission source: {String(emissionSource.model ?? '')} /{' '}
+                {String(emissionSource.materialSlot ?? '')}. Position and color follow the source
+                material in game; the viewport handle is hidden. Local position uses exact mesh
+                coordinates (default [0, 0, 0]). Intensity scales source emission strength; range
+                and sourceRadius stay in world units.
+              </div>
+            )}
             {position && (
               <>
                 <VectorEditor
@@ -444,7 +467,13 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
             <PropertiesEditor
               obj={record}
               hideKeys={['id', 'position', 'from', 'to', 'flags', 'tracks']}
-              managedKeys={collision ? ['friction', 'hazard'] : undefined}
+              managedKeys={
+                emissionSource
+                  ? ['position', 'color']
+                  : collision
+                    ? ['friction', 'hazard']
+                    : undefined
+              }
               onChange={changed}
             />
           </Section>

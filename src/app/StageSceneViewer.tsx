@@ -123,7 +123,7 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       }
       case 'pointLight': {
         const item = stage.scene.effects?.pointLights?.find((value) => value.id === target.id);
-        return item ? [[...(item.position ?? [0, 0, 0])]] : [];
+        return item && !item.emissionSource ? [[...(item.position ?? [0, 0, 0])]] : [];
       }
       case 'fogVolume': {
         const item = stage.scene.effects?.fogVolumes?.find((value) => value.id === target.id);
@@ -202,7 +202,8 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
       case 'pointLight': {
         const item = stage.scene.effects?.pointLights?.find((value) => value.id === target.id);
         if (item && handle === 'light-range') item.range = Math.max(0, values[0] + dx / 0.12);
-        else if (item && positions[0]) item.position = move3(positions[0] as Vec3);
+        else if (item && !item.emissionSource && positions[0])
+          item.position = move3(positions[0] as Vec3);
         break;
       }
       case 'fogVolume': {
@@ -231,6 +232,12 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
     event.stopPropagation();
     onBeginEdit?.();
     onSelect(target);
+    if (
+      target.kind === 'pointLight' &&
+      handle === 'move' &&
+      stage.scene.effects?.pointLights?.find((light) => light.id === target.id)?.emissionSource
+    )
+      return;
     const start = worldAt(event.clientX, event.clientY);
     dragRef.current = {
       mode: 'object',
@@ -561,6 +568,9 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           );
         })}
         {(stage.scene.effects?.pointLights ?? []).map((light) => {
+          // Exact attachment transforms and original mesh slots require game assets.
+          // Keep these lights selectable in the sidebar without a misleading world handle.
+          if (light.emissionSource) return null;
           const position = light.position ?? [0, 0, 0];
           const active = selected(selection, 'pointLight', light.id);
           const displayRadius = Math.max(

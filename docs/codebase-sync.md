@@ -11,7 +11,7 @@ Checked 2026-10-08 against:
   `../antistatic/app/src/game/bubbles.ts`, `../antistatic/app/src/game/stage.ts`,
   and `../antistatic/docs/schemas/stage.schema.json`
 
-The Animator's stage schema copy parses identically to Antistatic's schema v2.
+The Animator maintains Antistatic's schema-v2 stage authoring contract.
 Animation enum names, hurtbubble states, hitbubble types, and hitbubble flag
 bits match the current game sources. Recent animation lifecycle and stage
 runtime changes do not change these authoring contracts.
@@ -36,6 +36,29 @@ runtime changes do not change these authoring contracts.
   instant-KO hazards using the game's existing schema and simulation units.
 - Stage saves patch changed nested fields without rewriting the entire scene,
   preserving comments on unrelated fields and stable-ID entries.
+
+## Emission-linked point lights
+
+Point lights can use `emissionSource: { model, materialSlot, localPosition? }` to
+follow an emissive model. `model` is its scene ID; `materialSlot` is the original
+mesh material slot name, including `PrimitiveDefault` for a primitive, rather
+than the name of a replacement material. The optional `localPosition` defaults
+to `[0, 0, 0]` and uses exact mesh coordinates transformed by `model.transform`,
+without an additional Y/Z conversion. The game derives color from the source
+material and multiplies its emission strength by the authored light `intensity`.
+`range` and `sourceRadius` remain world units, independent of model scale.
+Linked lights forbid top-level `position` and `color`.
+
+The inspector preserves and edits the source object as JSON. Adding a source to
+a standalone light clears its world position and color. Model renames update
+source references; deleting a source model also deletes its linked lights.
+Validation checks model IDs and the known primitive slot. Imported mesh slot
+inventories are not loaded, and sparse `materialSlots`/`paletteSlots` overrides
+cannot establish that a source slot is absent; the game validates those assets.
+
+Linked lights remain selectable in the sidebar, but their viewport handles are
+hidden and the inspector explains why. The SVG proxy does not evaluate exact
+mesh transforms, material emission, or illumination.
 
 ## Known Gaps
 

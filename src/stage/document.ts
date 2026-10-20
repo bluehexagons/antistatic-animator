@@ -114,6 +114,21 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
       });
     }
   }
+  for (const light of stage.scene.effects?.pointLights ?? []) {
+    const source = light.emissionSource;
+    if (!source) continue;
+    const path = `/scene/effects/pointLights/${light.id}/emissionSource`;
+    const model = stage.scene.models?.find((item) => item.id === source.model);
+    if (!model) {
+      issues.push({ path: `${path}/model`, message: `unknown model "${source.model}"` });
+    } else if (model.primitive && source.materialSlot !== 'PrimitiveDefault') {
+      // Imported mesh slot inventories live in assets, which the editor does not load.
+      issues.push({
+        path: `${path}/materialSlot`,
+        message: `unknown primitive material slot "${source.materialSlot}"; expected "PrimitiveDefault"`,
+      });
+    }
+  }
   for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
     if (emitter.target && !modelIds.has(emitter.target)) {
       issues.push({
@@ -362,6 +377,11 @@ export const removeStageSceneItem = (stage: StageDocument, selection: StageSelec
       for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
         if (emitter.target === selection.id) delete emitter.target;
       }
+      if (stage.scene.effects?.pointLights) {
+        stage.scene.effects.pointLights = stage.scene.effects.pointLights.filter(
+          (light) => light.emissionSource?.model !== selection.id
+        );
+      }
       for (const animation of stage.scene.animations ?? []) {
         animation.tracks = animation.tracks.filter(
           (track) => track.target.kind !== 'model' || track.target.id !== selection.id
@@ -424,6 +444,9 @@ export const renameStageSceneItem = (
         if (collision.model === oldId) collision.model = nextId;
       for (const emitter of stage.scene.effects?.particleEmitters ?? []) {
         if (emitter.target === oldId) emitter.target = nextId;
+      }
+      for (const light of stage.scene.effects?.pointLights ?? []) {
+        if (light.emissionSource?.model === oldId) light.emissionSource.model = nextId;
       }
       for (const animation of stage.scene.animations ?? []) {
         for (const track of animation.tracks) {
