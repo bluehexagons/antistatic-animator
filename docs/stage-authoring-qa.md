@@ -78,6 +78,11 @@ downloads the edited file. Upload that download again for the reopen check.
   `PrimitiveDefault` slot in material overrides and palette bindings. Enter a
   padded imported slot in the emission inspector, attached-light field, and
   timeline; newly authored references must save without surrounding whitespace.
+- Import model and collision declarations with padded IDs and unpadded track
+  references, then reverse the padding. Scrubbing must move the correct model,
+  attached light and linked platform, and Reset Camera must include the moving
+  segment's full extent. Save/reopen preserves existing ID strings; new tracks
+  use trimmed references and start at the target's authored position.
 - Open **Hazard Lab** and select its collision entries. Set a friction override
   to 0 and 1, then clear it to restore character friction. Enter a value outside
   that range and confirm the previous value is kept with an explanation.

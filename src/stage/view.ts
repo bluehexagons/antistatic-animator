@@ -53,7 +53,9 @@ export const stageAuthoringBounds = (stage: StageDocument): StageAuthoringBounds
   for (const animation of stage.scene.animations ?? []) {
     for (const track of animation.tracks) {
       if (track.target.kind !== 'collision') continue;
-      const collision = stage.scene.collision?.find((item) => item.id === track.target.id);
+      const collision = stage.scene.collision?.find(
+        (item) => item.id.trim() === track.target.id.trim()
+      );
       const offset: Vec2 = collision
         ? [collision.to[0] - collision.from[0], collision.to[1] - collision.from[1]]
         : [0, 0];

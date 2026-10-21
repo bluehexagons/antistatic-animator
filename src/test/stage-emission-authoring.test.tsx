@@ -562,6 +562,43 @@ describe('dedicated emission authoring controls', () => {
     expect(validateStageDocument(stage)).toEqual([]);
   });
 
+  it('creates canonical position targets from padded declarations with their authored starting positions', async () => {
+    const stage = fixture();
+    stage.scene.models![0].id = ' lamp ';
+    stage.scene.collision![0].id = ' main-platform ';
+    stage.scene.animations![0].tracks = [];
+    const Timeline = () => {
+      const [, refresh] = useState(0);
+      return (
+        <StageTimeline
+          stage={stage}
+          selection={{ kind: 'animation', id: 'pulse' }}
+          frame={0}
+          playing={false}
+          onFrameChange={vi.fn()}
+          onPlayingChange={vi.fn()}
+          onChange={() => refresh((value) => value + 1)}
+        />
+      );
+    };
+    await mount(<Timeline />);
+    const target = container.querySelector<HTMLSelectElement>('[aria-label="New track target"]')!;
+    await choose(target, JSON.stringify(['model', 'lamp']));
+    await click('Add track');
+    await choose(target, JSON.stringify(['collision', 'main-platform']));
+    await click('Add track');
+    expect(stage.scene.animations![0].tracks).toEqual([
+      { target: { kind: 'model', id: 'lamp' }, keyframes: [{ time: 0, position: [10, 20, 30] }] },
+      {
+        target: { kind: 'collision', id: 'main-platform' },
+        keyframes: [{ time: 0, position: [-200, 0] }],
+      },
+    ]);
+    expect(stage.scene.models![0].id).toBe(' lamp ');
+    expect(stage.scene.collision![0].id).toBe(' main-platform ');
+    expect(validateStageDocument(stage)).toEqual([]);
+  });
+
   it('animates an unlisted imported source slot without replacing its original finish', async () => {
     const stage = fixture();
     stage.scene.animations![0].tracks = [];

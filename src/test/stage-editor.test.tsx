@@ -75,6 +75,53 @@ describe('stage animation preview', () => {
     expect(sampleStagePosition(animation.tracks[0].keyframes, 0)).toEqual([1, 2, 3]);
     expect(sampleStagePosition(animation.tracks[0].keyframes, 20)).toEqual([4, 5, 6]);
   });
+
+  it.each([
+    { declarations: true, references: false },
+    { declarations: false, references: true },
+    { declarations: true, references: true },
+  ])(
+    'resolves padded identities without changing authored IDs: %j',
+    ({ declarations, references }) => {
+      const declaration = (id: string) => (declarations ? ` ${id} ` : id);
+      const reference = (id: string) => (references ? `\t${id} ` : id);
+      const stage = createStageDocument('Padded references');
+      addStageSceneItem(stage, 'model');
+      addStageSceneItem(stage, 'model');
+      stage.scene.models!.forEach((model) => (model.id = declaration(model.id)));
+      const collision = stage.scene.collision![0];
+      collision.id = declaration(collision.id);
+      collision.model = reference('model-0');
+      const animation = {
+        id: 'move',
+        tracks: [
+          {
+            target: { kind: 'collision' as const, id: reference('main-platform') },
+            keyframes: [
+              { time: 0, position: [-200, 0] as [number, number] },
+              { time: 10, position: [0, 100] as [number, number] },
+            ],
+          },
+          {
+            target: { kind: 'model' as const, id: reference('model-1') },
+            keyframes: [
+              { time: 0, position: [0, 0, 0] as [number, number, number] },
+              { time: 10, position: [20, 40, 60] as [number, number, number] },
+            ],
+          },
+        ],
+      };
+      stage.scene.animations = [animation];
+      const authored = structuredClone(stage);
+      expect(validateStageDocument(stage)).toEqual([]);
+      const preview = evaluateStageAnimation(stage, animation, 5);
+      expect(preview.models.get(declaration('model-0'))).toEqual([100, 52, 0]);
+      expect(preview.models.get(declaration('model-1'))).toEqual([10, -20, 30]);
+      expect(preview.collision.get(collision.id)).toEqual({ from: [-100, 50], to: [300, 50] });
+      expect(stageAuthoringBounds(stage)).toEqual({ minX: -200, minY: 0, maxX: 400, maxY: 100 });
+      expect(stage).toEqual(authored);
+    }
+  );
 });
 
 describe('stage viewport framing', () => {

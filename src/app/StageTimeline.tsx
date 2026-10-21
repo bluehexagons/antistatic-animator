@@ -30,9 +30,17 @@ const initialPosition = (
   id: string
 ): Vec2 | Vec3 => {
   if (kind === 'model') {
-    return [...(stage.scene.models?.find((model) => model.id === id)?.position ?? [0, 0, 0])];
+    return [
+      ...(stage.scene.models?.find((model) => model.id.trim() === id.trim())?.position ?? [
+        0, 0, 0,
+      ]),
+    ];
   }
-  return [...(stage.scene.collision?.find((collision) => collision.id === id)?.from ?? [0, 0])];
+  return [
+    ...(stage.scene.collision?.find((collision) => collision.id.trim() === id.trim())?.from ?? [
+      0, 0,
+    ]),
+  ];
 };
 
 type Target = StageAnimationTrack['target'];
@@ -55,7 +63,7 @@ const initialTrack = (stage: StageDocument, target: Target): StageAnimationTrack
     };
   }
   return {
-    target: { ...target },
+    target: { ...target, id: target.id.trim() },
     keyframes: [{ time: 0, position: initialPosition(stage, target.kind, target.id) }],
   };
 };

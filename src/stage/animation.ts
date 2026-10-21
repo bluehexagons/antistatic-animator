@@ -103,23 +103,27 @@ export const evaluateStageAnimation = (
     const position = sampleStagePosition(track.keyframes, frame);
     if (!position) continue;
     if (track.target.kind === 'model') {
-      if (position.length === 3) {
-        preview.models.set(track.target.id, stageModelDisplayPosition(stage, position as Vec3));
+      const model = stage.scene.models?.find((item) => item.id.trim() === track.target.id.trim());
+      if (model && position.length === 3) {
+        preview.models.set(model.id, stageModelDisplayPosition(stage, position as Vec3));
       }
       continue;
     }
-    const collision = stage.scene.collision?.find((item) => item.id === track.target.id);
+    const collision = stage.scene.collision?.find(
+      (item) => item.id.trim() === track.target.id.trim()
+    );
     if (!collision || position.length !== 2) continue;
     const from = position as Vec2;
     const offset: Vec2 = [collision.to[0] - collision.from[0], collision.to[1] - collision.from[1]];
-    preview.collision.set(track.target.id, {
+    preview.collision.set(collision.id, {
       from,
       to: [from[0] + offset[0], from[1] + offset[1]],
     });
-    if (collision.model) {
+    const model = stage.scene.models?.find((item) => item.id.trim() === collision.model?.trim());
+    if (model) {
       // Antistatic keeps a collision's visual model attached to the segment
       // while it moves, rather than requiring a second model track.
-      preview.models.set(collision.model, [from[0] + offset[0] * 0.5, from[1] + 2, 0]);
+      preview.models.set(model.id, [from[0] + offset[0] * 0.5, from[1] + 2, 0]);
     }
   }
   return preview;
