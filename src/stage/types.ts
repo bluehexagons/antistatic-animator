@@ -181,6 +181,25 @@ export interface StagePointLight {
   castsShadows?: boolean;
 }
 
+/** Preserved JSON authoring; the editor does not simulate rectangle shading. */
+export interface StageRectLight {
+  id: string;
+  position: Vec3;
+  halfU: Vec3;
+  halfV: Vec3;
+  color?: Vec3;
+  intensity?: number;
+  range: number;
+  twoSided?: boolean;
+}
+
+export interface StageDiffuseProbes {
+  minimum: Vec3;
+  maximum: Vec3;
+  dimensions: Vec3;
+  baked?: { version: 1; fingerprint: string; irradiance: number[]; cells: number[] };
+}
+
 export interface StageFogVolume {
   id: string;
   position?: Vec3;
@@ -278,6 +297,8 @@ export interface StageScene {
   };
   animations?: StageAnimation[];
   effects?: {
+    rectLights?: StageRectLight[];
+    diffuseProbes?: StageDiffuseProbes;
     pointLights?: StagePointLight[];
     fogVolumes?: StageFogVolume[];
     particleEmitters?: StageParticleEmitter[];

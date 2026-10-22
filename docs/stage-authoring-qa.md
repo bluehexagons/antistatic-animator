@@ -22,6 +22,11 @@ downloads the edited file. Upload that download again for the reopen check.
 
 - Open **Ruins** and use Reset Camera. Collision and spawn metadata should be
   framed instead of the large shell models, with no validation issues.
+- Save and reopen Ruins after an unrelated edit. Its rectangle lights and baked
+  diffuse probe payload must survive unchanged, including JSONC comments.
+  These fields currently use external JSON authoring; the editor neither shades
+  them nor rebuilds the bake. The game rejects a stale fingerprint after edits
+  to bake inputs; rerun its bake tool before accepting the lighting result.
 - Open **Scales** and confirm its blast rectangle renders with no ordering
   issue. This covers positive `scaleY`; Ruins covers negative `scaleY`.
 - Select `animation-0` on **Eroded** and **Crossing**. Scrub, play, pause, loop,

@@ -385,6 +385,51 @@
       },
       "additionalProperties": false
     },
+    "rectLight": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "halfU": { "$ref": "#/$defs/vec3" },
+        "halfV": { "$ref": "#/$defs/vec3" },
+        "color": { "$ref": "#/$defs/vec3" },
+        "intensity": { "type": "number", "minimum": 0, "maximum": 1000000 },
+        "range": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 },
+        "twoSided": { "type": "boolean" }
+      },
+      "required": ["id", "position", "halfU", "halfV", "range"],
+      "additionalProperties": false
+    },
+    "diffuseProbes": {
+      "type": "object",
+      "properties": {
+        "minimum": { "$ref": "#/$defs/vec3" },
+        "maximum": { "$ref": "#/$defs/vec3" },
+        "dimensions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "integer", "minimum": 2, "maximum": 4 }
+        },
+        "baked": {
+          "type": "object",
+          "properties": {
+            "version": { "const": 1 },
+            "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "irradiance": {
+              "type": "array",
+              "maxItems": 1152,
+              "items": { "type": "number", "minimum": 0, "maximum": 1000000 }
+            },
+            "cells": { "type": "array", "maxItems": 27, "items": { "enum": [0, 1] } }
+          },
+          "required": ["version", "fingerprint", "irradiance", "cells"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["minimum", "maximum", "dimensions"],
+      "additionalProperties": false
+    },
     "fogVolume": {
       "type": "object",
       "properties": {
@@ -666,6 +711,12 @@
           "type": "object",
           "properties": {
             "pointLights": { "type": "array", "items": { "$ref": "#/$defs/pointLight" } },
+            "rectLights": {
+              "type": "array",
+              "maxItems": 4,
+              "items": { "$ref": "#/$defs/rectLight" }
+            },
+            "diffuseProbes": { "$ref": "#/$defs/diffuseProbes" },
             "fogVolumes": {
               "type": "array",
               "items": { "$ref": "#/$defs/fogVolume" },

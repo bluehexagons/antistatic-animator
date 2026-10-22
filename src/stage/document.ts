@@ -67,7 +67,63 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
   const modelIds = collectIds('models', stage.scene.models);
   const collisionIds = collectIds('collision', stage.scene.collision);
   collectIds('windZones', stage.scene.windZones);
-  collectIds('effects/pointLights', stage.scene.effects?.pointLights);
+  const pointIds = collectIds('effects/pointLights', stage.scene.effects?.pointLights);
+  const rectIds = collectIds('effects/rectLights', stage.scene.effects?.rectLights);
+  for (const id of rectIds) {
+    if (pointIds.has(id))
+      issues.push({
+        path: '/scene/effects/rectLights',
+        message: `duplicate local light id "${id}"`,
+      });
+  }
+  for (const light of stage.scene.effects?.rectLights ?? []) {
+    const u = light.halfU.map(Math.fround),
+      v = light.halfV.map(Math.fround);
+    const area = Math.hypot(
+      u[1] * v[2] - u[2] * v[1],
+      u[2] * v[0] - u[0] * v[2],
+      u[0] * v[1] - u[1] * v[0]
+    );
+    if (
+      area < 1e-6 ||
+      Math.fround(light.range) <= 0 ||
+      [...light.position, ...u, ...v].some((value) => Math.abs(value) > 1e6) ||
+      (light.color ?? [1, 1, 1]).some((value) => value < 0 || value * (light.intensity ?? 1) > 1e6)
+    ) {
+      issues.push({
+        path: `/scene/effects/rectLights/${light.id}`,
+        message: 'invalid rectangle area, range, coordinates or radiance',
+      });
+    }
+  }
+  const volume = stage.scene.effects?.diffuseProbes;
+  if (volume) {
+    const path = '/scene/effects/diffuseProbes';
+    if (
+      volume.minimum.some((value, i) => Math.fround(value) >= Math.fround(volume.maximum[i])) ||
+      [...volume.minimum, ...volume.maximum].some((value) => Math.abs(value) > 1e6)
+    ) {
+      issues.push({ path, message: 'invalid diffuse probe volume bounds' });
+    }
+    if (
+      volume.baked &&
+      (volume.baked.irradiance.length !== volume.dimensions.reduce((a, b) => a * b, 1) * 18 ||
+        volume.baked.cells.length !== volume.dimensions.reduce((a, b) => a * (b - 1), 1))
+    ) {
+      issues.push({ path, message: 'diffuse probe data does not match grid dimensions' });
+    }
+    if (
+      volume.baked &&
+      (stage.scene.animations?.length ||
+        stage.lighting?.environmentMap ||
+        stage.scene.models?.some((model) => model.angularVelocity?.some((value) => value !== 0)))
+    ) {
+      issues.push({
+        path,
+        message: 'baked probes require a static stage with an analytic environment',
+      });
+    }
+  }
   collectIds('effects/fogVolumes', stage.scene.effects?.fogVolumes);
   collectIds('effects/particleEmitters', stage.scene.effects?.particleEmitters);
   collectIds('animations', stage.scene.animations);
