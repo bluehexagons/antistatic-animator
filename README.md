@@ -34,6 +34,10 @@ For local game hot reload and conflict handling, see
 
 ## Development
 
+In VS Code, install the recommended [TypeScript 7 extension](https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.native-preview).
+The workspace settings enable its native language service using the installed
+`typescript` package; TypeScript 7 no longer includes `lib/tsserver.js`.
+
 ```bash
 npm run dev          # Vite dev server (hot reload)
 npm run build        # Build all

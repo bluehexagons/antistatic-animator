@@ -15,4 +15,5 @@ coverage
 # Editor directories
 .vscode/*
 !.vscode/settings.json
+!.vscode/extensions.json
 .idea
