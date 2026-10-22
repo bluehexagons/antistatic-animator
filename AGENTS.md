@@ -29,7 +29,7 @@ Apache-2.0 and MIT respectively.
   Diagnose CachyOS with `basaltw local cachyos-doctor --json`, or Debian with
   `basaltw agent doctor --capability development --json`, when host tooling is
   suspect. Repository checks remain authoritative and work without Basaltwater.
-- `npm ci`: install locked dependencies. Requires Node `>=22.22.1`.
+- `npm ci`: install locked dependencies. Requires Node `>=24.0.0`.
 - Select `.nvmrc` with `nvm use` before npm commands. On Basaltwater,
   `basaltw node exec -- npm run check` selects the project runtime without
   changing the host default; `basaltw node install` installs a missing pin and
