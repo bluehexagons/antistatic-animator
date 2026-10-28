@@ -24,7 +24,6 @@ const executableName = (platform: NodeJS.Platform) =>
   platform === 'win32' ? 'Antistatic.exe' : 'Antistatic';
 const nodeExecutableName = (platform: NodeJS.Platform) =>
   platform === 'win32' ? 'node.exe' : 'node';
-const npmExecutableName = (platform: NodeJS.Platform) => (platform === 'win32' ? 'npm.cmd' : 'npm');
 
 export const antistaticExecutableCandidates = (
   rootDir: string,
@@ -85,10 +84,10 @@ const resolveGameLaunch = (rootDir: string): GameLaunchSpec => {
   }
   if (isAntistaticSourceRoot(root)) {
     return {
-      command: npmExecutableName(platform as NodeJS.Platform),
-      args: ['run', 'start'],
+      command: nodeExecutableName(platform as NodeJS.Platform),
+      args: ['scripts/run-local.mjs'],
       cwd: root,
-      path: `${npmExecutableName(platform as NodeJS.Platform)} run start`,
+      path: join(root, 'scripts', 'run-local.mjs'),
     };
   }
   throw new Error(
@@ -99,7 +98,7 @@ const resolveGameLaunch = (rootDir: string): GameLaunchSpec => {
 export const buildAgentPlayArgs = (
   options: Pick<AgentPlayOptions, 'startMode' | 'compile' | 'render' | 'softwareGl' | 'resolution'>
 ): string[] => {
-  const args = ['run', '--silent', 'agent:play', '--'];
+  const args = ['scripts/agent-play.mjs'];
   if (!options.compile) args.push('--no-compile');
   args.push('--start', options.startMode, '--timeout-ms', String(DEFAULT_TIMEOUT_MS));
   if (options.render || options.softwareGl)
@@ -237,13 +236,14 @@ class AgentPlaySession {
     options: AgentPlayOptions
   ): Promise<{ session: AgentPlaySession; ready: AgentPlayReady }> {
     const runnerArgs = buildAgentPlayArgs(options);
-    const npm = npmExecutableName(process.platform);
+    // Electron's process.execPath is the desktop app, not the project's Node.
+    const node = nodeExecutableName(process.platform);
     const renderEnabled = options.render || options.softwareGl;
-    let command = npm;
+    let command = node;
     let args = runnerArgs;
     if (renderEnabled && process.platform === 'linux' && !process.env.DISPLAY) {
       command = 'xvfb-run';
-      args = ['-a', npm, ...runnerArgs];
+      args = ['-a', node, ...runnerArgs];
     }
     const child = spawn(command, args, {
       cwd: resolve(options.rootDir),

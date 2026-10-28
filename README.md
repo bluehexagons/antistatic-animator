@@ -72,6 +72,17 @@ installs a missing project pin (preparing NVM on demand on CachyOS), and
 `basaltw node exec -- npm run check` selects it per command. Ordinary NVM or
 compatible system Node works independently of Basaltwater.
 
+On native Windows, use `npm.cmd` if PowerShell blocks `npm.ps1`. Basaltwater's
+Linux `node`/`agent` commands do not apply there; see its
+[Windows game tools](https://github.com/bluehexagons/basaltwater/blob/main/docs/workstations/windows-game-development.md).
+To use fnm, install the reviewed Node version required by the adjacent game,
+then launch Animator with `fnm exec --using=VERSION -- npm.cmd start` after
+building. Source Launch Game and Agent Play use external Node from PATH,
+including that selection, rather than Electron's embedded runtime or an npm
+shell shim. Source Launch Game uses the game's `scripts/run-local.mjs` to
+prepare missing build output. Each checkout still needs its own dependencies
+and native game bootstrap.
+
 Keep Vite on loopback. Prefer available T3 Code collaborative preview tools and
 open the preview before navigating; the connected client must reach the URL.
 Its environment-port target does not tunnel to a remote host's loopback.
