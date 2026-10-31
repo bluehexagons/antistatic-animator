@@ -164,3 +164,12 @@ await window.Tools.save();
 ```
 
 See `AGENTS.md` for detailed architecture and development guidance.
+
+
+Packaging temporarily overrides `@electron/asar`'s `glob` and `minimatch`
+dependencies to patched releases for
+[GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) and
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+Remove these overrides when an upstream Asar release uses patched ranges.
+After changing them, run `npm run check` and package a Linux ASAR build with
+`npm run dist -- --platform linux --arch x64 --overwrite`.
