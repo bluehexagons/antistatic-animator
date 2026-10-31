@@ -33,10 +33,10 @@ export class ElectronStorage implements StorageBackend {
 
   setRoot(dir: string) {
     const path = window.nodeAPI.path;
+    window.nodeAPI.fs.setRoot?.(dir);
     this.rootDir = dir;
     this.charDir = path.resolve(dir, CHAR_SUBDIR);
     this.stageDir = path.resolve(dir, STAGE_SUBDIR);
-    window.nodeAPI.fs.setRoot?.(dir);
   }
 
   private hasDataDir(dir: string): boolean {
@@ -49,17 +49,16 @@ export class ElectronStorage implements StorageBackend {
     }
   }
 
-  async pickDirectory(): Promise<boolean> {
+  async pickDirectory(): Promise<string | null> {
     const result = await window.electronAPI.showOpenDialog({
       title: 'Select Antistatic installation or repository directory',
       defaultPath: this.rootDir || undefined,
       properties: ['openDirectory'],
     });
     if (result.filePaths.length === 1) {
-      this.setRoot(result.filePaths[0]);
-      return true;
+      return result.filePaths[0];
     }
-    return false;
+    return null;
   }
 
   async list(): Promise<string[]> {

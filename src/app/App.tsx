@@ -14,6 +14,7 @@ import { clearBaselines } from '../animator/operations/diff';
 import { createTools } from '../animator/api/tools';
 import { library, StorageConflictError } from '../storage/library';
 import { ElectronStorage } from '../storage/electron';
+import { pickElectronSource } from '../storage/switch-electron';
 import { FsAccessStorage } from '../storage/fs-access';
 import { UploadStorage } from '../storage/upload';
 import { detectCapabilities } from '../storage/types';
@@ -588,26 +589,16 @@ const Shell: React.FC = () => {
   }, []);
 
   const handlePickElectron = useCallback(async () => {
-    const previous = library.getBackend();
     try {
-      const backend = new ElectronStorage();
-      const ok = await backend.pickDirectory();
-      if (ok) {
-        if (!confirmDiscardChanges()) return;
-        library.setBackend(backend);
-        await library.refresh();
-        clearOpenFile();
-        setExternalFiles(new Set());
-        if (backend.ready) {
-          setLocalStorageItem(ELECTRON_SOURCE_KEY, backend.label);
-          setShowPicker(false);
-        }
+      const backend = await pickElectronSource(library, confirmDiscardChanges);
+      if (!backend) return;
+      clearOpenFile();
+      setExternalFiles(new Set());
+      if (backend.ready) {
+        setLocalStorageItem(ELECTRON_SOURCE_KEY, backend.label);
+        setShowPicker(false);
       }
     } catch (err) {
-      if (library.getBackend() !== previous) {
-        library.setBackend(previous);
-        await library.refresh().catch(() => undefined);
-      }
       console.error('directory selection failed', err);
       alert(`Unable to open directory: ${(err as Error).message ?? err}`);
     }

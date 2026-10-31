@@ -29,6 +29,12 @@ running game's data directory.
   animator shows **Reload changed** instead of silently replacing the editor's
   in-memory work. Live autosave pauses until the changed source is reloaded.
 - Reloading while dirty asks for confirmation because it discards local edits.
+- Selecting another Electron project changes native filesystem authorization only
+  after discard confirmation. A failed switch restores the previous project's root.
+- Browser folder saves compare the original file again after staging content and
+  abort on a conflict or read failure. This detects edits during asynchronous
+  writing; the File System Access API does not offer an atomic compare-and-swap
+  against edits arriving during the final close.
 - Stage preview runs only in offline Training with Live Reload enabled. It
   replaces visual models, emission animation and lighting; collision, hazards,
   wind and gameplay state keep their loaded values. Restart the game to load

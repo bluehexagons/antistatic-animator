@@ -116,10 +116,16 @@ describe('FsAccessStorage', () => {
 
   it('allows a first save when the conflict check reports a missing file', async () => {
     const handle = mockDirHandle([]);
-    vi.mocked(handle.getFileHandle).mockRejectedValueOnce(
-      new DOMException('Missing', 'NotFoundError')
-    );
     window.showDirectoryPicker = vi.fn(async () => handle);
+    vi.mocked(handle.getFileHandle).mockImplementationOnce(async () => {
+      throw new DOMException('Missing', 'NotFoundError');
+    });
+    vi.mocked(handle.getFileHandle).mockResolvedValue({
+      kind: 'file',
+      name: 'carbon.json',
+      getFile: async () => new File([''], 'carbon.json'),
+      createWritable: async () => ({ write: vi.fn(), close: vi.fn(), abort: vi.fn() }),
+    });
     const storage = new FsAccessStorage();
     await storage.pickRoot();
 
@@ -133,6 +139,12 @@ describe('FsAccessStorage', () => {
     vi.mocked(stages.getFileHandle).mockRejectedValueOnce(
       new DOMException('Missing', 'NotFoundError')
     );
+    vi.mocked(stages.getFileHandle).mockResolvedValue({
+      kind: 'file',
+      name: 'ruins.json',
+      getFile: async () => new File([''], 'ruins.json'),
+      createWritable: async () => ({ write: vi.fn(), close: vi.fn(), abort: vi.fn() }),
+    });
     const assets = mockDirHandle([]);
     vi.mocked(assets.getDirectoryHandle).mockImplementation(async (name, options) => {
       if (name === 'stages' && options?.create) return stages;
@@ -153,6 +165,53 @@ describe('FsAccessStorage', () => {
     await expect(storage.writeIfUnchanged('stages/ruins.json', '{}')).resolves.toBeUndefined();
     expect(assets.getDirectoryHandle).toHaveBeenLastCalledWith('stages', { create: true });
     expect(stages.getFileHandle).toHaveBeenLastCalledWith('ruins.json', { create: true });
+  });
+
+  it.each(['external edit', 'read failure'])('aborts a staged save after %s', async (failure) => {
+    const directory = mockDirHandle(['carbon.json']);
+    let current = 'original';
+    let failRead = false;
+    let finishWrite!: () => void;
+    let beganWrite!: () => void;
+    const started = new Promise<void>((resolve) => {
+      beganWrite = resolve;
+    });
+    const writable = {
+      write: vi.fn(() => {
+        beganWrite();
+        return new Promise<void>((resolve) => {
+          finishWrite = resolve;
+        });
+      }),
+      close: vi.fn(async () => {
+        current = 'saved';
+      }),
+      abort: vi.fn(async () => {}),
+    };
+    vi.mocked(directory.getFileHandle).mockResolvedValue({
+      kind: 'file',
+      name: 'carbon.json',
+      getFile: async () => {
+        if (failRead) throw new Error('permission denied');
+        return new File([current], 'carbon.json');
+      },
+      createWritable: async () => writable,
+    });
+    window.showDirectoryPicker = vi.fn(async () => directory);
+    const storage = new FsAccessStorage();
+    await storage.pickRoot();
+    const saving = storage.writeIfUnchanged('carbon.json', 'saved', 'original');
+    const rejection = expect(saving).rejects.toThrow(
+      failure === 'external edit' ? /changed externally/ : /permission denied/
+    );
+    await started;
+    if (failure === 'external edit') current = 'external';
+    else failRead = true;
+    finishWrite();
+    await rejection;
+    expect(writable.abort).toHaveBeenCalledOnce();
+    expect(writable.close).not.toHaveBeenCalled();
+    expect(current).toBe(failure === 'external edit' ? 'external' : 'original');
   });
 
   it('returns false from pickRoot when showDirectoryPicker is unavailable', async () => {

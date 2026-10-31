@@ -148,9 +148,18 @@ export class FsAccessStorage implements StorageBackend {
     const location = await this.writableLocation(name);
     if (!location.directory) throw new Error('no directory selected for this file type');
     const file = await location.directory.getFileHandle(location.name, { create: true });
+    await this.writeStaged(file, content);
+  }
+
+  private async writeStaged(
+    file: FsFileHandle,
+    content: string,
+    beforeCommit?: () => Promise<void>
+  ): Promise<void> {
     const w = await file.createWritable();
     try {
       await w.write(content);
+      await beforeCommit?.();
       await w.close();
     } catch (error) {
       // Closing commits the temporary file. Abort a failed save and preserve
@@ -161,17 +170,29 @@ export class FsAccessStorage implements StorageBackend {
   }
 
   async writeIfUnchanged(name: string, content: string, expectedContent?: string): Promise<void> {
-    // A repository can gain its first stage/character directory on save.
-    // Resolve it before distinguishing a missing file from a failed read.
-    await this.writableLocation(name);
+    const location = await this.writableLocation(name);
+    if (!location.directory) throw new Error('no directory selected for this file type');
+    let file: FsFileHandle;
     let current: string | undefined;
     try {
-      current = await this.read(name);
+      file = await location.directory.getFileHandle(location.name);
+      current = await (await file.getFile()).text();
     } catch (error) {
       if (!(error instanceof DOMException) || error.name !== 'NotFoundError') throw error;
-      // A missing file is a valid first save.
     }
     if (current !== expectedContent) throw new Error(`File changed externally: ${name}`);
-    await this.write(name, content);
+    if (current === undefined) {
+      file = await location.directory.getFileHandle(location.name, { create: true });
+      // Creating a new file exposes an empty original before the staged commit.
+      current = '';
+    }
+    const handle = file!;
+    await this.writeStaged(handle, content, async () => {
+      // Writes are staged until close. Re-read after staging to detect external
+      // edits during the asynchronous write, and fail closed on read errors.
+      if ((await (await handle.getFile()).text()) !== current) {
+        throw new Error(`File changed externally: ${name}`);
+      }
+    });
   }
 }

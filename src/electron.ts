@@ -1,9 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'node:url';
+import { isApplicationUrl } from './runtime/renderer-policy';
 import { AntistaticProcessManager } from './runtime/antistatic';
 
 const antistatic = new AntistaticProcessManager();
+const applicationUrl = pathToFileURL(path.join(__dirname, 'index.html')).href;
 
 type StorageResponse<T> = { ok: true; value: T } | { ok: false; error: string };
 type StorageIpcEvent = Electron.IpcMainEvent | Electron.IpcMainInvokeEvent;
@@ -19,7 +22,7 @@ const assertTrustedRenderer = (event: StorageIpcEvent): void => {
     !win ||
     win.isDestroyed() ||
     event.senderFrame !== event.sender.mainFrame ||
-    !event.sender.getURL().startsWith('file:')
+    !isApplicationUrl(event.sender.getURL(), applicationUrl)
   ) {
     throw new Error('IPC request did not originate from the application renderer');
   }
@@ -169,7 +172,7 @@ function createWindow() {
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('file:')) event.preventDefault();
+    if (!isApplicationUrl(url, applicationUrl)) event.preventDefault();
   });
   win.webContents.on('destroyed', () => {
     closeStorageWatchers(win.webContents);
