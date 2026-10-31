@@ -25,7 +25,7 @@ Apache-2.0 and MIT respectively.
   beside one another under `~/repos` or the configured `--agent-workspace` root.
   Locate the actual primary checkouts with `git worktree list` when working in
   an isolated worktree. See Antistatic's
-  [workspace guide](https://github.com/bluehexagons/antistatic/blob/main/docs/sister-repositories.md).
+  [workspace guide](https://github.com/bluehexagons/antistatic/blob/main/docs/development/dependencies.md#related-repositories).
   Diagnose CachyOS with `basaltw local cachyos-doctor --json`, or Debian with
   `basaltw agent doctor --capability development --json`, when host tooling is
   suspect. Repository checks remain authoritative and work without Basaltwater.
