@@ -166,6 +166,8 @@ export class Library {
         // A slow write from an old source must not populate the new source's
         // cache after the user switches backends.
         if (backend === this.backend && backendGeneration === this.backendGeneration) {
+          // Any refresh already in flight may have read the pre-save content.
+          this.refreshGeneration++;
           this.cache.set(name, content);
           this.emit();
         }

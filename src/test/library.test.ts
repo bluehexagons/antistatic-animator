@@ -99,6 +99,45 @@ describe('Library', () => {
     expect(lib.files()).toEqual([{ name: 'new.json', content: 'new' }]);
   });
 
+  it('does not let a slow refresh overwrite a completed save', async () => {
+    const Library = await getLibrary();
+    const lib = new Library();
+    let disk = 'original';
+    let releaseRead!: (content: string) => void;
+    let startedRead!: () => void;
+    const pendingRead = new Promise<string>((resolve) => {
+      releaseRead = resolve;
+    });
+    const readStarted = new Promise<void>((resolve) => {
+      startedRead = resolve;
+    });
+    const backend = {
+      kind: 'electron' as const,
+      label: '/game',
+      ready: true,
+      canSave: true,
+      list: vi.fn(async () => ['test.json']),
+      read: vi.fn(async () => disk),
+      write: vi.fn(async (_name: string, content: string) => {
+        disk = content;
+      }),
+    };
+    lib.setBackend(backend);
+    await lib.refresh();
+    backend.read.mockImplementationOnce(() => {
+      startedRead();
+      return pendingRead;
+    });
+    const refresh = lib.refresh();
+    await readStarted;
+    await lib.save('test.json', 'saved');
+    releaseRead('original');
+    await refresh;
+    expect(lib.get('test.json')).toBe('saved');
+    await expect(lib.save('test.json', 'saved again')).resolves.toBeUndefined();
+    expect(disk).toBe('saved again');
+  });
+
   it('save updates the in-memory cache', async () => {
     const Library = await getLibrary();
     const lib = new Library();
