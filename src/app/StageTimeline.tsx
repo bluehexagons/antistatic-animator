@@ -6,12 +6,14 @@ import {
 } from '../stage/animation';
 import type {
   StageAnimationTrack,
+  StagePositionTrack,
+  StageMaterialTrack,
   StageDocument,
   StageSelection,
   Vec2,
   Vec3,
 } from '../stage/types';
-import { isStageMaterialTrack } from '../stage/types';
+import { isStageRotationTrack, isStageMaterialTrack } from '../stage/types';
 import { EMISSION_MAX, stageAuthoredEmission, stageMaterialSlots } from '../stage/emission';
 
 interface StageTimelineProps {
@@ -51,7 +53,10 @@ const targetValue = (target: Target) =>
       : [target.kind, target.id.trim()]
   );
 
-const initialTrack = (stage: StageDocument, target: Target): StageAnimationTrack => {
+const initialTrack = (
+  stage: StageDocument,
+  target: Target
+): StagePositionTrack | StageMaterialTrack => {
   if (target.kind === 'material') {
     const model = stage.scene.models?.find((item) => item.id.trim() === target.id.trim());
     const emission = model
@@ -63,7 +68,7 @@ const initialTrack = (stage: StageDocument, target: Target): StageAnimationTrack
     };
   }
   return {
-    target: { ...target, id: target.id.trim() },
+    target: { kind: target.kind, id: target.id.trim() },
     keyframes: [{ time: 0, position: initialPosition(stage, target.kind, target.id) }],
   };
 };
@@ -307,182 +312,201 @@ export const StageTimeline: React.FC<StageTimelineProps> = ({
             choose “other imported source slot” and enter its original asset name.
           </div>
         )}
-        {animation.tracks.map((track, trackIndex) => (
-          <div className="stageTrack" key={`${track.target.kind}:${track.target.id}:${trackIndex}`}>
-            <div className="stageTrackHeader">
-              <select
-                aria-label={`Target for track ${trackIndex + 1}`}
-                value={targetValue(track.target)}
-                onChange={(event) => {
-                  const target = targets.find(
-                    (candidate) => targetValue(candidate) === event.target.value
-                  );
-                  if (
-                    !target ||
-                    animation.tracks.some(
-                      (other, index) =>
-                        index !== trackIndex && targetValue(other.target) === targetValue(target)
-                    )
-                  )
-                    return;
-                  const replacement = initialTrack(stage, target);
-                  // Keep times when retargeting, resetting values to the new target's authored state.
-                  animation.tracks[trackIndex] = isStageMaterialTrack(replacement)
-                    ? {
-                        ...replacement,
-                        keyframes: track.keyframes.map((keyframe) => ({
-                          time: keyframe.time,
-                          value: structuredClone(replacement.keyframes[0].value),
-                        })),
-                      }
-                    : {
-                        ...replacement,
-                        keyframes: track.keyframes.map((keyframe) => ({
-                          time: keyframe.time,
-                          position: [...replacement.keyframes[0].position] as Vec2 | Vec3,
-                        })),
-                      };
-                  onChange();
-                }}
-              >
-                {targets.map((target) => (
-                  <option
-                    key={targetValue(target)}
-                    value={targetValue(target)}
-                    disabled={animation.tracks.some(
-                      (other, index) =>
-                        index !== trackIndex && targetValue(other.target) === targetValue(target)
-                    )}
-                  >
-                    {target.kind}: {target.id}
-                    {target.kind === 'material'
-                      ? ` / ${target.materialSlot} / ${target.property}`
-                      : ' / position'}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="miniAction danger"
-                aria-label={`Delete track ${trackIndex + 1}`}
-                onClick={() => {
-                  animation.tracks.splice(trackIndex, 1);
-                  onChange();
-                }}
-                title="Delete track"
-              >
-                ×
-              </button>
+        {animation.tracks.map((track, trackIndex) =>
+          isStageRotationTrack(track) ? (
+            <div className="stageTrack" key={trackIndex}>
+              <strong>{track.target.id} — rotation</strong>
+              <p>Pivot: {track.pivot.join(', ')}. Clockwise angles use half-turn units.</p>
+              <p>
+                Edit rotation keys in the stage JSON. Scrub the timeline to preview the linked hull.
+              </p>
+              {track.keyframes.map((key) => (
+                <div key={key.time}>
+                  Frame {key.time}: {key.angle} half-turns; offset{' '}
+                  {(key.offset ?? [0, 0]).join(', ')}
+                </div>
+              ))}
             </div>
-            <div className="stageKeyframes">
-              {track.keyframes.map((keyframe, keyframeIndex) => (
-                <div className="stageKeyframe" key={keyframeIndex}>
-                  <label>
-                    frame
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={keyframe.time}
-                      onChange={(event) => {
-                        const time = Number(event.target.value);
-                        if (
-                          !Number.isFinite(time) ||
-                          time < 0 ||
-                          track.keyframes.some(
-                            (other, index) => index !== keyframeIndex && other.time === time
-                          )
-                        )
-                          return;
-                        keyframe.time = time;
-                        track.keyframes.sort((a, b) => a.time - b.time);
-                        onChange();
-                      }}
-                    />
-                  </label>
-                  {(isStageMaterialTrack(track)
-                    ? Array.isArray(track.keyframes[keyframeIndex].value)
-                      ? (track.keyframes[keyframeIndex].value as Vec3)
-                      : [track.keyframes[keyframeIndex].value as number]
-                    : track.keyframes[keyframeIndex].position
-                  ).map((component, componentIndex) => (
-                    <label key={componentIndex}>
-                      {isStageMaterialTrack(track)
-                        ? track.target.property === 'emissive'
-                          ? 'RGB'[componentIndex]
-                          : 'strength'
-                        : 'xyz'[componentIndex]}
+          ) : (
+            <div
+              className="stageTrack"
+              key={`${track.target.kind}:${track.target.id}:${trackIndex}`}
+            >
+              <div className="stageTrackHeader">
+                <select
+                  aria-label={`Target for track ${trackIndex + 1}`}
+                  value={targetValue(track.target)}
+                  onChange={(event) => {
+                    const target = targets.find(
+                      (candidate) => targetValue(candidate) === event.target.value
+                    );
+                    if (
+                      !target ||
+                      animation.tracks.some(
+                        (other, index) =>
+                          index !== trackIndex && targetValue(other.target) === targetValue(target)
+                      )
+                    )
+                      return;
+                    const replacement = initialTrack(stage, target);
+                    // Keep times when retargeting, resetting values to the new target's authored state.
+                    animation.tracks[trackIndex] = isStageMaterialTrack(replacement)
+                      ? {
+                          ...replacement,
+                          keyframes: track.keyframes.map((keyframe) => ({
+                            time: keyframe.time,
+                            value: structuredClone(replacement.keyframes[0].value),
+                          })),
+                        }
+                      : {
+                          ...replacement,
+                          keyframes: track.keyframes.map((keyframe) => ({
+                            time: keyframe.time,
+                            position: [...replacement.keyframes[0].position] as Vec2 | Vec3,
+                          })),
+                        };
+                    onChange();
+                  }}
+                >
+                  {targets.map((target) => (
+                    <option
+                      key={targetValue(target)}
+                      value={targetValue(target)}
+                      disabled={animation.tracks.some(
+                        (other, index) =>
+                          index !== trackIndex && targetValue(other.target) === targetValue(target)
+                      )}
+                    >
+                      {target.kind}: {target.id}
+                      {target.kind === 'material'
+                        ? ` / ${target.materialSlot} / ${target.property}`
+                        : ' / position'}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="miniAction danger"
+                  aria-label={`Delete track ${trackIndex + 1}`}
+                  onClick={() => {
+                    animation.tracks.splice(trackIndex, 1);
+                    onChange();
+                  }}
+                  title="Delete track"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="stageKeyframes">
+                {track.keyframes.map((keyframe, keyframeIndex) => (
+                  <div className="stageKeyframe" key={keyframeIndex}>
+                    <label>
+                      frame
                       <input
                         type="number"
-                        step="any"
-                        value={component}
-                        min={isStageMaterialTrack(track) ? 0 : undefined}
-                        max={isStageMaterialTrack(track) ? EMISSION_MAX : undefined}
-                        aria-label={`Track ${trackIndex + 1} keyframe ${keyframeIndex + 1} component ${componentIndex + 1}`}
+                        min="0"
+                        step="1"
+                        value={keyframe.time}
                         onChange={(event) => {
-                          const value = Number(event.target.value);
+                          const time = Number(event.target.value);
                           if (
-                            !Number.isFinite(value) ||
-                            (isStageMaterialTrack(track) && (value < 0 || value > EMISSION_MAX))
+                            !Number.isFinite(time) ||
+                            time < 0 ||
+                            track.keyframes.some(
+                              (other, index) => index !== keyframeIndex && other.time === time
+                            )
                           )
                             return;
-                          if (isStageMaterialTrack(track)) {
-                            const key = track.keyframes[keyframeIndex];
-                            if (Array.isArray(key.value))
-                              key.value = key.value.map((old, index) =>
-                                index === componentIndex ? value : old
-                              ) as Vec3;
-                            else key.value = value;
-                          } else track.keyframes[keyframeIndex].position[componentIndex] = value;
+                          keyframe.time = time;
+                          track.keyframes.sort((a, b) => a.time - b.time);
                           onChange();
                         }}
                       />
                     </label>
-                  ))}
-                  <button
-                    type="button"
-                    aria-label={`Delete keyframe ${keyframeIndex + 1} from track ${trackIndex + 1}`}
-                    className="miniAction danger"
-                    disabled={track.keyframes.length === 1}
-                    onClick={() => {
-                      track.keyframes.splice(keyframeIndex, 1);
-                      onChange();
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="btn ghost"
-                disabled={track.keyframes.some((keyframe) => keyframe.time === frame)}
-                onClick={() => {
-                  if (
-                    !Number.isFinite(frame) ||
-                    frame < 0 ||
-                    track.keyframes.some((keyframe) => keyframe.time === frame)
-                  )
-                    return;
-                  if (isStageMaterialTrack(track)) {
-                    const value = sampleStageMaterial(track.keyframes, frame);
-                    if (value !== undefined)
-                      track.keyframes.push({ time: frame, value: structuredClone(value) });
-                  } else {
-                    const position =
-                      sampleStagePosition(track.keyframes, frame) ??
-                      initialPosition(stage, track.target.kind, track.target.id);
-                    track.keyframes.push({ time: frame, position: [...position] as Vec2 | Vec3 });
-                  }
-                  track.keyframes.sort((a, b) => a.time - b.time);
-                  onChange();
-                }}
-              >
-                + keyframe at {Number(frame.toFixed(2))}
-              </button>
+                    {(isStageMaterialTrack(track)
+                      ? Array.isArray(track.keyframes[keyframeIndex].value)
+                        ? (track.keyframes[keyframeIndex].value as Vec3)
+                        : [track.keyframes[keyframeIndex].value as number]
+                      : track.keyframes[keyframeIndex].position
+                    ).map((component, componentIndex) => (
+                      <label key={componentIndex}>
+                        {isStageMaterialTrack(track)
+                          ? track.target.property === 'emissive'
+                            ? 'RGB'[componentIndex]
+                            : 'strength'
+                          : 'xyz'[componentIndex]}
+                        <input
+                          type="number"
+                          step="any"
+                          value={component}
+                          min={isStageMaterialTrack(track) ? 0 : undefined}
+                          max={isStageMaterialTrack(track) ? EMISSION_MAX : undefined}
+                          aria-label={`Track ${trackIndex + 1} keyframe ${keyframeIndex + 1} component ${componentIndex + 1}`}
+                          onChange={(event) => {
+                            const value = Number(event.target.value);
+                            if (
+                              !Number.isFinite(value) ||
+                              (isStageMaterialTrack(track) && (value < 0 || value > EMISSION_MAX))
+                            )
+                              return;
+                            if (isStageMaterialTrack(track)) {
+                              const key = track.keyframes[keyframeIndex];
+                              if (Array.isArray(key.value))
+                                key.value = key.value.map((old, index) =>
+                                  index === componentIndex ? value : old
+                                ) as Vec3;
+                              else key.value = value;
+                            } else track.keyframes[keyframeIndex].position[componentIndex] = value;
+                            onChange();
+                          }}
+                        />
+                      </label>
+                    ))}
+                    <button
+                      type="button"
+                      aria-label={`Delete keyframe ${keyframeIndex + 1} from track ${trackIndex + 1}`}
+                      className="miniAction danger"
+                      disabled={track.keyframes.length === 1}
+                      onClick={() => {
+                        track.keyframes.splice(keyframeIndex, 1);
+                        onChange();
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={track.keyframes.some((keyframe) => keyframe.time === frame)}
+                  onClick={() => {
+                    if (
+                      !Number.isFinite(frame) ||
+                      frame < 0 ||
+                      track.keyframes.some((keyframe) => keyframe.time === frame)
+                    )
+                      return;
+                    if (isStageMaterialTrack(track)) {
+                      const value = sampleStageMaterial(track.keyframes, frame);
+                      if (value !== undefined)
+                        track.keyframes.push({ time: frame, value: structuredClone(value) });
+                    } else {
+                      const position =
+                        sampleStagePosition(track.keyframes, frame) ??
+                        initialPosition(stage, track.target.kind, track.target.id);
+                      track.keyframes.push({ time: frame, position: [...position] as Vec2 | Vec3 });
+                    }
+                    track.keyframes.sort((a, b) => a.time - b.time);
+                    onChange();
+                  }}
+                >
+                  + keyframe at {Number(frame.toFixed(2))}
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
     </div>
   );

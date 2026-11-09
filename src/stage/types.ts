@@ -266,7 +266,16 @@ export interface StageMaterialTrack {
   keyframes: StageMaterialKeyframe[];
 }
 
-export type StageAnimationTrack = StagePositionTrack | StageMaterialTrack;
+export interface StageRotationTrack {
+  target: { kind: 'collision'; id: string; property: 'rotation' };
+  pivot: Vec2;
+  keyframes: { time: number; angle: number; offset?: Vec2; position?: never }[];
+}
+export const isStageRotationTrack = (track: StageAnimationTrack): track is StageRotationTrack =>
+  track.target.kind === 'collision' &&
+  'property' in track.target &&
+  track.target.property === 'rotation';
+export type StageAnimationTrack = StagePositionTrack | StageMaterialTrack | StageRotationTrack;
 
 export const isStageMaterialTrack = (track: StageAnimationTrack): track is StageMaterialTrack =>
   track.target.kind === 'material';

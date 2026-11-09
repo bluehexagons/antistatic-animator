@@ -633,3 +633,72 @@ describe('stage editor rendering', () => {
     expect(inspector).toContain('Model positions use Y-up');
   });
 });
+
+it('preserves and previews collision rotation tracks and their shared hull', () => {
+  const stage = createStageDocument('Rotation fixture');
+  delete stage.scaleX;
+  delete stage.scaleY;
+  stage.scene.models = [
+    { id: 'beam', primitive: { type: 'box' }, position: [0, 0, 0], size: [100, 5, 20] },
+  ];
+  stage.scene.collision = [
+    { id: 'deck', from: [-100, -5], to: [100, -5], flags: ['top', 'solid'], model: 'beam' },
+    { id: 'underside', from: [-100, 5], to: [100, 5], flags: ['bottom', 'solid'], model: 'beam' },
+  ];
+  stage.scene.animations = [
+    {
+      id: 'rotate',
+      tracks: [
+        {
+          target: { kind: 'collision', id: 'deck', property: 'rotation' },
+          pivot: [0, 0],
+          keyframes: [
+            { time: 0, angle: 0 },
+            { time: 120, angle: 1, offset: [20, 0] },
+          ],
+        },
+      ],
+    },
+  ];
+  expect(validateStageDocument(stage)).toEqual([]);
+  const saved = renderStageFile(undefined, stage);
+  const restored = parseStageDocument(saved);
+  expect(restored.issues).toEqual([]);
+  expect(restored.document?.scene.animations).toEqual(stage.scene.animations);
+  const preview = evaluateStageAnimation(stage, stage.scene.animations[0], 60);
+  expect(preview.collision.get('deck')?.from[0]).toBeCloseTo(15);
+  expect(preview.collision.get('deck')?.from[1]).toBeCloseTo(-100);
+  expect(preview.collision.get('underside')?.from[0]).toBeCloseTo(5);
+  expect(preview.models.get('beam')).toEqual([10, 0, 0]);
+  expect(preview.rotations.get('beam')).toBeCloseTo(Math.PI / 2);
+  const bounds = stageAuthoringBounds(stage);
+  expect(bounds.maxX).toBeGreaterThan(120);
+  expect(bounds.minY).toBeLessThan(-100);
+  const markup = renderToStaticMarkup(
+    <StageTimeline
+      stage={stage}
+      selection={{ kind: 'animation', id: 'rotate' }}
+      frame={60}
+      playing={false}
+      onFrameChange={() => {}}
+      onPlayingChange={() => {}}
+      onChange={() => {}}
+    />
+  );
+  expect(markup).toContain('half-turn units');
+  stage.scene.animations[0].tracks.push({
+    target: { kind: 'collision', id: 'underside' },
+    keyframes: [{ time: 0, position: [0, 0] }],
+  });
+  expect(
+    validateStageDocument(stage).some((issue) => issue.message.includes('exclusively own'))
+  ).toBe(true);
+  stage.scene.animations[0].tracks.pop();
+  stage.scaleX = 2;
+  expect(validateStageDocument(stage).some((issue) => issue.message.includes('unscaled'))).toBe(
+    true
+  );
+  delete stage.scaleX;
+  renameStageSceneItem(stage, { kind: 'collision', id: 'deck' }, 'renamed');
+  expect(stage.scene.animations[0].tracks[0].target.id).toBe('renamed');
+});

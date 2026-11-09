@@ -1,3 +1,4 @@
+import { isStageRotationTrack } from './types';
 import type { CameraState } from '../animator/context/AnimatorContext';
 import type { StageDocument, StageModel, Vec2, Vec3 } from './types';
 
@@ -53,6 +54,29 @@ export const stageAuthoringBounds = (stage: StageDocument): StageAuthoringBounds
   for (const animation of stage.scene.animations ?? []) {
     for (const track of animation.tracks) {
       if (track.target.kind !== 'collision') continue;
+      if (isStageRotationTrack(track)) {
+        const target = stage.scene.collision?.find(
+          (face) => face.id.trim() === track.target.id.trim()
+        );
+        const faces =
+          stage.scene.collision?.filter(
+            (face) =>
+              face === target || (target?.model && face.model?.trim() === target.model.trim())
+          ) ?? [];
+        const radius = Math.max(
+          0,
+          ...faces
+            .flatMap((face) => [face.from, face.to])
+            .map((point) => Math.hypot(point[0] - track.pivot[0], point[1] - track.pivot[1]))
+        );
+        for (const key of track.keyframes) {
+          const x = track.pivot[0] + (key.offset?.[0] ?? 0),
+            y = track.pivot[1] + (key.offset?.[1] ?? 0);
+          includePoint(bounds, [x - radius, y - radius]);
+          includePoint(bounds, [x + radius, y + radius]);
+        }
+        continue;
+      }
       const collision = stage.scene.collision?.find(
         (item) => item.id.trim() === track.target.id.trim()
       );

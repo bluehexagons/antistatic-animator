@@ -133,3 +133,21 @@ Issue and confirm no autosave dialog interrupts editing; resolve it and confirm
 the preview resumes. Edit collision and verify gameplay stays unchanged until
 restarting the game. Disable Live Reload and leave Training to verify preview
 cleanup, then exercise the existing external-file conflict flow.
+
+
+## Collision rotation tracks
+
+Rotation uses `target: {kind: "collision", id, property: "rotation"}`, a Y-down
+`pivot`, and keys with `time`, clockwise half-turn `angle` and optional Y-down
+translation `offset`. All faces sharing the target's model form one rigid hull.
+Use unscaled, explicitly authored collision and give this track sole ownership
+of the hull/model motion. Material animation remains independent.
+
+- Open Collision Lab and select each rotation animation. Scrub quarter, half and
+  full turns; collision faces and the model bounds must rotate about one pivot.
+- Reset Camera must include the full rotation and translation envelope.
+- The timeline displays rotation keys; edit them in stage JSON. Save/reopen after
+  an unrelated edit and verify pivot, angles and offsets survive unchanged.
+- Rename the targeted collision and model; keep hull references valid. Validate
+  in the game and test rider contacts there; editor preview does not simulate
+  collisions, support changes or continuous angular sweeps.

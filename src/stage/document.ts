@@ -12,7 +12,7 @@ import type {
   StageSelection,
   StageSelectionKind,
 } from './types';
-import { isStageMaterialTrack, STAGE_SCENE_SCHEMA_VERSION } from './types';
+import { isStageRotationTrack, isStageMaterialTrack, STAGE_SCENE_SCHEMA_VERSION } from './types';
 
 export interface StageIssue {
   path: string;
@@ -217,11 +217,52 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
       }
     }
   }
+  const motionTracks = (stage.scene.animations ?? [])
+    .flatMap((animation) => animation.tracks)
+    .filter((track) => track.target.kind !== 'material');
+  for (const track of motionTracks.filter(isStageRotationTrack)) {
+    const path = `/scene/animations/rotation/${track.target.id}`;
+    if ((stage.scaleX ?? 1) !== 1 || (stage.scaleY ?? 1) !== 1 || stage.symmetric)
+      issues.push({
+        path,
+        message: 'rotation tracks require unscaled, explicitly authored collision',
+      });
+    const collision = stage.scene.collision?.find(
+      (face) => face.id.trim() === track.target.id.trim()
+    );
+    if (!collision) continue;
+    const modelId = collision.model?.trim();
+    const competing = motionTracks.some(
+      (other) =>
+        other !== track &&
+        (other.target.kind === 'model'
+          ? modelId && other.target.id.trim() === modelId
+          : other.target.id.trim() === collision.id.trim() ||
+            (modelId &&
+              stage.scene.collision?.some(
+                (face) =>
+                  face.id.trim() === other.target.id.trim() && face.model?.trim() === modelId
+              )))
+    );
+    if (
+      competing ||
+      (modelId &&
+        stage.scene.models?.some(
+          (model) =>
+            model.id.trim() === modelId && model.angularVelocity?.some((value) => value !== 0)
+        ))
+    )
+      issues.push({
+        path,
+        message: 'rotation must exclusively own its linked collision hull and model motion',
+      });
+  }
   for (const animation of stage.scene.animations ?? []) {
     const targets = new Set<string>();
     let lastKeyframeTime = 0;
     for (const track of animation.tracks) {
       const materialTrack = isStageMaterialTrack(track);
+      const rotationTrack = isStageRotationTrack(track);
       const targetKey = JSON.stringify(
         materialTrack
           ? [
@@ -230,7 +271,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
               track.target.materialSlot.trim(),
               track.target.property,
             ]
-          : [track.target.kind, track.target.id.trim()]
+          : [track.target.kind, track.target.id.trim(), ...(rotationTrack ? ['rotation'] : [])]
       );
       if (targets.has(targetKey)) {
         issues.push({
@@ -261,7 +302,12 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
       const dimensions = track.target.kind === 'model' ? 3 : 2;
       for (const keyframe of track.keyframes) {
         lastKeyframeTime = Math.max(lastKeyframeTime, keyframe.time);
-        if (!materialTrack && keyframe.position.length !== dimensions) {
+        if (
+          !materialTrack &&
+          !rotationTrack &&
+          keyframe.position &&
+          keyframe.position.length !== dimensions
+        ) {
           issues.push({
             path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
             message: `${track.target.kind} keyframes must have exactly ${dimensions} coordinates`,
@@ -272,10 +318,10 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
             path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
             message: `duplicate keyframe time ${keyframe.time}`,
           });
-        } else if (materialTrack && keyframe.time < previousTime) {
+        } else if ((materialTrack || rotationTrack) && keyframe.time < previousTime) {
           issues.push({
             path: `/scene/animations/${animation.id}/tracks/${targetKey}`,
-            message: 'material keyframe times must be in increasing order',
+            message: 'animation keyframe times must be in increasing order',
           });
         }
         times.add(keyframe.time);

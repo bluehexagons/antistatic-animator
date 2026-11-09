@@ -6,7 +6,7 @@ import type {
   Vec2,
   Vec3,
 } from './types';
-import { isStageMaterialTrack } from './types';
+import { isStageRotationTrack, isStageMaterialTrack } from './types';
 import { stageAuthoredEmission } from './emission';
 import { stageModelDisplayPosition } from './view';
 
@@ -14,6 +14,7 @@ export interface StageAnimationPreview {
   /** Positions converted into the stage viewer's authored collision coordinate space. */
   models: Map<string, Vec3>;
   collision: Map<string, { from: Vec2; to: Vec2 }>;
+  rotations: Map<string, number>;
   /** Model ID -> original source slot -> sampled authored emission. Does not mutate the document. */
   materials: Map<string, Map<string, { emissive: Vec3; emissiveStrength: number }>>;
 }
@@ -81,6 +82,7 @@ export const evaluateStageAnimation = (
   const preview: StageAnimationPreview = {
     models: new Map(),
     collision: new Map(),
+    rotations: new Map(),
     materials: new Map(),
   };
   if (!animation) return preview;
@@ -98,6 +100,45 @@ export const evaluateStageAnimation = (
       if (track.target.property === 'emissiveStrength' && typeof value === 'number')
         emission.emissiveStrength = value;
       slots.set(slot, emission);
+      continue;
+    }
+    if (isStageRotationTrack(track)) {
+      const collision = stage.scene.collision?.find(
+        (face) => face.id.trim() === track.target.id.trim()
+      );
+      if (!collision) continue;
+      const keys = track.keyframes;
+      const index = keys.findIndex((key) => key.time >= frame);
+      const a = index <= 0 ? keys[index < 0 ? keys.length - 1 : 0] : keys[index - 1];
+      const b = index < 0 ? a : keys[index];
+      if (!a || !b) continue;
+      const t = Math.max(0, Math.min(1, (frame - a.time) / (b.time - a.time || 1)));
+      const angle = (a.angle + (b.angle - a.angle) * t) * Math.PI;
+      const c = Math.cos(angle),
+        s = Math.sin(angle);
+      const offset: Vec2 = [0, 1].map(
+        (axis) => (a.offset?.[axis] ?? 0) * (1 - t) + (b.offset?.[axis] ?? 0) * t
+      ) as Vec2;
+      const point = ([x, y]: Vec2): Vec2 => [
+        track.pivot[0] + offset[0] + c * (x - track.pivot[0]) - s * (y - track.pivot[1]),
+        track.pivot[1] + offset[1] + s * (x - track.pivot[0]) + c * (y - track.pivot[1]),
+      ];
+      for (const face of stage.scene.collision ?? []) {
+        if (
+          face === collision ||
+          (collision.model && face.model?.trim() === collision.model.trim())
+        )
+          preview.collision.set(face.id, { from: point(face.from), to: point(face.to) });
+      }
+      const model = stage.scene.models?.find(
+        (model) => model.id.trim() === collision.model?.trim()
+      );
+      if (model) {
+        const source = stageModelDisplayPosition(stage, model.position ?? [0, 0, 0]);
+        const moved = point([source[0], source[1]]);
+        preview.models.set(model.id, [...moved, source[2]]);
+        preview.rotations.set(model.id, angle);
+      }
       continue;
     }
     const position = sampleStagePosition(track.keyframes, frame);

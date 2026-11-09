@@ -602,6 +602,38 @@
       "required": ["target", "keyframes"],
       "additionalProperties": false
     },
+    "rotationAnimationTrack": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "collision" },
+            "id": { "$ref": "#/$defs/id" },
+            "property": { "const": "rotation" }
+          },
+          "required": ["kind", "id", "property"],
+          "additionalProperties": false
+        },
+        "pivot": { "$ref": "#/$defs/vec2" },
+        "keyframes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "time": { "type": "number", "minimum": 0 },
+              "angle": { "$ref": "#/$defs/finiteNumber" },
+              "offset": { "$ref": "#/$defs/vec2" }
+            },
+            "required": ["time", "angle"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["target", "pivot", "keyframes"],
+      "additionalProperties": false
+    },
     "emissionScalar": { "type": "number", "minimum": 0, "maximum": 65504 },
     "emissionColor": {
       "type": "array",
@@ -676,7 +708,8 @@
     "animationTrack": {
       "oneOf": [
         { "$ref": "#/$defs/positionAnimationTrack" },
-        { "$ref": "#/$defs/materialAnimationTrack" }
+        { "$ref": "#/$defs/materialAnimationTrack" },
+        { "$ref": "#/$defs/rotationAnimationTrack" }
       ]
     },
     "animation": {

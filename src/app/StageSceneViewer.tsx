@@ -459,6 +459,11 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
               onPointerDown={(event) => beginObjectDrag(event, { kind: 'model', id: model.id })}
             >
               <rect
+                transform={
+                  preview.rotations.has(model.id)
+                    ? `rotate(${(preview.rotations.get(model.id)! * 180) / Math.PI} ${toX(position[0])} ${toY(position[1])})`
+                    : undefined
+                }
                 x={toX(position[0] - dimensions[0])}
                 y={toY(position[1] - dimensions[1])}
                 width={Math.max(8, dimensions[0] * 2 * camera.scale)}
