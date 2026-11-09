@@ -72,6 +72,11 @@ installs a missing project pin (preparing NVM on demand on CachyOS), and
 `basaltw node exec -- npm run check` selects it per command. Ordinary NVM or
 compatible system Node works independently of Basaltwater.
 
+On npm 12, `package.json` permits the reviewed, pinned esbuild install script.
+After upgrading esbuild, review its install script and update that approval
+with `npm install-scripts approve esbuild` using npm 12. Keep approvals pinned;
+other dependency install scripts remain blocked by default.
+
 On native Windows, use `npm.cmd` if PowerShell blocks `npm.ps1`. Basaltwater's
 Linux `node`/`agent` commands do not apply there; see its
 [Windows game tools](https://github.com/bluehexagons/basaltwater/blob/main/docs/workstations/windows-game-development.md).
