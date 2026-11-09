@@ -328,7 +328,7 @@ const semanticIssues = (stage: StageDocument): StageIssue[] => {
         previousTime = keyframe.time;
       }
     }
-    if (animation.duration !== undefined && animation.duration < lastKeyframeTime + 1) {
+    if (animation.duration !== undefined && animation.duration < lastKeyframeTime) {
       issues.push({
         path: `/scene/animations/${animation.id}/duration`,
         message: `must include the final keyframe at time ${lastKeyframeTime}`,

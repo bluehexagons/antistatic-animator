@@ -648,6 +648,7 @@ it('preserves and previews collision rotation tracks and their shared hull', () 
   stage.scene.animations = [
     {
       id: 'rotate',
+      duration: 120,
       tracks: [
         {
           target: { kind: 'collision', id: 'deck', property: 'rotation' },
