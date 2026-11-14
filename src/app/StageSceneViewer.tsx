@@ -227,9 +227,12 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           const transform = model && stageSourceTransform(model);
           if (transform) {
             const start = positions[0] as Vec3;
+            const angle = preview.rotations.get(model!.id) ?? 0;
+            const c = Math.cos(angle),
+              s = Math.sin(angle);
             item.emissionSource.localPosition = transform.inverse([
-              start[0] + dx * (stage.scaleX || 1),
-              start[1] + dy * (stage.scaleY || 1),
+              start[0] + (c * dx + s * dy) * (stage.scaleX || 1),
+              start[1] + (-s * dx + c * dy) * (stage.scaleY || 1),
               start[2],
             ]);
           }
@@ -651,11 +654,16 @@ export const StageSceneViewer: React.FC<StageSceneViewerProps> = ({
           const world = transform?.forward(source?.localPosition ?? [0, 0, 0]);
           const base = model && stageModelDisplayPosition(stage, model.position ?? [0, 0, 0]);
           const animated = model && preview.models.get(model.id);
+          const angle = (model && preview.rotations.get(model.id)) ?? 0;
+          const c = Math.cos(angle),
+            s = Math.sin(angle);
+          const dx = world && base ? world[0] / (stage.scaleX || 1) - base[0] : 0;
+          const dy = world && base ? world[1] / (stage.scaleY || 1) - base[1] : 0;
           const position = source
-            ? world
+            ? world && base
               ? [
-                  world[0] / (stage.scaleX || 1) + (animated ? animated[0] - base[0] : 0),
-                  world[1] / (stage.scaleY || 1) + (animated ? animated[1] - base[1] : 0),
+                  (animated ?? base)[0] + c * dx - s * dy,
+                  (animated ?? base)[1] + s * dx + c * dy,
                   world[2],
                 ]
               : (animated ?? base)

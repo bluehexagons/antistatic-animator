@@ -645,6 +645,82 @@ describe('dedicated emission authoring controls', () => {
     expect(validateStageDocument(stage)).toEqual([]);
   });
 
+  it('rotates attached light offsets with collision previews and inversely transforms dragging', async () => {
+    const stage = fixture();
+    stage.scaleX = 2;
+    stage.scaleY = 3;
+    Object.assign(stage.scene.models![0], {
+      size: [1, 1, 1],
+      scale: [1, 1, 1],
+      position: [0, 0, 0],
+      rotation: { roll: 0 },
+    });
+    stage.scene.collision = [{ id: 'floor', model: 'lamp', from: [-1, 0], to: [1, 0], flags: [] }];
+    stage.scene.effects!.pointLights![0].emissionSource!.localPosition = [2, 0, 0];
+    stage.scene.animations = [
+      {
+        id: 'turn',
+        tracks: [
+          {
+            target: { kind: 'collision', id: 'floor', property: 'rotation' },
+            pivot: [0, 0],
+            keyframes: [
+              { time: 0, angle: 0 },
+              { time: 10, angle: 0.5 },
+            ],
+          },
+        ],
+      },
+    ];
+    const content = (frame: number) => (
+      <StageSceneViewer
+        stage={stage}
+        selection={{ kind: 'pointLight', id: 'source' }}
+        camera={{ x: 0, y: 0, scale: 1 }}
+        showGrid={false}
+        onSelect={vi.fn()}
+        onCameraChange={vi.fn()}
+        onChange={vi.fn()}
+        previewAnimation={stage.scene.animations![0]}
+        previewFrame={frame}
+      />
+    );
+    await mount(content(0));
+    const handle = () => container.querySelector('[aria-label="Attached offset for source"]')!;
+    const x = Number(handle().getAttribute('cx'));
+    const y = Number(handle().getAttribute('cy'));
+    await act(() => root.render(content(10)));
+    expect(Number(handle().getAttribute('cx'))).toBeCloseTo(x - 1);
+    expect(Number(handle().getAttribute('cy'))).toBeCloseTo(y + 1);
+
+    const svg = container.querySelector('svg')!;
+    Object.assign(svg, { setPointerCapture: vi.fn(), hasPointerCapture: () => false });
+    await act(() =>
+      handle().dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          button: 0,
+          clientX: x - 1,
+          clientY: y + 1,
+          pointerId: 1,
+        })
+      )
+    );
+    await act(() =>
+      svg.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          clientX: x,
+          clientY: y + 1,
+          pointerId: 1,
+        })
+      )
+    );
+    const offset = stage.scene.effects!.pointLights![0].emissionSource!.localPosition!;
+    expect(offset[0]).toBeCloseTo(2);
+    expect(offset[1]).toBeCloseTo(3);
+  });
+
   it('shows sampled emission feedback and transforms a dragged attached offset without moving its model', async () => {
     const stage = fixture();
     stage.scene.collision = [];
