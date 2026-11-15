@@ -645,17 +645,23 @@ describe('dedicated emission authoring controls', () => {
     expect(validateStageDocument(stage)).toEqual([]);
   });
 
-  it('rotates attached light offsets with collision previews and inversely transforms dragging', async () => {
+  it.each([
+    [1, 1],
+    [2, 3],
+  ])('rotates valid attached light previews with model scale %s/%s', async (scaleX, scaleY) => {
     const stage = fixture();
-    stage.scaleX = 2;
-    stage.scaleY = 3;
+    stage.scaleX = 1;
+    stage.scaleY = 1;
+    stage.symmetric = false;
     Object.assign(stage.scene.models![0], {
       size: [1, 1, 1],
-      scale: [1, 1, 1],
+      scale: [scaleX, scaleY, 1],
       position: [0, 0, 0],
       rotation: { roll: 0 },
     });
-    stage.scene.collision = [{ id: 'floor', model: 'lamp', from: [-1, 0], to: [1, 0], flags: [] }];
+    stage.scene.collision = [
+      { id: 'floor', model: 'lamp', from: [-1, 0], to: [1, 0], flags: ['top'] },
+    ];
     stage.scene.effects!.pointLights![0].emissionSource!.localPosition = [2, 0, 0];
     stage.scene.animations = [
       {
@@ -672,6 +678,7 @@ describe('dedicated emission authoring controls', () => {
         ],
       },
     ];
+    expect(validateStageDocument(stage)).toEqual([]);
     const content = (frame: number) => (
       <StageSceneViewer
         stage={stage}
@@ -690,8 +697,8 @@ describe('dedicated emission authoring controls', () => {
     const x = Number(handle().getAttribute('cx'));
     const y = Number(handle().getAttribute('cy'));
     await act(() => root.render(content(10)));
-    expect(Number(handle().getAttribute('cx'))).toBeCloseTo(x - 1);
-    expect(Number(handle().getAttribute('cy'))).toBeCloseTo(y + 1);
+    expect(Number(handle().getAttribute('cx'))).toBeCloseTo(x - 2 * scaleX);
+    expect(Number(handle().getAttribute('cy'))).toBeCloseTo(y + 2 * scaleX);
 
     const svg = container.querySelector('svg')!;
     Object.assign(svg, { setPointerCapture: vi.fn(), hasPointerCapture: () => false });
@@ -700,8 +707,8 @@ describe('dedicated emission authoring controls', () => {
         new PointerEvent('pointerdown', {
           bubbles: true,
           button: 0,
-          clientX: x - 1,
-          clientY: y + 1,
+          clientX: x - 2 * scaleX,
+          clientY: y + 2 * scaleX,
           pointerId: 1,
         })
       )
@@ -710,15 +717,16 @@ describe('dedicated emission authoring controls', () => {
       svg.dispatchEvent(
         new PointerEvent('pointermove', {
           bubbles: true,
-          clientX: x,
-          clientY: y + 1,
+          clientX: x - 2 * scaleX + 1,
+          clientY: y + 2 * scaleX,
           pointerId: 1,
         })
       )
     );
     const offset = stage.scene.effects!.pointLights![0].emissionSource!.localPosition!;
     expect(offset[0]).toBeCloseTo(2);
-    expect(offset[1]).toBeCloseTo(3);
+    expect(offset[1]).toBeCloseTo(1 / scaleY);
+    expect(validateStageDocument(stage)).toEqual([]);
   });
 
   it('shows sampled emission feedback and transforms a dragged attached offset without moving its model', async () => {
