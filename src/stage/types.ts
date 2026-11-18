@@ -58,6 +58,7 @@ export interface StageMaterial {
   detailScale?: number;
   detailNormalScale?: number;
   detailMapping?: 'auto' | 'uv' | 'box';
+  detailMotion?: null | 'emission-wave' | 'sheen-wave';
   detailRotation?: number;
   detailOffsetU?: number;
   detailOffsetV?: number;

@@ -299,7 +299,11 @@ describe('stage document operations', () => {
           armor: { rgba: [0.7, 0.6, 0.5, 1] },
           edge: {
             rgba: [0.9, 0.4, 0.1, 1],
-            material: { emissiveColor: 'palette', emissiveStrength: 0.05 },
+            material: {
+              emissiveColor: 'palette',
+              emissiveStrength: 0.05,
+              detailMotion: 'emission-wave',
+            },
           },
         },
         material: { detail: 'brushed', detailMapping: 'box', roughness: 0.6 },
@@ -308,7 +312,9 @@ describe('stage document operations', () => {
     const model = stage.scene.models![0];
     model.palette = 'orbital';
     model.paletteSlots = { PrimitiveDefault: 'edge' };
-    model.paletteOverrides = { colors: { edge: { rgba: [0.3, 0.8, 0.5, 1] } } };
+    model.paletteOverrides = {
+      colors: { edge: { rgba: [0.3, 0.8, 0.5, 1], material: { detailMotion: null } } },
+    };
     expect(validateStageDocument(stage)).toEqual([]);
     const saved = renderStageFile('// palette note\n' + JSON.stringify(stage), stage);
     expect(saved).toContain('// palette note');
@@ -350,6 +356,7 @@ describe('stage document operations', () => {
         detailMapping: 'box',
         detailOffsetU: 0.4,
         detailNormalScale: 0.05,
+        detailMotion: 'sheen-wave',
       },
     };
     stage.scene.effects = {

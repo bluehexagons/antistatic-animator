@@ -157,6 +157,7 @@
         "detailScale": { "type": "number", "minimum": 0.25, "maximum": 8 },
         "detailNormalScale": { "type": "number", "minimum": 0, "maximum": 2 },
         "detailMapping": { "enum": ["auto", "uv", "box"] },
+        "detailMotion": { "enum": [null, "emission-wave", "sheen-wave"] },
         "recolor": {
           "type": "object",
           "properties": {
@@ -922,6 +923,7 @@
         "detailMapping": {
           "enum": ["auto", "uv", "box"]
         },
+        "detailMotion": { "$ref": "#/$defs/material/properties/detailMotion" },
         "emissiveColor": {
           "oneOf": [
             {
