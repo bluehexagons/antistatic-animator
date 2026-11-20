@@ -31,7 +31,6 @@
     "ambientColor": [0.16, 0.075, 0.055],
     "backgroundColor": [0.055, 0.018, 0.02],
     "fogNear": 240,
-    "fogFar": 2800,
     "atmosphere": {
       "color": [0.32, 0.09, 0.04],
       "density": 0.00055,
@@ -173,7 +172,9 @@
           "gravity": [-0.25, -0.08],
           "geometry": false,
           "lightProbability": 0.3,
-          "glowStrength": 3.5,
+          "lightRange": 128,
+          "lightRadius": 32,
+          "lightIntensity": 2083,
           "shading": "emissive",
           "flicker": 0.4,
           "opacityFadeIn": 0.08,

@@ -357,6 +357,7 @@ describe('stage document operations', () => {
         detailOffsetU: 0.4,
         detailNormalScale: 0.05,
         detailMotion: 'sheen-wave',
+        filmThickness: 220,
       },
     };
     stage.scene.effects = {
@@ -374,6 +375,29 @@ describe('stage document operations', () => {
     stage.scene.effects.particleEmitters![1].sprite = 'bubble';
     stage.scene.effects.particleEmitters![0].velocityStretch = 65;
     expect(validateStageDocument(stage).some((issue) => issue.message.includes('<= 64'))).toBe(
+      true
+    );
+  });
+
+  it('preserves mesh maps and smooth clearcoat in saved palettes', () => {
+    const stage = createStageDocument('Finishes');
+    addStageSceneItem(stage, 'model');
+    const model = stage.scene.models![0];
+    model.palette = {
+      colors: {
+        rim: {
+          rgba: [0.24, 0.28, 0.32, 1],
+          material: { surfaceMap: 'longboat-rim', smoothClearcoat: true },
+        },
+      },
+    };
+    model.paletteSlots = { PrimitiveDefault: 'rim' };
+    expect(validateStageDocument(stage)).toEqual([]);
+    expect(parseStageDocument(renderStageFile(JSON.stringify(stage), stage)).document).toEqual(
+      stage
+    );
+    model.palette.colors.rim.material!.filmThickness = 421;
+    expect(validateStageDocument(stage).some((issue) => issue.message.includes('<= 420'))).toBe(
       true
     );
   });

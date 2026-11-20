@@ -121,6 +121,9 @@
         "ambientOcclusion": { "type": "number", "minimum": 0 },
         "clearcoat": { "type": "number", "minimum": 0, "maximum": 1 },
         "clearcoatRoughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "anisotropy": { "$ref": "#/$defs/paletteMaterial/properties/anisotropy" },
+        "anisotropyRotation": { "$ref": "#/$defs/paletteMaterial/properties/anisotropyRotation" },
+        "sheen": { "$ref": "#/$defs/paletteMaterial/properties/sheen" },
         "specularIor": { "type": "number", "exclusiveMinimum": 0 },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
         "transmission": { "type": "number", "minimum": 0, "maximum": 1 },
@@ -134,30 +137,43 @@
         "subsurfaceColor": { "$ref": "#/$defs/vec3" },
         "emissive": { "$ref": "#/$defs/vec3" },
         "emissiveStrength": { "type": "number", "minimum": 0 },
-        "detail": {
-          "enum": [
-            null,
-            "weave",
-            "brushed",
-            "hammered",
-            "bands",
-            "stone",
-            "aggregate",
-            "mineral",
-            "ore",
-            "slate",
-            "ceramic",
-            "patina",
-            "basalt"
-          ]
-        },
+        "detail": { "$ref": "#/$defs/paletteMaterial/properties/detail" },
         "detailRotation": { "type": "number", "minimum": 0, "maximum": 360 },
         "detailOffsetU": { "type": "number", "minimum": 0, "maximum": 1 },
         "detailOffsetV": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detailOverlay": { "$ref": "#/$defs/paletteMaterial/properties/detail" },
+        "detailBlend": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detailColorStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "finish": {
+          "enum": [
+            "paint",
+            "metal",
+            "coated-metal",
+            "glass",
+            "frosted-glass",
+            "wax",
+            "glow",
+            "unlit"
+          ]
+        },
+        "unlit": { "type": "boolean" },
+        "detailTintStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detailTintMask": { "enum": ["all", "raised", "recessed", "metallic", "dielectric"] },
+        "detailEmissionMask": { "enum": ["all", "raised", "recessed", "metallic", "dielectric"] },
+        "detailCoatMask": { "enum": ["all", "raised", "recessed", "metallic", "dielectric"] },
+        "smoothClearcoat": { "type": "boolean" },
+        "filmThickness": { "type": "number", "minimum": 0, "maximum": 420 },
+        "surfaceMap": { "enum": [null, "iron-knuckle", "xenon-jade", "longboat-rim"] },
+        "detailMotion": { "enum": [null, "emission-wave", "sheen-wave", "water-ripple"] },
+        "detailTint": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0, "maximum": 1 },
+          "minItems": 3,
+          "maxItems": 3
+        },
         "detailScale": { "type": "number", "minimum": 0.25, "maximum": 8 },
         "detailNormalScale": { "type": "number", "minimum": 0, "maximum": 2 },
         "detailMapping": { "enum": ["auto", "uv", "box"] },
-        "detailMotion": { "enum": [null, "emission-wave", "sheen-wave"] },
         "recolor": {
           "type": "object",
           "properties": {
@@ -386,58 +402,21 @@
       },
       "additionalProperties": false
     },
-    "rectLight": {
-      "type": "object",
-      "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "position": { "$ref": "#/$defs/vec3" },
-        "halfU": { "$ref": "#/$defs/vec3" },
-        "halfV": { "$ref": "#/$defs/vec3" },
-        "color": { "$ref": "#/$defs/vec3" },
-        "intensity": { "type": "number", "minimum": 0, "maximum": 1000000 },
-        "range": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 },
-        "twoSided": { "type": "boolean" }
-      },
-      "required": ["id", "position", "halfU", "halfV", "range"],
-      "additionalProperties": false
-    },
-    "diffuseProbes": {
-      "type": "object",
-      "properties": {
-        "minimum": { "$ref": "#/$defs/vec3" },
-        "maximum": { "$ref": "#/$defs/vec3" },
-        "dimensions": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
-          "items": { "type": "integer", "minimum": 2, "maximum": 4 }
-        },
-        "baked": {
-          "type": "object",
-          "properties": {
-            "version": { "const": 1 },
-            "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-            "irradiance": {
-              "type": "array",
-              "maxItems": 1152,
-              "items": { "type": "number", "minimum": 0, "maximum": 1000000 }
-            },
-            "cells": { "type": "array", "maxItems": 27, "items": { "enum": [0, 1] } }
-          },
-          "required": ["version", "fingerprint", "irradiance", "cells"],
-          "additionalProperties": false
-        }
-      },
-      "required": ["minimum", "maximum", "dimensions"],
-      "additionalProperties": false
-    },
     "fogVolume": {
       "type": "object",
       "properties": {
         "id": { "$ref": "#/$defs/id" },
+        "preset": { "enum": ["haze", "ground-mist"] },
+        "axisScale": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "number", "minimum": 0.015625, "maximum": 8 }
+        },
         "position": { "$ref": "#/$defs/vec3" },
         "radius": { "type": "number", "exclusiveMinimum": 0 },
         "density": { "type": "number", "minimum": 0 },
+        "feather": { "type": "number", "minimum": 0, "maximum": 1 },
         "color": { "$ref": "#/$defs/vec3" }
       },
       "required": ["id"],
@@ -467,6 +446,7 @@
         "smokeSpeed": { "type": "number" },
         "smokeDirection": { "$ref": "#/$defs/vec3" },
         "wind": { "$ref": "#/$defs/vec3" },
+        "shadowedScattering": { "type": "boolean" },
         "sunScattering": { "type": "number", "minimum": 0 },
         "pointLightScattering": { "type": "number", "minimum": 0 },
         "anisotropy": { "type": "number", "minimum": -0.9, "maximum": 0.9 }
@@ -512,6 +492,50 @@
       },
       "additionalProperties": false
     },
+    "localReflectionProbe": {
+      "type": "object",
+      "required": [
+        "id",
+        "environmentMap",
+        "capturePosition",
+        "minimum",
+        "maximum",
+        "blendDistance"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "environmentMap": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "environmentRotation": { "type": "number", "minimum": -1000000, "maximum": 1000000 },
+        "capturePosition": { "$ref": "#/$defs/localReflectionPosition" },
+        "minimum": { "$ref": "#/$defs/localReflectionPosition" },
+        "maximum": { "$ref": "#/$defs/localReflectionPosition" },
+        "blendDistance": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 }
+      },
+      "additionalProperties": false
+    },
+    "localReflectionPosition": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "type": "number", "minimum": -1000000, "maximum": 1000000 }
+    },
+    "lowQualityFill": {
+      "type": "object",
+      "required": ["minimum", "maximum", "color", "intensity", "feather"],
+      "properties": {
+        "minimum": { "$ref": "#/$defs/localReflectionPosition" },
+        "maximum": { "$ref": "#/$defs/localReflectionPosition" },
+        "color": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "number", "minimum": 0, "maximum": 4 }
+        },
+        "intensity": { "type": "number", "minimum": 0, "maximum": 8 },
+        "feather": { "type": "number", "minimum": 0.01, "maximum": 1000000 }
+      },
+      "additionalProperties": false
+    },
     "lighting": {
       "type": "object",
       "properties": {
@@ -521,11 +545,24 @@
         "ambientColor": { "$ref": "#/$defs/vec3" },
         "backgroundColor": { "$ref": "#/$defs/vec3" },
         "sky": { "$ref": "#/$defs/sky" },
+        "skyLight": {
+          "type": "object",
+          "properties": {
+            "intensity": { "type": "number", "minimum": 0, "maximum": 16 },
+            "saturation": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        },
         "reflectionProbe": { "$ref": "#/$defs/reflectionProbe" },
+        "localReflectionProbes": {
+          "type": "array",
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/localReflectionProbe" }
+        },
+        "lowQualityFill": { "$ref": "#/$defs/lowQualityFill" },
         "environmentMap": { "type": "string" },
         "environmentRotation": { "type": "number" },
         "fogNear": { "type": "number" },
-        "fogFar": { "type": "number" },
         "atmosphere": { "$ref": "#/$defs/atmosphere" },
         "colorGrading": { "$ref": "#/$defs/colorGrading" },
         "bloom": { "$ref": "#/$defs/bloom" }
@@ -536,6 +573,7 @@
       "type": "object",
       "properties": {
         "id": { "$ref": "#/$defs/id" },
+        "preset": { "enum": ["dust", "embers", "spores", "mist", "rain"] },
         "shape": { "enum": ["box", "ellipsoid"] },
         "target": { "$ref": "#/$defs/id" },
         "position": { "$ref": "#/$defs/vec3" },
@@ -543,6 +581,16 @@
         "color": { "$ref": "#/$defs/vec4" },
         "colorEnd": { "$ref": "#/$defs/vec4" },
         "rate": { "type": "number", "minimum": 0 },
+        "emissionPulse": {
+          "type": "object",
+          "properties": {
+            "period": { "type": "number", "minimum": 1, "maximum": 60 },
+            "amount": { "type": "number", "minimum": 0, "maximum": 1 },
+            "phase": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "required": ["period", "amount"],
+          "additionalProperties": false
+        },
         "velocity": { "$ref": "#/$defs/vec3" },
         "velocityJitter": { "$ref": "#/$defs/vec3" },
         "radius": { "$ref": "#/$defs/range" },
@@ -551,9 +599,11 @@
           "oneOf": [{ "$ref": "#/$defs/finiteNumber" }, { "$ref": "#/$defs/range" }]
         },
         "geometry": { "type": "boolean" },
-        "sprite": { "enum": ["diamond", "soft", "bubble"] },
+        "sprite": { "enum": ["diamond", "soft", "bubble", "wisp", "petal", "star", "impact"] },
         "lightProbability": { "type": "number", "minimum": 0, "maximum": 1 },
-        "glowStrength": { "type": "number", "minimum": 0 },
+        "lightRange": { "type": "number", "minimum": 0, "maximum": 128 },
+        "lightRadius": { "type": "number", "minimum": 0.01, "maximum": 32 },
+        "lightIntensity": { "type": "number", "minimum": 0, "maximum": 65536 },
         "shading": { "enum": ["lit", "emissive"] },
         "flicker": { "type": "number", "minimum": 0, "maximum": 1 },
         "opacityFadeIn": { "type": "number", "minimum": 0, "maximum": 1 },
@@ -732,6 +782,62 @@
       "required": ["id", "tracks"],
       "additionalProperties": false
     },
+    "rectLight": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "position": { "$ref": "#/$defs/vec3" },
+        "halfU": { "$ref": "#/$defs/vec3" },
+        "halfV": { "$ref": "#/$defs/vec3" },
+        "color": { "$ref": "#/$defs/vec3" },
+        "intensity": { "type": "number", "minimum": 0, "maximum": 1000000 },
+        "range": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 },
+        "twoSided": { "type": "boolean" },
+        "castsShadows": { "type": "boolean" }
+      },
+      "required": ["id", "position", "halfU", "halfV", "range"],
+      "additionalProperties": false
+    },
+    "diffuseProbes": {
+      "type": "object",
+      "properties": {
+        "minimum": { "$ref": "#/$defs/vec3" },
+        "maximum": { "$ref": "#/$defs/vec3" },
+        "dimensions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "integer", "minimum": 2, "maximum": 4 }
+        },
+        "baked": {
+          "type": "object",
+          "properties": {
+            "version": { "const": 1 },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "description": "Loaded geometry/material/light hash; mapped bakes also include canonical encoded-asset SHA-256 digests, decoder/sampler revision and HDR rotation."
+            },
+            "irradiance": {
+              "type": "array",
+              "maxItems": 1152,
+              "items": { "type": "number", "minimum": 0, "maximum": 1000000 }
+            },
+            "cells": {
+              "type": "array",
+              "maxItems": 27,
+              "items": {
+                "enum": [0, 1]
+              }
+            }
+          },
+          "required": ["version", "fingerprint", "irradiance", "cells"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["minimum", "maximum", "dimensions"],
+      "additionalProperties": false
+    },
     "scene": {
       "type": "object",
       "properties": {
@@ -744,20 +850,51 @@
         "effects": {
           "type": "object",
           "properties": {
-            "pointLights": { "type": "array", "items": { "$ref": "#/$defs/pointLight" } },
             "rectLights": {
               "type": "array",
               "maxItems": 4,
               "items": { "$ref": "#/$defs/rectLight" }
             },
             "diffuseProbes": { "$ref": "#/$defs/diffuseProbes" },
+            "diffuseProbeVolumes": {
+              "type": "array",
+              "maxItems": 2,
+              "items": { "$ref": "#/$defs/diffuseProbes" }
+            },
+            "pointLights": { "type": "array", "items": { "$ref": "#/$defs/pointLight" } },
             "fogVolumes": {
               "type": "array",
               "items": { "$ref": "#/$defs/fogVolume" },
               "maxItems": 4
             },
+            "heatHaze": {
+              "type": "array",
+              "maxItems": 2,
+              "items": {
+                "type": "object",
+                "required": ["id", "position", "size", "strength"],
+                "additionalProperties": false,
+                "properties": {
+                  "id": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+                  "position": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": { "type": "number", "minimum": -1000000, "maximum": 1000000 }
+                  },
+                  "size": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": { "type": "number", "minimum": 1, "maximum": 512 }
+                  },
+                  "strength": { "type": "number", "minimum": 0.01, "maximum": 8 }
+                }
+              }
+            },
             "particleEmitters": { "type": "array", "items": { "$ref": "#/$defs/particleEmitter" } }
           },
+          "not": { "required": ["diffuseProbes", "diffuseProbeVolumes"] },
           "additionalProperties": false
         },
         "palettes": {
@@ -800,6 +937,9 @@
           "minimum": 0,
           "maximum": 1
         },
+        "anisotropy": { "type": "number", "minimum": 0, "maximum": 1 },
+        "anisotropyRotation": { "type": "number", "minimum": 0, "maximum": 360 },
+        "sheen": { "type": "number", "minimum": 0, "maximum": 1 },
         "opacity": {
           "type": "number",
           "minimum": 0,
@@ -892,7 +1032,15 @@
             "slate",
             "ceramic",
             "patina",
-            "basalt"
+            "basalt",
+            "powdercoat",
+            "etched",
+            "chiseled",
+            "tread",
+            "agate",
+            "prism",
+            "inlay",
+            "laminate"
           ]
         },
         "detailRotation": {
@@ -910,6 +1058,41 @@
           "minimum": 0,
           "maximum": 1
         },
+        "detailOverlay": { "$ref": "#/$defs/paletteMaterial/properties/detail" },
+        "detailBlend": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detailColorStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "finish": {
+          "enum": [
+            "paint",
+            "metal",
+            "coated-metal",
+            "glass",
+            "frosted-glass",
+            "wax",
+            "glow",
+            "unlit"
+          ]
+        },
+        "unlit": { "type": "boolean" },
+        "detailTintStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+        "detailTintMask": { "enum": ["all", "raised", "recessed", "metallic", "dielectric"] },
+        "detailEmissionMask": { "enum": ["all", "raised", "recessed", "metallic", "dielectric"] },
+        "detailCoatMask": { "enum": ["all", "raised", "recessed", "metallic", "dielectric"] },
+        "smoothClearcoat": { "type": "boolean" },
+        "filmThickness": { "type": "number", "minimum": 0, "maximum": 420 },
+        "surfaceMap": { "enum": [null, "iron-knuckle", "xenon-jade", "longboat-rim"] },
+        "detailMotion": { "$ref": "#/$defs/material/properties/detailMotion" },
+        "detailTint": {
+          "oneOf": [
+            { "const": "palette" },
+            {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0, "maximum": 1 },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          ]
+        },
         "detailScale": {
           "type": "number",
           "minimum": 0.25,
@@ -923,7 +1106,6 @@
         "detailMapping": {
           "enum": ["auto", "uv", "box"]
         },
-        "detailMotion": { "$ref": "#/$defs/material/properties/detailMotion" },
         "emissiveColor": {
           "oneOf": [
             {

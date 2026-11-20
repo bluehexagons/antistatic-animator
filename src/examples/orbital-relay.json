@@ -37,7 +37,6 @@
       "negativeZ": [0.04, 0.06, 0.15]
     },
     "fogNear": 700,
-    "fogFar": 5200,
     "colorGrading": {
       "tint": [0.9, 0.97, 1.12],
       "saturation": 0.88,
@@ -210,7 +209,9 @@
           "lifetime": [1.5, 4.5],
           "geometry": false,
           "lightProbability": 0.2,
-          "glowStrength": 2.8,
+          "lightRange": 128,
+          "lightRadius": 32,
+          "lightIntensity": 1667,
           "shading": "emissive",
           "opacityFadeIn": 0.12,
           "opacityFadeOut": 0.65,

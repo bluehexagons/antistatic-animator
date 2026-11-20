@@ -383,7 +383,6 @@ export const StageInspector: React.FC<StageInspectorProps> = ({
                 'environmentMap',
                 'environmentRotation',
                 'fogNear',
-                'fogFar',
                 'atmosphere',
                 'colorGrading',
               ]}

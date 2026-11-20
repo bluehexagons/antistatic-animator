@@ -29,7 +29,6 @@
     "ambientColor": [0.09, 0.13, 0.2],
     "backgroundColor": [0.035, 0.055, 0.09],
     "fogNear": 450,
-    "fogFar": 3200,
     "colorGrading": {
       "tint": [0.92, 1, 1.08],
       "saturation": 0.92,
@@ -173,7 +172,6 @@
           "lifetime": [0.3, 1.2],
           "gravity": [0.1, 0.35],
           "geometry": false,
-          "glowStrength": 2.2,
           "shading": "emissive",
           "opacityFadeOut": 0.7,
           "nearFade": 0

@@ -30,6 +30,9 @@ export interface StageMaterial {
   ambientOcclusion?: number;
   clearcoat?: number;
   clearcoatRoughness?: number;
+  smoothClearcoat?: boolean;
+  filmThickness?: number;
+  surfaceMap?: null | 'iron-knuckle' | 'xenon-jade' | 'longboat-rim';
   specularIor?: number;
   opacity?: number;
   transmission?: number;
@@ -226,7 +229,9 @@ export interface StageParticleEmitter {
   geometry?: boolean;
   sprite?: 'diamond' | 'soft' | 'bubble';
   lightProbability?: number;
-  glowStrength?: number;
+  lightRange?: number;
+  lightRadius?: number;
+  lightIntensity?: number;
   shading?: 'lit' | 'emissive';
   flicker?: number;
   opacityFadeIn?: number;
@@ -342,7 +347,6 @@ export interface StageLighting {
   environmentMap?: string;
   environmentRotation?: number;
   fogNear?: number;
-  fogFar?: number;
   atmosphere?: {
     color?: Vec3;
     density?: number;
