@@ -7,9 +7,24 @@ each check's outcome in ignored `local-artifacts/`.
 
 ## Prepare the Windows x64 archive
 
-Run from the Animator root in PowerShell with a compatible Node version. Start
-with the archive from the candidate release workflow when available. For a
-local rehearsal, build the same archive in a new output directory:
+Run from the Animator root in PowerShell with a compatible Node version. For
+hosted validation, use an authenticated GitHub CLI and the successful Release
+workflow run for the intended revision. To rehearse the hosted build from
+`main`, run `gh workflow run release.yml --ref main`.
+
+```powershell
+$runId = '<Release workflow run ID>'
+$run = "local-artifacts/desktop-qa-$runId"
+gh run view $runId --json headSha,conclusion,url
+gh run download $runId --name win32-x64-archive --dir "$run/download"
+$zip = Get-ChildItem -LiteralPath "$run/download" -File -Filter '*.zip'
+Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256
+Expand-Archive -LiteralPath $zip.FullName -DestinationPath "$run/Extracted – Animator"
+```
+
+Confirm `headSha` matches the intended revision and `conclusion` is `success`
+before downloading. Record the workflow run URL and the hash of the downloaded
+ZIP. For a local rehearsal, build the archive in a new output directory:
 
 ```powershell
 npm.cmd ci
@@ -37,9 +52,11 @@ non-ASCII characters in both the extracted and project paths.
 - [ ] Open the source picker again and cancel the native dialog. Confirm that
       the previously selected project and open file are still available.
 - [ ] In **Stages**, open a valid JSONC stage with a comment, edit a field such
-      as a blast bound, and use **Save**. Confirm the new value and comment on disk,
-      then reopen the stage and check the value. The project folder picker provides
-      the save destination for desktop edits.
+      as a blast bound, then try switching to a second disposable project. Cancel
+      the discard prompt and confirm the edit and original project are still
+      selected. Use **Save** and confirm the new value and comment on disk. On
+      reopening the editor with the same profile, confirm the project is restored
+      and the stage opens with the saved value.
 - [ ] With the stage open, replace its file externally. Wait for **Reload
       changed**, confirm **Save** is disabled, and reload to see the new value.
 - [ ] Open the adjacent Antistatic checkout and start a headless session in
