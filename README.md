@@ -144,9 +144,12 @@ current parity audit and known gaps.
 
 Automated via GitHub Actions:
 
-- `CI` workflow runs type-check, lint, tests, and build on pushes and pull
-  requests targeting `main`, version tags, and manual dispatch
+- `CI` workflow runs type-check, lint, tests, and build on Linux and Windows
+  for pushes and pull requests targeting `main`, version tags, and manual dispatch
 - `Release` workflow publishes packages on `v*` tags
+
+Use the [desktop release QA checklist](docs/desktop-release-qa.md) to validate
+the extracted app, native dialogs, and filesystem integration.
 
 ## Tools API
 
@@ -169,7 +172,6 @@ await window.Tools.save();
 ```
 
 See `AGENTS.md` for detailed architecture and development guidance.
-
 
 Packaging temporarily overrides `@electron/asar`'s `glob` and `minimatch`
 dependencies to patched releases for

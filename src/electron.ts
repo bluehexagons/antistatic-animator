@@ -4,6 +4,7 @@ import * as path from 'path';
 import { pathToFileURL } from 'node:url';
 import { isApplicationUrl } from './runtime/renderer-policy';
 import { AntistaticProcessManager } from './runtime/antistatic';
+import { writeFileAtomic } from './storage/atomic-write';
 
 const antistatic = new AntistaticProcessManager();
 const applicationUrl = pathToFileURL(path.join(__dirname, 'index.html')).href;
@@ -14,7 +15,6 @@ type StorageRoot = { requested: string; real?: string };
 
 const storageRoots = new Map<number, StorageRoot>();
 const storageWatchers = new Map<string, { sender: Electron.WebContents; watcher: fs.FSWatcher }>();
-let atomicWriteSequence = 0;
 
 const assertTrustedRenderer = (event: StorageIpcEvent): void => {
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -93,28 +93,6 @@ const response = <T>(operation: () => T): StorageResponse<T> => {
     return { ok: true, value: operation() };
   } catch (error) {
     return { ok: false, error: (error as Error).message ?? String(error) };
-  }
-};
-
-const writeFileAtomic = (filename: string, content: string): void => {
-  const temporary = `${filename}.antistatic-animator-${Date.now()}-${process.pid}-${atomicWriteSequence++}.tmp`;
-  let descriptor: number | undefined;
-  try {
-    fs.mkdirSync(path.dirname(filename), { recursive: true });
-    fs.writeFileSync(temporary, content, { encoding: 'utf8' });
-    descriptor = fs.openSync(temporary, 'r');
-    fs.fsyncSync(descriptor);
-    fs.closeSync(descriptor);
-    descriptor = undefined;
-    fs.renameSync(temporary, filename);
-  } catch (error) {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-    try {
-      fs.unlinkSync(temporary);
-    } catch {
-      // Preserve the original write/rename error.
-    }
-    throw error;
   }
 };
 
