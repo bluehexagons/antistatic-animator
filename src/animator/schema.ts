@@ -171,6 +171,8 @@ export const TweenNames = [
   'sineIn',
   'sineOut',
   'sineInOut',
+  'smoothstep',
+  'smootherstep',
   'quadIn',
   'quadOut',
   'quadInOut',
