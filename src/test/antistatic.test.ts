@@ -70,8 +70,12 @@ describe('Antistatic launch helpers', () => {
         join(root, 'scripts', 'run-local.mjs'),
         `
         import { writeFileSync } from 'node:fs';
+        process.on('message', (message) => {
+          if (message.type !== 'quit') return;
+          writeFileSync('game-stopped', 'orderly');
+          process.disconnect();
+        });
         writeFileSync('launched.json', JSON.stringify({ execPath: process.execPath, args: process.argv.slice(2) }));
-        setInterval(() => {}, 1000);
       `
       );
       writeFileSync(
@@ -91,6 +95,7 @@ describe('Antistatic launch helpers', () => {
         expect(JSON.parse(readFileSync(join(root, 'launched.json'), 'utf8')).args).toEqual([])
       );
       await manager.stopGame();
+      expect(readFileSync(join(root, 'game-stopped'), 'utf8')).toBe('orderly');
       const ready = await manager.startAgentPlay({
         rootDir: root,
         startMode: 'training',
@@ -101,6 +106,47 @@ describe('Antistatic launch helpers', () => {
       });
       expect(ready.startMode).toBe('training');
       expect((await manager.requestAgentPlay({ command: 'observe' })).ok).toBe(true);
+    } finally {
+      await manager.dispose();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('stops an Agent Play runner before it becomes ready and allows a fresh launch', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'animator agent startup '));
+    const manager = new AntistaticProcessManager();
+    const options = {
+      rootDir: root,
+      startMode: 'training' as const,
+      compile: false,
+      render: false,
+      softwareGl: false,
+      resolution: '640x360',
+    };
+    try {
+      mkdirSync(join(root, 'scripts'));
+      writeFileSync(
+        join(root, 'scripts', 'agent-play.mjs'),
+        `
+        import { existsSync, writeFileSync } from 'node:fs';
+        process.stdin.once('end', () => writeFileSync('agent-stopped', 'orderly'));
+        process.stdin.resume();
+        if (existsSync('agent-stopped')) {
+          console.log(JSON.stringify({ type: 'ready', protocolVersion: 1, startMode: 'training' }));
+        } else {
+          writeFileSync('agent-starting', 'pending');
+        }
+        `
+      );
+      const starting = manager.startAgentPlay(options);
+      const stopped = expect(starting).rejects.toThrow('agent-play was stopped');
+      await vi.waitFor(() =>
+        expect(readFileSync(join(root, 'agent-starting'), 'utf8')).toBe('pending')
+      );
+      await manager.dispose();
+      await stopped;
+      expect(readFileSync(join(root, 'agent-stopped'), 'utf8')).toBe('orderly');
+      await expect(manager.startAgentPlay(options)).resolves.toMatchObject({ type: 'ready' });
     } finally {
       await manager.dispose();
       rmSync(root, { recursive: true, force: true });

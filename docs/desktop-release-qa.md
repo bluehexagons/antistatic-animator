@@ -63,6 +63,12 @@ non-ASCII characters in both the extracted and project paths.
       **Game tools**. Run an observation, stop the session, and close Animator.
       Confirm its game process exits. Use the source Node version and native build
       prerequisites for the selected game revision.
+- [ ] Start Agent Play again and close Animator during startup. Check that the
+      runner and engine worker both exit. Reopen Animator and confirm a fresh
+      session reaches readiness and accepts an observation.
+- [ ] On Windows, use **Launch Game** with an Antistatic source checkout and
+      a wired pad. Use **Stop Game** and confirm the source runner and engine
+      exit. Confirm the controller still responds in `joy.cpl`.
 
 Run the same desktop smoke on a macOS target with its candidate app bundle.
 The [release workflow](../.github/workflows/release.yml) currently produces

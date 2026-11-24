@@ -70,6 +70,7 @@ interface GameLaunchSpec {
   args: string[];
   cwd: string;
   path: string;
+  source?: boolean;
 }
 
 const resolveGameLaunch = (rootDir: string): GameLaunchSpec => {
@@ -88,6 +89,7 @@ const resolveGameLaunch = (rootDir: string): GameLaunchSpec => {
       args: ['scripts/run-local.mjs'],
       cwd: root,
       path: join(root, 'scripts', 'run-local.mjs'),
+      source: true,
     };
   }
   throw new Error(
@@ -145,7 +147,12 @@ const isRunning = (child: ChildProcess): boolean =>
 const signalProcessTree = (child: ChildProcess, signal: NodeJS.Signals) => {
   if (!isRunning(child) || !child.pid) return;
   if (process.platform === 'win32') {
-    spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    const result = spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      timeout: 2_000,
+      windowsHide: true,
+    });
+    if (result.status !== 0) child.kill(signal);
     return;
   }
   try {
@@ -205,6 +212,7 @@ class AgentPlaySession {
     this.lines = createInterface({ crlfDelay: Infinity, input: child.stdout });
     this.lines.on('line', (line) => {
       this.appendDiagnostics(line);
+      if (this.closed) return;
       try {
         const record = JSON.parse(line) as Record<string, unknown>;
         const waiter = this.waiters.shift();
@@ -221,6 +229,9 @@ class AgentPlaySession {
       }
     });
     child.stderr.on('data', (chunk) => this.appendDiagnostics(String(chunk)));
+    child.stdin.on('error', (error) =>
+      this.fail(new Error(`Antistatic agent-play input closed: ${error.message}`))
+    );
     child.on('error', (error) =>
       this.fail(new Error(`Unable to start Antistatic agent-play: ${error.message}`))
     );
@@ -232,9 +243,7 @@ class AgentPlaySession {
     });
   }
 
-  static async start(
-    options: AgentPlayOptions
-  ): Promise<{ session: AgentPlaySession; ready: AgentPlayReady }> {
+  static start(options: AgentPlayOptions): AgentPlaySession {
     const runnerArgs = buildAgentPlayArgs(options);
     // Electron's process.execPath is the desktop app, not the project's Node.
     const node = nodeExecutableName(process.platform);
@@ -251,19 +260,17 @@ class AgentPlaySession {
       env: buildAgentPlayEnvironment(options),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    const session = new AgentPlaySession(child);
-    try {
-      const ready = (await session.readRecord('agent-play startup')) as AgentPlayReady;
-      if (ready.type !== 'ready' || ready.protocolVersion !== AGENT_PLAY_PROTOCOL_VERSION) {
-        throw new Error(
-          `Antistatic agent-play returned an invalid ready record${session.diagnostics()}`
-        );
-      }
-      return { session, ready };
-    } catch (error) {
-      await session.close();
-      throw error;
+    return new AgentPlaySession(child);
+  }
+
+  async waitUntilReady(): Promise<AgentPlayReady> {
+    const ready = (await this.readRecord('agent-play startup')) as AgentPlayReady;
+    if (ready.type !== 'ready' || ready.protocolVersion !== AGENT_PLAY_PROTOCOL_VERSION) {
+      throw new Error(
+        `Antistatic agent-play returned an invalid ready record${this.diagnostics()}`
+      );
     }
+    return ready;
   }
 
   async request(request: AgentPlayRequest): Promise<AgentPlayResponse> {
@@ -297,15 +304,16 @@ class AgentPlaySession {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    this.queuedRecords.length = 0;
+    this.fail(new Error('Antistatic agent-play was stopped'));
     try {
-      if (isRunning(this.child) && !this.requestActive) {
-        this.closed = false;
-        await this.request({ command: 'quit' }).catch(() => undefined);
-        this.closed = true;
+      if (isRunning(this.child)) {
+        // EOF also works before ready or while a request is active. The
+        // runner handles it by asking its engine worker to shut down.
+        this.child.stdin.end();
         await waitForExit(this.child, 3_000).catch(() => undefined);
       }
     } finally {
-      this.closed = true;
       this.lines.close();
       await stopProcessTree(this.child);
     }
@@ -349,12 +357,17 @@ class AgentPlaySession {
   }
 }
 
+type AgentPlayLaunch = { session: AgentPlaySession | null; ready: boolean };
+
 export class AntistaticProcessManager {
   private gameProcess: ChildProcess | null = null;
   private gamePath = '';
-  private agentSession: AgentPlaySession | null = null;
+  private gameStopping: Promise<void> | null = null;
+  private agentLaunch: AgentPlayLaunch | null = null;
+  private agentStopping: Promise<void> = Promise.resolve();
 
   async launchGame(rootDir: string, onExit?: () => void): Promise<AntistaticLaunchResult> {
+    if (this.gameStopping) await this.gameStopping;
     if (this.gameProcess && isRunning(this.gameProcess)) {
       return { command: this.gamePath, path: this.gamePath };
     }
@@ -362,8 +375,9 @@ export class AntistaticProcessManager {
     const child = spawn(launch.command, launch.args, {
       cwd: launch.cwd,
       detached: process.platform !== 'win32',
-      stdio: 'ignore',
+      stdio: launch.source ? ['ignore', 'ignore', 'ignore', 'ipc'] : 'ignore',
     });
+    child.channel?.unref();
     this.gameProcess = child;
     this.gamePath = launch.path;
     let exitNotified = false;
@@ -400,29 +414,60 @@ export class AntistaticProcessManager {
   }
 
   async stopGame(): Promise<void> {
+    if (this.gameStopping) return this.gameStopping;
     if (!this.gameProcess) return;
     const child = this.gameProcess;
     this.gameProcess = null;
     this.gamePath = '';
+    this.gameStopping = this.stopDesktopGame(child);
+    try {
+      await this.gameStopping;
+    } finally {
+      this.gameStopping = null;
+    }
+  }
+
+  private async stopDesktopGame(child: ChildProcess): Promise<void> {
+    if (child.connected && isRunning(child)) {
+      const sent = await new Promise<boolean>((resolveSend) => {
+        child.send({ type: 'quit' }, (error) => resolveSend(!error));
+      });
+      if (sent) await waitForExit(child, 5_500).catch(() => undefined);
+    }
     await stopProcessTree(child);
   }
 
   async startAgentPlay(options: AgentPlayOptions): Promise<AgentPlayReady> {
-    await this.stopAgentPlay();
-    const { session, ready } = await AgentPlaySession.start(options);
-    this.agentSession = session;
-    return ready;
+    const stopping = this.stopAgentPlay();
+    const launch: AgentPlayLaunch = { session: null, ready: false };
+    this.agentLaunch = launch;
+    try {
+      await stopping;
+      if (this.agentLaunch !== launch) throw new Error('Antistatic agent-play was stopped');
+      const session = AgentPlaySession.start(options);
+      launch.session = session;
+      const ready = await session.waitUntilReady();
+      if (this.agentLaunch !== launch) throw new Error('Antistatic agent-play was stopped');
+      launch.ready = true;
+      return ready;
+    } catch (error) {
+      if (this.agentLaunch === launch) await this.stopAgentPlay();
+      throw error;
+    }
   }
 
   async requestAgentPlay(request: AgentPlayRequest): Promise<AgentPlayResponse> {
-    if (!this.agentSession) throw new Error('No Antistatic headless test session is running');
-    return this.agentSession.request(request);
+    const launch = this.agentLaunch;
+    if (!launch?.ready || !launch.session)
+      throw new Error('No Antistatic headless test session is running');
+    return launch.session.request(request);
   }
 
   async stopAgentPlay(): Promise<void> {
-    const session = this.agentSession;
-    this.agentSession = null;
-    if (session) await session.close();
+    const session = this.agentLaunch?.session;
+    this.agentLaunch = null;
+    if (session) this.agentStopping = session.close();
+    await this.agentStopping;
   }
 
   async dispose(): Promise<void> {
